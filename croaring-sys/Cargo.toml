@@ -1,0 +1,16 @@
+[package]
+name = "croaring-sys"
+version = "0.1.0"
+authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
+license = "Apache License, Version 2.0"
+repository = "https://github.com/saulius/croaring-rs.git"
+readme = "../README.md"
+documentation = "http://saulius.github.io/croaring-rs/croaring_sys/index.html"
+build = "build.rs"
+description = "Raw bindings to CRoaring"
+
+[dependencies]
+libc = "0.2"
+
+[build-dependencies]
+cmake = "0.1"
