@@ -1,0 +1,18 @@
+[package]
+name = "croaring"
+version = "0.1.0"
+authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
+license = "Apache License, Version 2.0"
+description = "Rust wrapper for CRoaring"
+repository = "https://github.com/saulius/roaringbitmap-rs.git"
+readme = "README.md"
+keywords = ["RoaringBitmap", "croaring", "bitmap"]
+documentation = "http://saulius.github.io/croaring-rs/index.html"
+
+[dev-dependencies]
+quickcheck = "0.3.1"
+rand = "0.3"
+
+[dependencies]
+libc = "0.2"
+croaring-sys = { path = "croaring-sys", version = "0.1.0" }
