@@ -1,13 +1,11 @@
-extern crate cmake;
+extern crate gcc;
 
 fn main() {
-    let mut cfg = cmake::Config::new("CRoaring");
+    let mut config = gcc::Config::new();
 
-    let dst = cfg
-        .define("BUILD_STATIC", "ON")
-        .build();
-
-    println!("cargo:rustc-link-search=native={}/lib", dst.display());
-    println!("cargo:rustc-link-lib=static=roaring");
-    println!("cargo:include={}/include", dst.display());
+    config.flag("-std=c11");
+    config.flag("-march=native");
+    config.flag("-O3");
+    config.file("CRoaring/roaring.c");
+    config.compile("libroaring.a");
 }
