@@ -2,7 +2,7 @@
 name = "croaring"
 version = "0.1.0"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
-license = "Apache License, Version 2.0"
+license = "Apache-2.0"
 description = "Rust wrapper for CRoaring"
 repository = "https://github.com/saulius/roaringbitmap-rs.git"
 readme = "README.md"
