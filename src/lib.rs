@@ -7,7 +7,7 @@ extern crate croaring_sys as ffi;
 
 use std::fmt;
 use std::slice;
-use std::ops::Range;
+use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Range};
 use std::iter::{FromIterator, IntoIterator};
 
 pub struct Bitmap {
@@ -750,5 +750,180 @@ impl<'a> IntoIterator for &'a Bitmap {
     /// ```
     fn into_iter(self) -> Self::IntoIter {
         self.as_slice().into_iter()
+    }
+}
+
+impl BitAnd for Bitmap {
+    type Output = Bitmap;
+
+    /// Syntactic sugar for `.and`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(1);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(1);
+    /// bitmap2.add(2);
+    ///
+    /// let bitmap3 = bitmap1 & bitmap2;
+    ///
+    /// assert!(bitmap3.contains(1));
+    /// assert!(!bitmap3.contains(2));
+    /// ```
+    fn bitand(self, other: Bitmap) -> Bitmap {
+        self.and(&other)
+    }
+}
+
+impl BitAndAssign for Bitmap {
+    /// Syntactic sugar for `.and_inplace`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(15);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(25);
+    ///
+    /// let mut bitmap3 = Bitmap::create();
+    /// bitmap3.add(15);
+    ///
+    /// let mut bitmap4 = Bitmap::create();
+    /// bitmap4.add(15);
+    /// bitmap4.add(25);
+    ///
+    /// bitmap1 &= bitmap2;
+    ///
+    /// assert!(bitmap1.cardinality() == 0);
+    /// assert!(!bitmap1.contains(15));
+    /// assert!(!bitmap1.contains(25));
+    ///
+    /// bitmap3 &= bitmap4;
+    ///
+    /// assert!(bitmap3.cardinality() == 1);
+    /// assert!(bitmap3.contains(15));
+    /// assert!(!bitmap3.contains(25));
+    /// ```
+    fn bitand_assign(&mut self, other: Bitmap) {
+        self.and_inplace(&other);
+    }
+}
+
+impl BitOr for Bitmap {
+    type Output = Bitmap;
+
+    /// Syntatic sugar for `.or`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(15);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(25);
+    ///
+    /// let bitmap3 = bitmap1 | bitmap2;
+    ///
+    /// assert!(bitmap3.cardinality() == 2);
+    /// assert!(bitmap3.contains(15));
+    /// assert!(bitmap3.contains(25));
+    /// ```
+    fn bitor(self, other: Bitmap) -> Bitmap {
+        self.or(&other)
+    }
+}
+
+impl BitOrAssign for Bitmap {
+    /// Syntatic sugar for `.or_inplace`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(15);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(25);
+    ///
+    /// bitmap1 |= bitmap2;
+    ///
+    /// assert!(bitmap1.cardinality() == 2);
+    /// assert!(bitmap1.contains(15));
+    /// assert!(bitmap1.contains(25));
+    /// ```
+    fn bitor_assign(&mut self, other: Bitmap) {
+        self.or_inplace(&other)
+    }
+}
+
+impl BitXor for Bitmap {
+    type Output = Bitmap;
+
+    /// Syntatic sugar for `.xor`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(15);
+    /// bitmap1.add(25);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(25);
+    /// bitmap2.add(35);
+    ///
+    /// let bitmap3 = bitmap1 ^ bitmap2;
+    ///
+    /// assert!(bitmap3.cardinality() == 2);
+    /// assert!(bitmap3.contains(15));
+    /// assert!(!bitmap3.contains(25));
+    /// assert!(bitmap3.contains(35));
+    /// ```
+    fn bitxor(self, other: Bitmap) -> Bitmap {
+        self.xor(&other)
+    }
+}
+
+impl BitXorAssign for Bitmap {
+    /// Syntatic sugar for `.xor_inplace`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(15);
+    /// bitmap1.add(25);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(25);
+    /// bitmap2.add(35);
+    ///
+    /// bitmap1 ^= bitmap2;
+    ///
+    /// assert!(bitmap1.cardinality() == 2);
+    /// assert!(bitmap1.contains(15));
+    /// assert!(!bitmap1.contains(25));
+    /// assert!(bitmap1.contains(35));
+    /// ```
+    fn bitxor_assign(&mut self, other: Bitmap) {
+        self.xor_inplace(&other)
     }
 }
