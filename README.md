@@ -6,6 +6,8 @@ The original java version can be found at https://github.com/RoaringBitmap/Roari
 ### Usage example
 
 ```rust
+use croaring::Bitmap;
+
 let mut rb1 = Bitmap::create();
 rb1.add(1);
 rb1.add(2);

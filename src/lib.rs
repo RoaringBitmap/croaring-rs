@@ -4,6 +4,8 @@
 //! # Example
 //!
 //! ```rust
+//! use croaring::Bitmap;
+//!
 //! let mut rb1 = Bitmap::create();
 //! rb1.add(1);
 //! rb1.add(2);
