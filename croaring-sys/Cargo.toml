@@ -13,4 +13,4 @@ description = "Raw bindings to CRoaring"
 libc = "0.2"
 
 [build-dependencies]
-cmake = "0.1"
+gcc = "0.3"
