@@ -60,7 +60,6 @@ println!("{:?}", rb4);
 ```
 git checkout https://github.com/saulius/croaring-rs/
 cd croaring-rs
-git submodule update --init --recursive
 cargo build
 ```
 
