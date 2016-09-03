@@ -1,6 +1,6 @@
-/* auto-generated on Mon Aug 22 21:49:42 EEST 2016. Do not edit! */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/portability.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/portability.h"
+/* auto-generated on Fri Sep  2 21:26:08 EDT 2016. Do not edit! */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/portability.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/portability.h"
 /*
  * portability.h
  *
@@ -85,9 +85,9 @@ static inline int hamming(uint64_t x) {
 #endif
 
 #endif /* INCLUDE_PORTABILITY_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/portability.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/perfparameters.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/perfparameters.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/portability.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/perfparameters.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/perfparameters.h"
 #ifndef PERFPARAMETERS_H_
 #define PERFPARAMETERS_H_
 
@@ -112,9 +112,9 @@ enum { ARRAY_DEFAULT_INIT_SIZE = 16 };
 #endif
 
 #endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/perfparameters.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/array_util.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/array_util.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/perfparameters.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/array_util.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/array_util.h"
 #ifndef ARRAY_UTIL_H
 #define ARRAY_UTIL_H
 
@@ -249,9 +249,9 @@ size_t union_uint32_card(const uint32_t *set_1, size_t size_1,
                          const uint32_t *set_2, size_t size_2);
 
 #endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/array_util.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/roaring_types.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/roaring_types.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/array_util.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/roaring_types.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/roaring_types.h"
 /*
   Typedefs used by various components
 */
@@ -300,255 +300,9 @@ typedef struct roaring_statistics_s {
 } roaring_statistics_t;
 
 #endif /* ROARING_TYPES_H */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/roaring_types.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/roaring_array.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/roaring_array.h"
-#ifndef INCLUDE_ROARING_ARRAY_H
-#define INCLUDE_ROARING_ARRAY_H
-
-#include <stdbool.h>
-#include <stdint.h>
-
-#define MAX_CONTAINERS 65536
-
-#define SERIALIZATION_ARRAY_UINT32 1
-#define SERIALIZATION_CONTAINER 2
-
-enum {
-    SERIAL_COOKIE_NO_RUNCONTAINER = 12346,
-    SERIAL_COOKIE = 12347,
-    NO_OFFSET_THRESHOLD = 4
-};
-
-/**
- * Roaring arrays are array-based key-value pairs having containers as values
- * and 16-bit integer keys. A roaring bitmap  might be implemented as such.
- */
-
-// parallel arrays.  Element sizes quite different.
-// Alternative is array
-// of structs.  Which would have better
-// cache performance through binary searches?
-
-typedef struct roaring_array_s {
-    int32_t size;
-    int32_t allocation_size;
-    uint16_t *keys;
-    void **containers;
-    uint8_t *typecodes;
-    uint8_t *shared; /* for COW, used as a bitset*/
-} roaring_array_t;
-
-/**
- * Create a new roaring array
- */
-roaring_array_t *ra_create(void);
-
-/**
- * Create a new roaring array with the specified capacity (in number
- * of containers)
- */
-roaring_array_t *ra_create_with_capacity(uint32_t cap);
-
-/**
- * Copies this roaring array (caller is responsible for memory management)
- */
-roaring_array_t *ra_copy(roaring_array_t *r, bool copy_on_write);
-
-/**
- * Frees the memory used by a roaring array
- */
-void ra_free(roaring_array_t *r);
-
-/**
- * Frees the memory used by a roaring array, but does not free the containers
- */
-void ra_free_without_containers(roaring_array_t *r);
-
-/**
- * Get the index corresponding to a 16-bit key
- */
-inline int32_t ra_get_index(roaring_array_t *ra, uint16_t x) {
-    if ((ra->size == 0) || ra->keys[ra->size - 1] == x) return ra->size - 1;
-
-    return binarySearch(ra->keys, (int32_t)ra->size, x);
-}
-
-/**
- * Retrieves the container at index i, filling in the typecode
- */
-inline void *ra_get_container_at_index(roaring_array_t *ra, uint16_t i,
-                                              uint8_t *typecode) {
-    *typecode = ra->typecodes[i];
-    return ra->containers[i];
-}
-
-/**
- * Retrieves the key at index i
- */
-uint16_t ra_get_key_at_index(roaring_array_t *ra, uint16_t i);
-
-/**
- * Add a new key-value pair at index i
- */
-void ra_insert_new_key_value_at(roaring_array_t *ra, int32_t i, uint16_t key,
-                                void *container, uint8_t typecode);
-
-/**
- * Append a new key-value pair
- */
-void ra_append(roaring_array_t *ra, uint16_t s, void *c, uint8_t typecode);
-
-/**
- * Append a new key-value pair to ra, cloning (in COW sense) a value from sa
- * at index index
- */
-void ra_append_copy(roaring_array_t *ra, roaring_array_t *sa, uint16_t index,
-                    bool copy_on_write);
-
-/**
- * Append new key-value pairs to ra, cloning (in COW sense)  values from sa
- * at indexes
- * [start_index, uint16_t end_index)
- */
-void ra_append_copy_range(roaring_array_t *ra, roaring_array_t *sa,
-                          uint16_t start_index, uint16_t end_index,
-                          bool copy_on_write);
-
-/** appends from sa to ra, ending with the greatest key that is
- * is less or equal stopping_key
- */
-void ra_append_copies_until(roaring_array_t *ra, roaring_array_t *sa,
-                            uint16_t stopping_key, bool copy_on_write);
-
-/** appends from sa to ra, starting with the smallest key that is
- * is strictly greater than before_start
- */
-
-void ra_append_copies_after(roaring_array_t *ra, roaring_array_t *sa,
-                            uint16_t before_start, bool copy_on_write);
-
-/**
- * Move the key-value pairs to ra from sa at indexes
- * [start_index, uint16_t end_index), old array should not be freed
- * (use ra_free_without_containers)
- **/
-void ra_append_move_range(roaring_array_t *ra, roaring_array_t *sa,
-                          uint16_t start_index, uint16_t end_index);
-/**
- * Append new key-value pairs to ra,  from sa at indexes
- * [start_index, uint16_t end_index)
- */
-void ra_append_range(roaring_array_t *ra, roaring_array_t *sa,
-                     uint16_t start_index, uint16_t end_index,
-                     bool copy_on_write);
-
-/**
- * Set the container at the corresponding index using the specified
- * typecode.
- */
-void ra_set_container_at_index(roaring_array_t *ra, int32_t i, void *c,
-                               uint8_t typecode);
-
-/**
- * If needed, increase the capacity of the array so that it can fit k values
- * (at
- * least);
- */
-void extend_array(roaring_array_t *ra, uint32_t k);
-
-inline int32_t ra_get_size(roaring_array_t *ra) { return ra->size; }
-
-static inline int32_t ra_advance_until(roaring_array_t *ra, uint16_t x,
-                                       int32_t pos) {
-    return advanceUntil(ra->keys, pos, ra->size, x);
-}
-
-int32_t ra_advance_until_freeing(roaring_array_t *ra, uint16_t x, int32_t pos);
-
-void ra_downsize(roaring_array_t *ra, int32_t new_length);
-
-void ra_replace_key_and_container_at_index(roaring_array_t *ra, int32_t i,
-                                           uint16_t key, void *c,
-                                           uint8_t typecode);
-
-// see ra_portable_serialize if you want a format that's compatible with
-// Java
-// and Go implementations
-char *ra_serialize(roaring_array_t *ra, uint32_t *serialize_len,
-                   uint8_t *retry_with_array);
-
-// see ra_portable_serialize if you want a format that's compatible with
-// Java
-// and Go implementations
-roaring_array_t *ra_deserialize(const void *buf, uint32_t buf_len);
-
-/**
- * write a bitmap to a buffer. This is meant to be compatible with
- * the
- * Java and Go versions. Return the size in bytes of the serialized
- * output (which should be ra_portable_size_in_bytes(ra)).
- */
-size_t ra_portable_serialize(roaring_array_t *ra, char *buf);
-
-/**
- * read a bitmap from a serialized version. This is meant to be compatible
- * with
- * the
- * Java and Go versions.
- */
-roaring_array_t *ra_portable_deserialize(const char *buf);
-
-/**
- * How many bytes are required to serialize this bitmap (meant to be
- * compatible
- * with Java and Go versions)
- */
-size_t ra_portable_size_in_bytes(roaring_array_t *ra);
-
-/**
- * return true if it contains at least one run container.
- */
-bool ra_has_run_container(roaring_array_t *ra);
-
-/**
- * Size of the header when serializing (meant to be compatible
- * with Java and Go versions)
- */
-uint32_t ra_portable_header_size(roaring_array_t *ra);
-
-/**
- * If the container at the index i is share, unshare it (creating a local
- * copy if needed).
- */
-void ra_unshare_container_at_index(roaring_array_t *ra, uint16_t i);
-
-/**
- * remove at index i, sliding over all entries after i
- */
-void ra_remove_at_index(roaring_array_t *ra, int32_t i);
-
-/**
- * remove at index i, sliding over all entries after i. Free removed container.
- */
-void ra_remove_at_index_and_free(roaring_array_t *ra, int32_t i);
-
-/**
- * remove a chunk of indices, sliding over entries after it
- */
-// void ra_remove_index_range(roaring_array_t *ra, int32_t begin, int32_t end);
-
-// used in inplace andNot only, to slide left the containers from
-// the mutated RoaringBitmap that are after the largest container of
-// the argument RoaringBitmap.  It is followed by a call to resize.
-//
-void ra_copy_range(roaring_array_t *ra, uint32_t begin, uint32_t end,
-                   uint32_t new_begin);
-
-#endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/roaring_array.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/utilasm.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/utilasm.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/roaring_types.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/utilasm.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/utilasm.h"
 /*
  * utilasm.h
  *
@@ -617,9 +371,9 @@ void ra_copy_range(roaring_array_t *ra, uint32_t begin, uint32_t end,
 
 #endif  // USE_BMI
 #endif  /* INCLUDE_UTILASM_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/utilasm.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/bitset_util.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/bitset_util.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/utilasm.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/bitset_util.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/bitset_util.h"
 #ifndef BITSET_UTIL_H
 #define BITSET_UTIL_H
 
@@ -711,7 +465,7 @@ static inline void bitset_reset_range(uint64_t *bitmap, uint32_t start,
  * This function uses AVX2 decoding.
  */
 size_t bitset_extract_setbits_avx2(uint64_t *bitset, size_t length,
-                                   uint32_t *out, size_t outcapacity,
+                                   void *vout, size_t outcapacity,
                                    uint32_t base);
 
 /*
@@ -723,7 +477,7 @@ size_t bitset_extract_setbits_avx2(uint64_t *bitset, size_t length,
  *
  * Returns how many values were actually decoded.
  */
-size_t bitset_extract_setbits(uint64_t *bitset, size_t length, uint32_t *out,
+size_t bitset_extract_setbits(uint64_t *bitset, size_t length, void *vout,
                               uint32_t base);
 
 /*
@@ -1114,9 +868,9 @@ AVXPOPCNTFNC(andnot, _mm256_andnot_si256)
 #endif  // USEAVX
 
 #endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/bitset_util.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/array.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/array.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/bitset_util.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/array.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/array.h"
 /*
  * array.h
  *
@@ -1244,7 +998,7 @@ void array_container_negation_inplace(array_container_t *src_dest);
  * The function returns the number of values written.
  * The caller is responsible for allocating enough memory in out.
  */
-int array_container_to_uint32_array(uint32_t *out,
+int array_container_to_uint32_array(void *vout,
                                     const array_container_t *cont,
                                     uint32_t base);
 
@@ -1409,9 +1163,9 @@ inline bool array_container_contains(const array_container_t *arr,
 }
 
 #endif /* INCLUDE_CONTAINERS_ARRAY_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/array.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/bitset.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/bitset.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/array.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/bitset.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/bitset.h"
 /*
  * bitset.h
  *
@@ -1729,7 +1483,7 @@ int bitset_container_andnot_nocard(const bitset_container_t *src_1,
  * The out pointer should point to enough memory (the cardinality times 32
  * bits).
  */
-int bitset_container_to_uint32_array(uint32_t *out,
+int bitset_container_to_uint32_array(void *out,
                                      const bitset_container_t *cont,
                                      uint32_t base);
 
@@ -1808,9 +1562,9 @@ bool bitset_container_select(const bitset_container_t *container,
                              uint32_t *element);
 
 #endif /* INCLUDE_CONTAINERS_BITSET_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/bitset.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/run.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/run.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/bitset.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/run.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/run.h"
 /*
  * run.h
  *
@@ -2111,7 +1865,7 @@ void run_container_xor(const run_container_t *src_1,
  * The function returns the number of values written.
  * The caller is responsible for allocating enough memory in out.
  */
-int run_container_to_uint32_array(uint32_t *out, const run_container_t *cont,
+int run_container_to_uint32_array(void *vout, const run_container_t *cont,
                                   uint32_t base);
 
 /*
@@ -2210,9 +1964,9 @@ void run_container_andnot(const run_container_t *src_1,
                           const run_container_t *src_2, run_container_t *dst);
 
 #endif /* INCLUDE_CONTAINERS_RUN_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/run.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/convert.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/convert.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/run.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/convert.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/convert.h"
 /*
  * convert.h
  *
@@ -2261,9 +2015,9 @@ void *convert_run_to_efficient_container(run_container_t *c,
 void *convert_run_to_efficient_container_and_free(run_container_t *c,
                                                   uint8_t *typecode_after);
 #endif /* INCLUDE_CONTAINERS_CONVERT_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/convert.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_equal.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/mixed_equal.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/convert.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_equal.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_equal.h"
 /*
  * mixed_equal.h
  *
@@ -2291,9 +2045,9 @@ bool run_container_equals_bitset(run_container_t* container1,
                                  bitset_container_t* container2);
 
 #endif /* CONTAINERS_MIXED_EQUAL_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_equal.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_andnot.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/mixed_andnot.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_equal.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_andnot.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_andnot.h"
 /*
  * mixed_andnot.h
  */
@@ -2451,9 +2205,9 @@ bool bitset_bitset_container_iandnot(bitset_container_t *src_1,
                                      const bitset_container_t *src_2,
                                      void **dst);
 #endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_andnot.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_intersection.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/mixed_intersection.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_andnot.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_intersection.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_intersection.h"
 /*
  * mixed_intersection.h
  *
@@ -2513,9 +2267,9 @@ bool bitset_bitset_container_intersection_inplace(
     bitset_container_t *src_1, const bitset_container_t *src_2, void **dst);
 
 #endif /* INCLUDE_CONTAINERS_MIXED_INTERSECTION_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_intersection.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_negation.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/mixed_negation.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_intersection.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_negation.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_negation.h"
 /*
  * mixed_negation.h
  *
@@ -2636,9 +2390,9 @@ int run_container_negation_range_inplace(run_container_t *src,
                                          const int range_end, void **dst);
 
 #endif /* INCLUDE_CONTAINERS_MIXED_NEGATION_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_negation.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_union.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/mixed_union.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_negation.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_union.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_union.h"
 /*
  * mixed_intersection.h
  *
@@ -2713,9 +2467,9 @@ void run_bitset_container_lazy_union(const run_container_t *src_1,
                                      bitset_container_t *dst);
 
 #endif /* INCLUDE_CONTAINERS_MIXED_UNION_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_union.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_xor.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/mixed_xor.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_union.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_xor.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_xor.h"
 /*
  * mixed_xor.h
  *
@@ -2866,9 +2620,9 @@ bool array_array_container_ixor(array_container_t *src_1,
 int run_run_container_ixor(run_container_t *src_1, const run_container_t *src_2,
                            void **dst);
 #endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/mixed_xor.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/containers/containers.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/containers/containers.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/mixed_xor.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/containers.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/containers/containers.h"
 #ifndef CONTAINERS_CONTAINERS_H
 #define CONTAINERS_CONTAINERS_H
 
@@ -3050,6 +2804,7 @@ static inline const char *get_full_container_name(void *container,
             return "unknown";
     }
     __builtin_unreachable();
+    return NULL;
 }
 
 /**
@@ -4531,6 +4286,9 @@ static inline bool container_iterate(const void *container, uint8_t typecode,
             assert(false);
             __builtin_unreachable();
     }
+    assert(false);
+    __builtin_unreachable();
+    return false;
 }
 
 static inline void *container_not(const void *c, uint8_t typ,
@@ -4559,6 +4317,9 @@ static inline void *container_not(const void *c, uint8_t typ,
             assert(false);
             __builtin_unreachable();
     }
+    assert(false);
+    __builtin_unreachable();
+    return NULL;
 }
 
 static inline void *container_not_range(const void *c, uint8_t typ,
@@ -4591,6 +4352,9 @@ static inline void *container_not_range(const void *c, uint8_t typ,
             assert(false);
             __builtin_unreachable();
     }
+    assert(false);
+    __builtin_unreachable();
+    return NULL;
 }
 
 static inline void *container_inot(void *c, uint8_t typ, uint8_t *result_type) {
@@ -4620,6 +4384,9 @@ static inline void *container_inot(void *c, uint8_t typ, uint8_t *result_type) {
             assert(false);
             __builtin_unreachable();
     }
+    assert(false);
+    __builtin_unreachable();
+    return NULL;
 }
 
 static inline void *container_inot_range(void *c, uint8_t typ,
@@ -4652,6 +4419,9 @@ static inline void *container_inot_range(void *c, uint8_t typ,
             assert(false);
             __builtin_unreachable();
     }
+    assert(false);
+    __builtin_unreachable();
+    return NULL;
 }
 
 /**
@@ -4693,12 +4463,286 @@ static inline bool container_select(const void *container, uint8_t typecode,
             assert(false);
             __builtin_unreachable();
     }
+    assert(false);
+    __builtin_unreachable();
+    return false;
 }
 
 #endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/containers/containers.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/misc/configreport.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/misc/configreport.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/containers/containers.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/roaring_array.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/roaring_array.h"
+#ifndef INCLUDE_ROARING_ARRAY_H
+#define INCLUDE_ROARING_ARRAY_H
+
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
+
+#define MAX_CONTAINERS 65536
+
+#define SERIALIZATION_ARRAY_UINT32 1
+#define SERIALIZATION_CONTAINER 2
+
+enum {
+    SERIAL_COOKIE_NO_RUNCONTAINER = 12346,
+    SERIAL_COOKIE = 12347,
+    NO_OFFSET_THRESHOLD = 4
+};
+
+/**
+ * Roaring arrays are array-based key-value pairs having containers as values
+ * and 16-bit integer keys. A roaring bitmap  might be implemented as such.
+ */
+
+// parallel arrays.  Element sizes quite different.
+// Alternative is array
+// of structs.  Which would have better
+// cache performance through binary searches?
+
+typedef struct roaring_array_s {
+    int32_t size;
+    int32_t allocation_size;
+    void **containers;
+    uint16_t *keys;
+    uint8_t *typecodes;
+} roaring_array_t;
+
+/**
+ * Create a new roaring array
+ */
+roaring_array_t *ra_create(void);
+
+/**
+ * Initialize an existing roaring array with the specified capacity (in number
+ * of containers)
+ */
+bool ra_init_with_capacity(roaring_array_t *new_ra, uint32_t cap);
+
+/**
+ * Initialize with default capacity
+ */
+bool ra_init(roaring_array_t * t) ;
+
+/**
+ * Copies this roaring array, we assume that dest is not initialized
+ */
+bool ra_copy(const roaring_array_t *source, roaring_array_t * dest, bool copy_on_write);
+
+/**
+ * Copies this roaring array, we assume that dest is initialized
+ */
+bool ra_overwrite(const roaring_array_t *source, roaring_array_t * dest, bool copy_on_write);
+
+
+/**
+ * Frees the memory used by a roaring array
+ */
+void ra_clear(roaring_array_t *r);
+
+/**
+ * Frees the memory used by a roaring array, but does not free the containers
+ */
+void ra_clear_without_containers(roaring_array_t *r);
+
+
+/**
+ * Frees just the containers
+ */
+void ra_clear_containers(roaring_array_t *ra);
+
+/**
+ * Get the index corresponding to a 16-bit key
+ */
+inline int32_t ra_get_index(const roaring_array_t *ra, uint16_t x) {
+    if ((ra->size == 0) || ra->keys[ra->size - 1] == x) return ra->size - 1;
+
+    return binarySearch(ra->keys, (int32_t)ra->size, x);
+}
+
+/**
+ * Retrieves the container at index i, filling in the typecode
+ */
+inline void *ra_get_container_at_index(const roaring_array_t *ra, uint16_t i,
+                                              uint8_t *typecode) {
+    *typecode = ra->typecodes[i];
+    return ra->containers[i];
+}
+
+/**
+ * Retrieves the key at index i
+ */
+uint16_t ra_get_key_at_index(const roaring_array_t *ra, uint16_t i);
+
+/**
+ * Add a new key-value pair at index i
+ */
+void ra_insert_new_key_value_at(roaring_array_t *ra, int32_t i, uint16_t key,
+                                void *container, uint8_t typecode);
+
+/**
+ * Append a new key-value pair
+ */
+void ra_append(roaring_array_t *ra, uint16_t s, void *c, uint8_t typecode);
+
+/**
+ * Append a new key-value pair to ra, cloning (in COW sense) a value from sa
+ * at index index
+ */
+void ra_append_copy(roaring_array_t *ra, const roaring_array_t *sa, uint16_t index,
+                    bool copy_on_write);
+
+/**
+ * Append new key-value pairs to ra, cloning (in COW sense)  values from sa
+ * at indexes
+ * [start_index, uint16_t end_index)
+ */
+void ra_append_copy_range(roaring_array_t *ra, const roaring_array_t *sa,
+                          uint16_t start_index, uint16_t end_index,
+                          bool copy_on_write);
+
+/** appends from sa to ra, ending with the greatest key that is
+ * is less or equal stopping_key
+ */
+void ra_append_copies_until(roaring_array_t *ra, const roaring_array_t *sa,
+                            uint16_t stopping_key, bool copy_on_write);
+
+/** appends from sa to ra, starting with the smallest key that is
+ * is strictly greater than before_start
+ */
+
+void ra_append_copies_after(roaring_array_t *ra, const roaring_array_t *sa,
+                            uint16_t before_start, bool copy_on_write);
+
+/**
+ * Move the key-value pairs to ra from sa at indexes
+ * [start_index, uint16_t end_index), old array should not be freed
+ * (use ra_clear_without_containers)
+ **/
+void ra_append_move_range(roaring_array_t *ra, roaring_array_t *sa,
+                          uint16_t start_index, uint16_t end_index);
+/**
+ * Append new key-value pairs to ra,  from sa at indexes
+ * [start_index, uint16_t end_index)
+ */
+void ra_append_range(roaring_array_t *ra, roaring_array_t *sa,
+                     uint16_t start_index, uint16_t end_index,
+                     bool copy_on_write);
+
+/**
+ * Set the container at the corresponding index using the specified
+ * typecode.
+ */
+inline void ra_set_container_at_index(const roaring_array_t *ra, int32_t i, void *c,
+                               uint8_t typecode) {
+    assert(i < ra->size);
+    ra->containers[i] = c;
+    ra->typecodes[i] = typecode;
+}
+
+
+/**
+ * If needed, increase the capacity of the array so that it can fit k values
+ * (at
+ * least);
+ */
+bool extend_array(roaring_array_t *ra, int32_t k);
+
+inline int32_t ra_get_size(const roaring_array_t *ra) { return ra->size; }
+
+static inline int32_t ra_advance_until(const roaring_array_t *ra, uint16_t x,
+                                       int32_t pos) {
+    return advanceUntil(ra->keys, pos, ra->size, x);
+}
+
+int32_t ra_advance_until_freeing(roaring_array_t *ra, uint16_t x, int32_t pos);
+
+void ra_downsize(roaring_array_t *ra, int32_t new_length);
+
+inline void ra_replace_key_and_container_at_index(roaring_array_t *ra, int32_t i,
+                                           uint16_t key, void *c,
+                                           uint8_t typecode) {
+    assert(i < ra->size);
+
+    ra->keys[i] = key;
+    ra->containers[i] = c;
+    ra->typecodes[i] = typecode;
+}
+
+// write set bits to an array
+void ra_to_uint32_array(const roaring_array_t *ra, uint32_t *ans);
+
+/**
+ * write a bitmap to a buffer. This is meant to be compatible with
+ * the
+ * Java and Go versions. Return the size in bytes of the serialized
+ * output (which should be ra_portable_size_in_bytes(ra)).
+ */
+size_t ra_portable_serialize(const roaring_array_t *ra, char *buf);
+
+/**
+ * read a bitmap from a serialized version. This is meant to be compatible
+ * with
+ * the
+ * Java and Go versions.
+ */
+bool ra_portable_deserialize(roaring_array_t * ra, const char *buf);
+
+/**
+ * How many bytes are required to serialize this bitmap (meant to be
+ * compatible
+ * with Java and Go versions)
+ */
+size_t ra_portable_size_in_bytes(const roaring_array_t *ra);
+
+/**
+ * return true if it contains at least one run container.
+ */
+bool ra_has_run_container(const roaring_array_t *ra);
+
+/**
+ * Size of the header when serializing (meant to be compatible
+ * with Java and Go versions)
+ */
+uint32_t ra_portable_header_size(const roaring_array_t *ra);
+
+/**
+ * If the container at the index i is share, unshare it (creating a local
+ * copy if needed).
+ */
+static inline void ra_unshare_container_at_index(roaring_array_t *ra, uint16_t i) {
+    assert(i < ra->size);
+    ra->containers[i] =
+        get_writable_copy_if_shared(ra->containers[i], &ra->typecodes[i]);
+}
+
+
+/**
+ * remove at index i, sliding over all entries after i
+ */
+void ra_remove_at_index(roaring_array_t *ra, int32_t i);
+
+/**
+ * remove at index i, sliding over all entries after i. Free removed container.
+ */
+void ra_remove_at_index_and_free(roaring_array_t *ra, int32_t i);
+
+/**
+ * remove a chunk of indices, sliding over entries after it
+ */
+// void ra_remove_index_range(roaring_array_t *ra, int32_t begin, int32_t end);
+
+// used in inplace andNot only, to slide left the containers from
+// the mutated RoaringBitmap that are after the largest container of
+// the argument RoaringBitmap.  It is followed by a call to resize.
+//
+void ra_copy_range(roaring_array_t *ra, uint32_t begin, uint32_t end,
+                   uint32_t new_begin);
+
+#endif
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/roaring_array.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/misc/configreport.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/misc/configreport.h"
 /*
  * configreport.h
  *
@@ -4873,9 +4917,9 @@ static inline void tellmeall() {
 #endif
 
 #endif /* INCLUDE_MISC_CONFIGREPORT_H_ */
-/* end file /Users/saulius/repos/CRoaring/include/roaring/misc/configreport.h */
-/* begin file /Users/saulius/repos/CRoaring/include/roaring/roaring.h */
-#line 8 "/Users/saulius/repos/CRoaring/include/roaring/roaring.h"
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/misc/configreport.h */
+/* begin file /home/dlemire/CVS/github/CRoaring/include/roaring/roaring.h */
+#line 8 "/home/dlemire/CVS/github/CRoaring/include/roaring/roaring.h"
 /*
 An implementation of Roaring Bitmaps in C.
 */
@@ -4889,7 +4933,7 @@ extern "C" {
 #include <stdbool.h>
 
 typedef struct roaring_bitmap_s {
-    roaring_array_t *high_low_container;
+    roaring_array_t high_low_container;
     bool copy_on_write; /* copy_on_write: whether you want to use copy-on-write
                          (saves memory and avoids
                          copies but needs more care in a threaded context). */
@@ -4950,7 +4994,7 @@ roaring_bitmap_t *roaring_bitmap_and(const roaring_bitmap_t *x1,
                                      const roaring_bitmap_t *x2);
 
 /**
- * Inplace version modifies x1.  TODO: decide whether x1 == x2 allowed
+ * Inplace version modifies x1, x1 == x2 is allowed
  */
 void roaring_bitmap_and_inplace(roaring_bitmap_t *x1,
                                 const roaring_bitmap_t *x2);
@@ -5064,19 +5108,13 @@ inline bool roaring_bitmap_contains(const roaring_bitmap_t *r,
      * here it is possible to bypass the binary search and the ra_get_index
      * call with the following call that might often come true
      */
-    int i;
-    if ((r->high_low_container->size > hb) &&
-        (r->high_low_container->keys[hb] == hb))
-        i = hb;  // we got lucky!
-    else {
-        // next call involves a binary search (maybe expensive)
-        i = ra_get_index(r->high_low_container, hb);
-        if (i < 0) return false;
-    }
+    int32_t i = ra_get_index(& r->high_low_container, hb);
+    if (i < 0) return false;
+
     uint8_t typecode;
     // next call ought to be cheap
     void *container =
-        ra_get_container_at_index(r->high_low_container, i, &typecode);
+        ra_get_container_at_index(& r->high_low_container, i, &typecode);
     // rest might be a tad expensive
     return container_contains(container, val & 0xFFFF, typecode);
 }
@@ -5113,13 +5151,32 @@ bool roaring_bitmap_remove_run_compression(roaring_bitmap_t *r);
 */
 bool roaring_bitmap_run_optimize(roaring_bitmap_t *r);
 
+//
+// write the bitmap to an output pointer, this output buffer should refer to
+// at least roaring_bitmap_size_in_bytes(ra) allocated bytes.
+//
 // see roaring_bitmap_portable_serialize if you want a format that's compatible
 // with Java and Go implementations
-char *roaring_bitmap_serialize(roaring_bitmap_t *ra, uint32_t *serialize_len);
+//
+// this format has the benefit of being sometimes more space efficient than roaring_bitmap_portable_serialize
+// e.g., when the data is sparse.
+//
+// Returns how many bytes were written which should be
+// roaring_bitmap_size_in_bytes(ra).
+size_t roaring_bitmap_serialize(const roaring_bitmap_t *ra, char *buf);
 
+//  use with roaring_bitmap_serialize
 // see roaring_bitmap_portable_deserialize if you want a format that's
 // compatible with Java and Go implementations
-roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf, uint32_t buf_len);
+roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf);
+
+
+/**
+ * How many bytes are required to serialize this bitmap (NOT compatible
+ * with Java and Go versions)
+ */
+size_t roaring_bitmap_size_in_bytes(const roaring_bitmap_t *ra);
+
 
 /**
  * read a bitmap from a serialized version. This is meant to be compatible with
@@ -5128,6 +5185,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf, uint32_t buf_len);
  */
 roaring_bitmap_t *roaring_bitmap_portable_deserialize(const char *buf);
 
+
 /**
  * How many bytes are required to serialize this bitmap (meant to be compatible
  * with Java and Go versions)
@@ -5135,7 +5193,9 @@ roaring_bitmap_t *roaring_bitmap_portable_deserialize(const char *buf);
 size_t roaring_bitmap_portable_size_in_bytes(const roaring_bitmap_t *ra);
 
 /**
- * write a bitmap to a char buffer. This is meant to be compatible with
+ * write a bitmap to a char buffer.  The output buffer should refer to at least
+ *  roaring_bitmap_portable_size_in_bytes(ra) bytes of allocated memory.
+ * This is meant to be compatible with
  * the
  * Java and Go versions. Returns how many bytes were written which should be
  * roaring_bitmap_portable_size_in_bytes(ra).
@@ -5258,4 +5318,4 @@ void roaring_bitmap_statistics(const roaring_bitmap_t *ra,
 #endif
 
 #endif
-/* end file /Users/saulius/repos/CRoaring/include/roaring/roaring.h */
+/* end file /home/dlemire/CVS/github/CRoaring/include/roaring/roaring.h */

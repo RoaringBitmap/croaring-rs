@@ -3,7 +3,7 @@ extern crate libc;
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub struct roaring_bitmap_s {
-    pub high_low_container: *mut roaring_array_s,
+    pub high_low_container: roaring_array_s,
     pub copy_on_write: bool
 }
 
@@ -12,10 +12,9 @@ pub struct roaring_bitmap_s {
 pub struct roaring_array_s {
     pub size: ::libc::int32_t,
     pub allocation_size: ::libc::int32_t,
-    pub keys: *mut ::libc::uint16_t,
     pub containers: *mut *mut ::std::os::raw::c_void,
-    pub typecodes: *mut ::libc::uint8_t,
-    pub shared: *mut ::libc::uint8_t,
+    pub keys: *mut ::libc::uint16_t,
+    pub typecodes: *mut ::libc::uint8_t
 }
 
 #[link(name = "roaring", kind = "static")]
@@ -51,8 +50,8 @@ extern "C" {
     pub fn roaring_bitmap_to_uint32_array(ra: *const roaring_bitmap_s, cardinality: *mut ::libc::uint32_t);
     pub fn roaring_bitmap_remove_run_compression(r: *mut roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_run_optimize(r: *mut roaring_bitmap_s) -> bool;
-    pub fn roaring_bitmap_serialize(ra: *mut roaring_bitmap_s, serialize_len: *mut ::libc::uint32_t) -> *mut ::libc::c_char;
-    pub fn roaring_bitmap_deserialize(buf: *const ::libc::c_void, buf_len: ::libc::uint32_t) -> *mut roaring_bitmap_s;
+    pub fn roaring_bitmap_serialize(ra: *const roaring_bitmap_s, buf: *mut ::libc::c_char) -> ::libc::size_t;
+    pub fn roaring_bitmap_deserialize(buf: *const ::libc::c_void) -> *mut roaring_bitmap_s;
     pub fn roaring_bitmap_portable_deserialize(buf: *const ::libc::c_char) -> *mut roaring_bitmap_s;
     pub fn roaring_bitmap_portable_size_in_bytes(ra: *const roaring_bitmap_s) -> ::libc::size_t;
     pub fn roaring_bitmap_portable_serialize(ra: *const roaring_bitmap_s, buf: *mut ::libc::c_char) -> ::libc::size_t;
