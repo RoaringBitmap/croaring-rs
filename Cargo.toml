@@ -7,7 +7,7 @@ description = "Rust wrapper for CRoaring"
 repository = "https://github.com/saulius/croaring-rs.git"
 readme = "README.md"
 keywords = ["RoaringBitmap", "croaring", "bitmap"]
-documentation = "http://saulius.github.io/croaring-rs/index.html"
+documentation = "https://docs.rs/croaring"
 
 [dev-dependencies]
 quickcheck = "0.3.1"
