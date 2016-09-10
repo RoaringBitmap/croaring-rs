@@ -44,6 +44,7 @@ extern "C" {
     pub fn roaring_bitmap_andnot_inplace(x1: *mut roaring_bitmap_s, x2: *const roaring_bitmap_s);
     pub fn roaring_bitmap_free(r: *mut roaring_bitmap_s);
     pub fn roaring_bitmap_add(r: *mut roaring_bitmap_s, x: ::libc::uint32_t);
+    pub fn roaring_bitmap_add_many(r: *mut roaring_bitmap_s, n_args: ::libc::size_t, vals: *const ::libc::uint32_t);
     pub fn roaring_bitmap_remove(r: *mut roaring_bitmap_s, x: ::libc::uint32_t);
     pub fn roaring_bitmap_contains(r: *const roaring_bitmap_s, x: ::libc::uint32_t) -> bool;
     pub fn roaring_bitmap_get_cardinality(ra: *const roaring_bitmap_s) -> ::libc::uint64_t;
