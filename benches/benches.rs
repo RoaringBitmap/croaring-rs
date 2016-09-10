@@ -34,6 +34,16 @@ fn bench_add(b: &mut Bencher) {
 }
 
 #[bench]
+fn bench_add_many(b: &mut Bencher) {
+    let mut bitmap = Bitmap::create();
+    let int_slice = &[10, 100, 10000, 1000_000, 10_000_000];
+
+    b.iter(|| {
+        bitmap.add_many(int_slice);
+    });
+}
+
+#[bench]
 fn bench_remove(b: &mut Bencher) {
     let mut bitmap = Bitmap::create();
 

@@ -150,6 +150,26 @@ impl Bitmap {
     /// use croaring::Bitmap;
     ///
     /// let mut bitmap = Bitmap::create();
+    /// bitmap.add_many(&[1, 2, 3]);
+    ///
+    /// assert!(!bitmap.is_empty());
+    /// assert!(bitmap.contains(1));
+    /// assert!(bitmap.contains(2));
+    /// assert!(bitmap.contains(3));
+    /// ```
+    #[inline]
+    pub fn add_many(&mut self, elements: &[u32]) -> () {
+        unsafe { ffi::roaring_bitmap_add_many(self.bitmap, elements.len(), elements.as_ptr()) }
+    }
+    
+    /// Add the integer element to the bitmap
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
     /// bitmap.add(1);
     ///
     /// assert!(!bitmap.is_empty());
