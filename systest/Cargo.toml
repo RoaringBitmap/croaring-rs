@@ -1,6 +1,6 @@
 [package]
 name = "systest"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 build = "build.rs"
 

@@ -1,6 +1,6 @@
 [package]
 name = "croaring-sys"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 license = "Apache-2.0"
 repository = "https://github.com/saulius/croaring-rs.git"
