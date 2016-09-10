@@ -12,6 +12,7 @@ documentation = "https://docs.rs/croaring"
 [dev-dependencies]
 quickcheck = "0.3.1"
 rand = "0.3"
+roaring = "0.4"
 
 [dependencies]
 libc = "0.2"
