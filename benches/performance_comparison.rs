@@ -26,6 +26,27 @@ fn perf_comp_create_rust_roaring(b: &mut Bencher) {
     });
 }
 
+
+#[bench]
+fn perf_comp_create_and_add_one_croaring(b: &mut Bencher) {
+    b.iter(|| {
+        let mut bitmap = Bitmap::create();
+        bitmap.add(black_box(1));
+
+        black_box(bitmap);
+    });
+}
+
+#[bench]
+fn perf_comp_create_and_add_one_rust_roaring(b: &mut Bencher) {
+    b.iter(|| {
+        let mut bitmap: RoaringBitmap<u32> = RoaringBitmap::new();
+        bitmap.insert(black_box(1));
+
+        black_box(bitmap);
+    });
+}
+
 #[bench]
 fn perf_comp_add_croaring(b: &mut Bencher) {
     let mut bitmap = Bitmap::create();
@@ -39,6 +60,18 @@ fn perf_comp_add_croaring(b: &mut Bencher) {
         bitmap.add(black_box(100000));
         bitmap.add(black_box(1000000));
     });
+    black_box(bitmap);
+}
+
+#[bench]
+fn perf_comp_add_many_croaring(b: &mut Bencher) {
+    let mut bitmap = Bitmap::create();
+
+    b.iter(|| {
+        let int_slice = &[1, 10, 100, 1000, 10_000, 100_000, 1_000_000];
+        bitmap.add_many(int_slice);
+    });
+    black_box(bitmap);
 }
 
 #[bench]
@@ -54,6 +87,7 @@ fn perf_comp_add_rust_roaring(b: &mut Bencher) {
         bitmap.insert(black_box(100000));
         bitmap.insert(black_box(1000000));
     });
+    black_box(bitmap);
 }
 
 #[bench]
@@ -137,7 +171,7 @@ fn perf_comp_cardinality_100000_croaring(b: &mut Bencher) {
 
 #[bench]
 fn perf_comp_cardinality_100000_rust_roaring(b: &mut Bencher) {
-    let bitmap: RoaringBitmap<u32> = (1..100000).collect(); 
+    let bitmap: RoaringBitmap<u32> = (1..100000).collect();
 
     b.iter(|| {
         black_box(bitmap.len());
@@ -203,7 +237,7 @@ fn perf_comp_or_new_rust_roaring(b: &mut Bencher) {
 
     b.iter(|| {
         let bitmap3: RoaringBitmap<u32> = bitmap1.union(black_box(&bitmap2)).collect();
-        
+
         bitmap3
     });
 }
@@ -280,7 +314,7 @@ fn perf_comp_iter_croaring(b: &mut Bencher) {
         for (_, element) in bitmap.into_iter().enumerate() {
             sum += *element;
         }
-        
+
         assert_eq!(sum, 49995000);
     });
 }
