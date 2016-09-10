@@ -17,6 +17,29 @@ pub struct roaring_array_s {
     pub typecodes: *mut ::libc::uint8_t
 }
 
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct roaring_statistics_s {
+    pub n_containers: ::libc::uint32_t,
+    pub n_array_containers: ::libc::uint32_t,
+    pub n_run_containers: ::libc::uint32_t,
+    pub n_bitset_containers: ::libc::uint32_t,
+    pub n_values_array_containers: ::libc::uint32_t,
+    pub n_values_run_containers: ::libc::uint32_t,
+    pub n_values_bitset_containers: ::libc::uint32_t,
+    pub n_bytes_array_containers: ::libc::uint32_t,
+    pub n_bytes_run_containers: ::libc::uint32_t,
+    pub n_bytes_bitset_containers: ::libc::uint32_t,
+    pub max_value: ::libc::uint32_t,
+    pub min_value: ::libc::uint32_t,
+    pub sum_value: ::libc::uint64_t,
+    pub cardinality: ::libc::uint64_t
+}
+
+impl Default for roaring_statistics_s {
+    fn default() -> roaring_statistics_s { unsafe { std::mem::zeroed() } }
+}
+
 #[link(name = "roaring", kind = "static")]
 extern "C" {
     pub fn roaring_bitmap_create() -> *mut roaring_bitmap_s;
@@ -44,6 +67,7 @@ extern "C" {
     pub fn roaring_bitmap_andnot_inplace(x1: *mut roaring_bitmap_s, x2: *const roaring_bitmap_s);
     pub fn roaring_bitmap_free(r: *mut roaring_bitmap_s);
     pub fn roaring_bitmap_add(r: *mut roaring_bitmap_s, x: ::libc::uint32_t);
+    pub fn roaring_bitmap_add_many(r: *mut roaring_bitmap_s, n_args: ::libc::size_t, vals: *const ::libc::uint32_t);
     pub fn roaring_bitmap_remove(r: *mut roaring_bitmap_s, x: ::libc::uint32_t);
     pub fn roaring_bitmap_contains(r: *const roaring_bitmap_s, x: ::libc::uint32_t) -> bool;
     pub fn roaring_bitmap_get_cardinality(ra: *const roaring_bitmap_s) -> ::libc::uint64_t;
@@ -60,4 +84,5 @@ extern "C" {
                                     iterator: roaring_iterator,
                                     ptr: *mut ::libc::c_void) -> bool; */
     pub fn roaring_bitmap_equals(ra1: *mut roaring_bitmap_s, ra2: *mut roaring_bitmap_s) -> bool;
+    pub fn roaring_bitmap_statistics(ra: *const roaring_bitmap_s, stat: *mut roaring_statistics_s);
 }
