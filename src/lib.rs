@@ -65,6 +65,8 @@ pub struct Bitmap {
     bitmap: *mut ffi::roaring_bitmap_s,
 }
 
+pub type Statistics = ffi::roaring_statistics_s;
+
 impl fmt::Debug for Bitmap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Bitmap<{:?}>", self.as_slice())
@@ -778,6 +780,57 @@ impl Bitmap {
     #[inline]
     pub fn is_empty(&self) -> bool {
         unsafe { ffi::roaring_bitmap_is_empty(self.bitmap) }
+    }
+
+    /// Returns statistics about the composition of a roaring bitmap.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap: Bitmap = (1..100).collect();
+    /// let statistics = bitmap.statistics();
+    ///
+    /// assert_eq!(statistics.n_containers, 1);
+    /// assert_eq!(statistics.n_array_containers, 1);
+    /// assert_eq!(statistics.n_run_containers, 0);
+    /// assert_eq!(statistics.n_bitset_containers, 0);
+    /// assert_eq!(statistics.n_values_array_containers, 99);
+    /// assert_eq!(statistics.n_values_run_containers, 0);
+    /// assert_eq!(statistics.n_values_bitset_containers, 0);
+    /// assert_eq!(statistics.n_bytes_array_containers, 198);
+    /// assert_eq!(statistics.n_bytes_run_containers, 0);
+    /// assert_eq!(statistics.n_bytes_bitset_containers, 0);
+    /// assert_eq!(statistics.max_value, 99);
+    /// assert_eq!(statistics.min_value, 1);
+    /// assert_eq!(statistics.sum_value, 4950);
+    /// assert_eq!(statistics.cardinality, 99);
+    ///
+    /// bitmap.run_optimize();
+    /// let statistics = bitmap.statistics();
+    ///
+    /// assert_eq!(statistics.n_containers, 1);
+    /// assert_eq!(statistics.n_array_containers, 0);
+    /// assert_eq!(statistics.n_run_containers, 1);
+    /// assert_eq!(statistics.n_bitset_containers, 0);
+    /// assert_eq!(statistics.n_values_array_containers, 0);
+    /// assert_eq!(statistics.n_values_run_containers, 99);
+    /// assert_eq!(statistics.n_values_bitset_containers, 0);
+    /// assert_eq!(statistics.n_bytes_array_containers, 0);
+    /// assert_eq!(statistics.n_bytes_run_containers, 6);
+    /// assert_eq!(statistics.n_bytes_bitset_containers, 0);
+    /// assert_eq!(statistics.max_value, 99);
+    /// assert_eq!(statistics.min_value, 1);
+    /// assert_eq!(statistics.sum_value, 4950);
+    /// assert_eq!(statistics.cardinality, 99);
+    /// ```
+    pub fn statistics(&self) -> Statistics {
+        let mut statistics: ffi::roaring_statistics_s = Default::default();
+
+        unsafe { ffi::roaring_bitmap_statistics(self.bitmap, &mut statistics) };
+
+        statistics
     }
 }
 
