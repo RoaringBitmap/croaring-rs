@@ -1,6 +1,6 @@
 [package]
 name = "croaring"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 license = "Apache-2.0"
 description = "Rust wrapper for CRoaring"
@@ -16,4 +16,4 @@ roaring = "0.4"
 
 [dependencies]
 libc = "0.2"
-croaring-sys = { path = "croaring-sys", version = "0.1.2" }
+croaring-sys = { path = "croaring-sys", version = "0.1.3" }
