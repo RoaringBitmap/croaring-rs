@@ -83,6 +83,8 @@ extern "C" {
     /* TODO  pub fn roaring_iterate(ra: *mut roaring_bitmap_s,
                                     iterator: roaring_iterator,
                                     ptr: *mut ::libc::c_void) -> bool; */
-    pub fn roaring_bitmap_equals(ra1: *mut roaring_bitmap_s, ra2: *mut roaring_bitmap_s) -> bool;
+    pub fn roaring_bitmap_equals(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
+    pub fn roaring_bitmap_is_subset(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
+    pub fn roaring_bitmap_is_strict_subset(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_statistics(ra: *const roaring_bitmap_s, stat: *mut roaring_statistics_s);
 }
