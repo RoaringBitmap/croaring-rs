@@ -679,6 +679,49 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_is_empty(self.bitmap) }
     }
 
+    /// Return true if all the elements of Self are in &other.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap1: Bitmap = (5..10).collect();
+    /// let bitmap2: Bitmap = (5..8).collect();
+    /// let bitmap3: Bitmap = (5..10).collect();
+    /// let bitmap4: Bitmap = (9..11).collect();
+    ///
+    /// assert!(bitmap2.is_subset(&bitmap1));
+    /// assert!(bitmap3.is_subset(&bitmap1));
+    /// assert!(!bitmap4.is_subset(&bitmap1));
+    /// ```
+    #[inline]
+    pub fn is_subset(&self, other: &Self) -> bool {
+        unsafe { ffi::roaring_bitmap_is_subset(self.bitmap, other.bitmap) }
+    }
+
+    /// Return true if all the elements of Self are in &other and &other is strictly greater
+    /// than Self.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap1: Bitmap = (5..9).collect();
+    /// let bitmap2: Bitmap = (5..8).collect();
+    /// let bitmap3: Bitmap = (5..10).collect();
+    /// let bitmap4: Bitmap = (9..11).collect();
+    ///
+    /// assert!(bitmap2.is_subset(&bitmap1));
+    /// assert!(!bitmap3.is_subset(&bitmap1));
+    /// assert!(!bitmap4.is_subset(&bitmap1));
+    /// ```
+    #[inline]
+    pub fn is_strict_subset(&self, other: &Self) -> bool {
+        unsafe { ffi::roaring_bitmap_is_strict_subset(self.bitmap, other.bitmap) }
+    }
+
     /// Returns statistics about the composition of a roaring bitmap.
     ///
     /// # Examples
