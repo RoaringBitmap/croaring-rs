@@ -58,7 +58,7 @@ println!("{:?}", rb4);
 ### Building locally
 
 ```
-git checkout https://github.com/saulius/croaring-rs/
+git clone --recursive https://github.com/saulius/croaring-rs/
 cd croaring-rs
 cargo build
 ```
