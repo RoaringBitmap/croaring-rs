@@ -19,6 +19,18 @@ pub struct roaring_array_s {
 
 #[repr(C)]
 #[derive(Copy, Clone)]
+pub struct roaring_uint32_iterator_s {
+    pub parent: *const roaring_bitmap_s,
+    pub container_index: ::libc::int32_t,
+    pub in_container_index: ::libc::int32_t,
+    pub run_index: ::libc::int32_t,
+    pub in_run_index: ::libc::uint32_t,
+    pub current_value: ::libc::uint32_t,
+    pub has_value: bool
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
 pub struct roaring_statistics_s {
     pub n_containers: ::libc::uint32_t,
     pub n_array_containers: ::libc::uint32_t,
@@ -80,11 +92,11 @@ extern "C" {
     pub fn roaring_bitmap_portable_size_in_bytes(ra: *const roaring_bitmap_s) -> ::libc::size_t;
     pub fn roaring_bitmap_portable_serialize(ra: *const roaring_bitmap_s, buf: *mut ::libc::c_char) -> ::libc::size_t;
     pub fn roaring_bitmap_is_empty(ra: *const roaring_bitmap_s) -> bool;
-    /* TODO  pub fn roaring_iterate(ra: *mut roaring_bitmap_s,
-                                    iterator: roaring_iterator,
-                                    ptr: *mut ::libc::c_void) -> bool; */
     pub fn roaring_bitmap_equals(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_is_subset(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_is_strict_subset(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_statistics(ra: *const roaring_bitmap_s, stat: *mut roaring_statistics_s);
+    pub fn roaring_create_iterator(ra: *const roaring_bitmap_s) -> *mut roaring_uint32_iterator_s;
+    pub fn roaring_advance_uint32_iterator(it: *mut roaring_uint32_iterator_s) -> bool;
+    pub fn roaring_free_uint32_iterator(it: *mut roaring_uint32_iterator_s);
 }
