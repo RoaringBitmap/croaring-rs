@@ -64,3 +64,4 @@ pub type Statistics = ffi::roaring_statistics_s;
 
 mod imp;
 mod ops;
+mod iter;
