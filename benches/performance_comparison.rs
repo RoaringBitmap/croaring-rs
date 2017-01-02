@@ -300,13 +300,13 @@ fn perf_comp_xor_inplace_rust_roaring(b: &mut Bencher) {
 
 #[bench]
 fn perf_comp_iter_croaring(b: &mut Bencher) {
-    let bitmap: Bitmap = (1..10000).collect();
+    let mut bitmap: Bitmap = (1..10000).collect();
 
     b.iter(|| {
         let mut sum: u32 = 0;
 
-        for (_, element) in bitmap.into_iter().enumerate() {
-            sum += *element;
+        for (_, element) in bitmap.iter().enumerate() {
+            sum += element;
         }
 
         assert_eq!(sum, 49995000);
