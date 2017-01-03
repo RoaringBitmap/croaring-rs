@@ -44,7 +44,7 @@
 //! rb3.add(5);
 //! rb3.or_inplace(&rb1);
 //!
-//! println!("{:?}", rb3.as_slice());
+//! println!("{:?}", rb3.to_vec());
 //! println!("{:?}", rb3);
 //! println!("{:?}", rb4);
 //!

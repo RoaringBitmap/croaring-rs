@@ -300,7 +300,7 @@ fn bench_flip_inplace(b: &mut Bencher) {
 }
 
 #[bench]
-fn bench_as_slice(b: &mut Bencher) {
+fn bench_to_vec(b: &mut Bencher) {
     let mut bitmap = Bitmap::create();
 
     bitmap.add(1);
@@ -308,7 +308,7 @@ fn bench_as_slice(b: &mut Bencher) {
     bitmap.add(3);
 
     b.iter(|| {
-        bitmap.as_slice();
+        bitmap.to_vec();
     });
 }
 

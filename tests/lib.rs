@@ -81,7 +81,7 @@ fn smoke2() {
     rb3.add(5);
     rb3.or_inplace(&rb1);
 
-    println!("{:?}", rb3.as_slice());
+    println!("{:?}", rb3.to_vec());
     println!("{:?}", rb3);
     println!("{:?}", rb4);
 
@@ -92,7 +92,7 @@ fn smoke2() {
 
 #[cfg(test)]
 fn cardinality_round(data: Vec<u32>) -> bool {
-    let original = Bitmap::of(data.as_slice());
+    let original = Bitmap::of(&data);
     let mut a = data.clone();
     a.sort();
     a.dedup();
@@ -109,7 +109,7 @@ fn cardinality_roundtrip() {
 }
 
 fn serialization_round_trip(original: Vec<u32>) -> bool {
-    let original = Bitmap::of(original.as_slice());
+    let original = Bitmap::of(&original);
 
     let buffer = original.serialize();
 

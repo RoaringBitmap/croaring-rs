@@ -1,4 +1,3 @@
-use std::slice;
 use std::fmt;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
@@ -6,7 +5,7 @@ use {Bitmap, ffi};
 
 impl fmt::Debug for Bitmap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Bitmap<{:?}>", self.as_slice())
+        write!(f, "Bitmap<{:?}>", self.to_vec())
     }
 }
 

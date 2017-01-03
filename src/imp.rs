@@ -1,4 +1,3 @@
-use std::slice;
 use std::ops::Range;
 
 use {Bitmap, Statistics, ffi};
@@ -521,7 +520,7 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_flip_inplace(self.bitmap, range.start, range.end) }
     }
 
-    /// Creates a new slice containing all of the integers stored in the Bitmap
+    /// Returns a vector containing all of the integers stored in the Bitmap
     /// in sorted order.
     ///
     /// ```
@@ -531,19 +530,22 @@ impl Bitmap {
     /// bitmap.add(15);
     /// bitmap.add(25);
     ///
-    /// assert_eq!(bitmap.as_slice(), [15, 25]);
-    /// assert!(bitmap.as_slice() != [10, 15, 25])
+    /// assert_eq!(bitmap.to_vec(), [15, 25]);
+    /// assert!(bitmap.to_vec() != [10, 15, 25]);
     /// ```
     #[inline]
-    pub fn as_slice(&self) -> &[u32] {
+    pub fn to_vec(&self) -> Vec<u32> {
         let bitmap_size = self.cardinality();
 
         let mut buffer: Vec<u32> = Vec::with_capacity(bitmap_size as usize);
+        let buffer_ptr = buffer.as_mut_ptr();
 
         unsafe {
-            ffi::roaring_bitmap_to_uint32_array(self.bitmap, buffer.as_mut_ptr());
+            ::std::mem::forget(buffer);
 
-            slice::from_raw_parts(buffer.as_ptr(), bitmap_size as usize)
+            ffi::roaring_bitmap_to_uint32_array(self.bitmap, buffer_ptr);
+
+            Vec::from_raw_parts(buffer_ptr, bitmap_size as usize, bitmap_size as usize)
         }
     }
 
