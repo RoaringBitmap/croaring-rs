@@ -1,7 +1,6 @@
 use std::slice;
 use std::fmt;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
-use std::iter::{FromIterator, IntoIterator};
 
 use {Bitmap, ffi};
 
@@ -41,49 +40,6 @@ impl Clone for Bitmap {
 impl Drop for Bitmap {
     fn drop(&mut self) {
         unsafe { ffi::roaring_bitmap_free(self.bitmap) }
-    }
-}
-
-impl FromIterator<u32> for Bitmap {
-    /// Convenience method for creating bitmap from iterator.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap: Bitmap = (1..3).collect();
-    ///
-    /// assert!(!bitmap.is_empty());
-    /// assert!(bitmap.contains(1));
-    /// assert!(bitmap.contains(2));
-    /// assert_eq!(bitmap.cardinality(), 2);
-    /// ```
-    fn from_iter<I: IntoIterator<Item=u32>>(iter: I) -> Self {
-        Bitmap::of(&Vec::from_iter(iter))
-    }
-}
-
-impl<'a> IntoIterator for &'a Bitmap {
-    type Item = &'a u32;
-    type IntoIter = slice::Iter<'a, u32>;
-
-    /// Convenience method for creating iterators of the bitmap
-    /// elements.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap: Bitmap = (1..3).collect();
-    ///
-    /// for (_, element) in bitmap.into_iter().enumerate() {
-    ///    assert!(bitmap.contains(*element));
-    /// }
-    /// ```
-    fn into_iter(self) -> Self::IntoIter {
-        self.as_slice().into_iter()
     }
 }
 
