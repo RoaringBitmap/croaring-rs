@@ -724,6 +724,103 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_is_strict_subset(self.bitmap, other.bitmap) }
     }
 
+    /// Returns the smallest value in the set.
+    /// Returns std::u32::MAX if the set is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap: Bitmap = (5..10).collect();
+    /// let empty_bitmap: Bitmap = Bitmap::create();
+    ///
+    /// assert_eq!(bitmap.minimum(), 5);
+    /// assert_eq!(empty_bitmap.minimum(), std::u32::MAX);
+    ///
+    /// bitmap.add(3);
+    ///
+    /// assert_eq!(bitmap.minimum(), 3);
+    /// ```
+    #[inline]
+    pub fn minimum(&self) -> u32 {
+        unsafe { ffi::roaring_bitmap_minimum(self.bitmap) }
+    }
+
+    /// Returns the greatest value in the set.
+    /// Returns 0 if the set is empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap: Bitmap = (5..10).collect();
+    /// let empty_bitmap: Bitmap = Bitmap::create();
+    ///
+    /// assert_eq!(bitmap.maximum(), 9);
+    /// assert_eq!(empty_bitmap.maximum(), 0);
+    ///
+    /// bitmap.add(15);
+    ///
+    /// assert_eq!(bitmap.maximum(), 15);
+    /// ```
+    #[inline]
+    pub fn maximum(&self) -> u32 {
+        unsafe { ffi::roaring_bitmap_maximum(self.bitmap) }
+    }
+
+    /// Rank returns the number of values smaller or equal to x.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap: Bitmap = (5..10).collect();
+    ///
+    /// assert_eq!(bitmap.rank(8), 4);
+    ///
+    /// bitmap.add(15);
+    ///
+    /// assert_eq!(bitmap.rank(11), 5);
+    /// ```
+    #[inline]
+    pub fn rank(&self, x: u32) -> u64 {
+        unsafe { ffi::roaring_bitmap_rank(self.bitmap, x) }
+    }
+
+    /// Select returns the element having the designated rank, if it exists
+    /// If the size of the roaring bitmap is strictly greater than rank,
+    /// then this function returns element of given rank wrapped in Some.
+    /// Otherwise, it returns None.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap: Bitmap = (5..10).collect();
+    ///
+    /// assert_eq!(bitmap.select(0), Some(5));
+    /// assert_eq!(bitmap.select(1), Some(6));
+    /// assert_eq!(bitmap.select(2), Some(7));
+    /// assert_eq!(bitmap.select(3), Some(8));
+    /// assert_eq!(bitmap.select(4), Some(9));
+    /// assert_eq!(bitmap.select(5), None);
+    /// ```
+    #[inline]
+    pub fn select(&self, rank: u32) -> Option<u32> {
+        let mut element: u32 = 0;
+        let result = unsafe { ffi::roaring_bitmap_select(self.bitmap, rank, &mut element) };
+
+        if result {
+            Some(element)
+        } else {
+            None
+        }
+    }
+
     /// Returns statistics about the composition of a roaring bitmap.
     ///
     /// # Examples
