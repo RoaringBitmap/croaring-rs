@@ -99,4 +99,10 @@ extern "C" {
     pub fn roaring_create_iterator(ra: *const roaring_bitmap_s) -> *mut roaring_uint32_iterator_s;
     pub fn roaring_advance_uint32_iterator(it: *mut roaring_uint32_iterator_s) -> bool;
     pub fn roaring_free_uint32_iterator(it: *mut roaring_uint32_iterator_s);
+    pub fn roaring_bitmap_minimum(bm: *const roaring_bitmap_s) -> ::libc::uint32_t;
+    pub fn roaring_bitmap_maximum(bm: *const roaring_bitmap_s) -> ::libc::uint32_t;
+    pub fn roaring_bitmap_rank(bm: *const roaring_bitmap_s, x: ::libc::uint32_t) -> ::libc::uint64_t;
+    pub fn roaring_bitmap_select(ra: *const roaring_bitmap_s,
+                                 rank: ::libc::uint32_t,
+                                 element: *mut ::libc::uint32_t) -> bool;
 }
