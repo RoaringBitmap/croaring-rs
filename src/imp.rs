@@ -724,6 +724,45 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_is_strict_subset(self.bitmap, other.bitmap) }
     }
 
+    /// Return true if Self and &other intersect
+    #[inline]
+    pub fn intersect(&self, other: &Self) -> bool {
+        unsafe { ffi::roaring_bitmap_intersect(self.bitmap, other.bitmap) }
+    }
+
+    /// Return the Jaccard index between Self and &other 
+    #[inline]
+    pub fn jaccard_index(&self, other: &Self) -> f64 {
+        unsafe { ffi::roaring_bitmap_jaccard_index(self.bitmap, other.bitmap) }
+    }
+
+
+    /// Return the size of the intersection between Self and &other 
+    #[inline]
+    pub fn and_cardinality(&self, other: &Self) -> u64 {
+        unsafe { ffi::roaring_bitmap_and_cardinality(self.bitmap, other.bitmap) }
+    }
+
+    /// Return the size of the union between Self and &other 
+    #[inline]
+    pub fn or_cardinality(&self, other: &Self) -> u64 {
+        unsafe { ffi::roaring_bitmap_or_cardinality(self.bitmap, other.bitmap) }
+    }
+
+    /// Return the size of the difference between Self and &other 
+    #[inline]
+    pub fn andnot_cardinality(&self, other: &Self) -> u64 {
+        unsafe { ffi::roaring_bitmap_andnot_cardinality(self.bitmap, other.bitmap) }
+    }
+
+    /// Return the size of the symmetric difference between Self and &other 
+    #[inline]
+    pub fn xor_cardinality(&self, other: &Self) -> u64 {
+        unsafe { ffi::roaring_bitmap_xor_cardinality(self.bitmap, other.bitmap) }
+    }
+
+
+
     /// Returns the smallest value in the set.
     /// Returns std::u32::MAX if the set is empty.
     ///
