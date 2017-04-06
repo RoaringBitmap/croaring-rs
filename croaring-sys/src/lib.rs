@@ -83,6 +83,10 @@ extern "C" {
     pub fn roaring_bitmap_remove(r: *mut roaring_bitmap_s, x: ::libc::uint32_t);
     pub fn roaring_bitmap_contains(r: *const roaring_bitmap_s, x: ::libc::uint32_t) -> bool;
     pub fn roaring_bitmap_get_cardinality(ra: *const roaring_bitmap_s) -> ::libc::uint64_t;
+    pub fn roaring_bitmap_and_cardinality(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> ::libc::uint64_t;
+    pub fn roaring_bitmap_or_cardinality(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> ::libc::uint64_t;
+    pub fn roaring_bitmap_andnot_cardinality(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> ::libc::uint64_t;
+    pub fn roaring_bitmap_xor_cardinality(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> ::libc::uint64_t;
     pub fn roaring_bitmap_to_uint32_array(ra: *const roaring_bitmap_s, cardinality: *mut ::libc::uint32_t);
     pub fn roaring_bitmap_remove_run_compression(r: *mut roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_run_optimize(r: *mut roaring_bitmap_s) -> bool;
@@ -94,6 +98,8 @@ extern "C" {
     pub fn roaring_bitmap_is_empty(ra: *const roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_equals(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_is_subset(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
+    pub fn roaring_bitmap_intersect(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
+    pub fn roaring_bitmap_jaccard_index(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> f64;
     pub fn roaring_bitmap_is_strict_subset(ra1: *const roaring_bitmap_s, ra2: *const roaring_bitmap_s) -> bool;
     pub fn roaring_bitmap_statistics(ra: *const roaring_bitmap_s, stat: *mut roaring_statistics_s);
     pub fn roaring_create_iterator(ra: *const roaring_bitmap_s) -> *mut roaring_uint32_iterator_s;
