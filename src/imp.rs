@@ -59,7 +59,7 @@ impl Bitmap {
     pub fn add_many(&mut self, elements: &[u32]) -> () {
         unsafe { ffi::roaring_bitmap_add_many(self.bitmap, elements.len(), elements.as_ptr()) }
     }
-    
+
     /// Add the integer element to the bitmap
     ///
     /// # Examples
@@ -725,43 +725,128 @@ impl Bitmap {
     }
 
     /// Return true if Self and &other intersect
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap1: Bitmap = (1..5).collect();
+    /// let bitmap2: Bitmap = (5..9).collect();
+    /// let bitmap3: Bitmap = (3..7).collect();
+    ///
+    /// assert_eq!(bitmap1.intersect(&bitmap2), false);
+    /// assert_eq!(bitmap1.intersect(&bitmap3), true);
+    /// assert_eq!(bitmap2.intersect(&bitmap3), true);
+    /// ```
     #[inline]
     pub fn intersect(&self, other: &Self) -> bool {
         unsafe { ffi::roaring_bitmap_intersect(self.bitmap, other.bitmap) }
     }
 
-    /// Return the Jaccard index between Self and &other 
+    /// Return the Jaccard index between Self and &other
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap1: Bitmap = (1..5).collect();
+    /// let bitmap2: Bitmap = (5..9).collect();
+    /// let bitmap3: Bitmap = (3..9).collect();
+    ///
+    /// assert_eq!(bitmap1.jaccard_index(&bitmap2), 0.0);
+    /// assert_eq!(bitmap1.jaccard_index(&bitmap3), 0.25);
+    /// assert_eq!(bitmap2.jaccard_index(&bitmap3), 0.6666666666666666);
+    /// ```
     #[inline]
     pub fn jaccard_index(&self, other: &Self) -> f64 {
         unsafe { ffi::roaring_bitmap_jaccard_index(self.bitmap, other.bitmap) }
     }
 
-
-    /// Return the size of the intersection between Self and &other 
+    /// Return the size of the intersection between Self and &other
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(1);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(1);
+    /// bitmap2.add(2);
+    ///
+    /// assert_eq!(bitmap1.and_cardinality(&bitmap2), 1);
+    /// ```
     #[inline]
     pub fn and_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_and_cardinality(self.bitmap, other.bitmap) }
     }
 
-    /// Return the size of the union between Self and &other 
+    /// Return the size of the union between Self and &other
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(15);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(25);
+    ///
+    /// assert_eq!(bitmap1.or_cardinality(&bitmap2), 2);
     #[inline]
     pub fn or_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_or_cardinality(self.bitmap, other.bitmap) }
     }
 
-    /// Return the size of the difference between Self and &other 
+    /// Return the size of the difference between Self and &other
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    ///
+    /// bitmap1.add(15);
+    /// bitmap1.add(25);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    ///
+    /// bitmap2.add(25);
+    /// bitmap2.add(35);
+    ///
+    /// assert_eq!(bitmap1.andnot_cardinality(&bitmap2), 1);
+    /// ```
     #[inline]
     pub fn andnot_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_andnot_cardinality(self.bitmap, other.bitmap) }
     }
 
-    /// Return the size of the symmetric difference between Self and &other 
+    /// Return the size of the symmetric difference between Self and &other
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add(15);
+    /// bitmap1.add(25);
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add(25);
+    /// bitmap2.add(35);
+    ///
+    /// assert_eq!(bitmap1.xor_cardinality(&bitmap2), 2);
+    /// ```
     #[inline]
     pub fn xor_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_xor_cardinality(self.bitmap, other.bitmap) }
     }
-
-
 
     /// Returns the smallest value in the set.
     /// Returns std::u32::MAX if the set is empty.
