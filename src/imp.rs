@@ -989,7 +989,7 @@ impl Bitmap {
     /// assert_eq!(statistics.cardinality, 99);
     /// ```
     pub fn statistics(&self) -> Statistics {
-        let mut statistics: ffi::roaring_statistics_s = Default::default();
+        let mut statistics: ffi::roaring_statistics_s = unsafe { ::std::mem::zeroed() };
 
         unsafe { ffi::roaring_bitmap_statistics(self.bitmap, &mut statistics) };
 
