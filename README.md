@@ -73,12 +73,6 @@ Running unit tests and doc tests:
 cargo test
 ```
 
-Running `croaring-sys` sys tests:
-
-```
-cargo run --manifest-path systest/Cargo.toml
-```
-
 Running benchmark suite (currently on Rust nightly toolchain only):
 
 ```

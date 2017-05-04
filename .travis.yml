@@ -27,7 +27,6 @@ before_script:
 
 script:
   - cargo test
-  - cargo run --manifest-path systest/Cargo.toml
   - |
     [ $TRAVIS_RUST_VERSION != nightly ] ||
     cargo bench
