@@ -65,7 +65,7 @@ unsafe impl Send for Bitmap {}
 pub type Statistics = ffi::roaring_statistics_s;
 
 mod imp;
-mod ops;
 mod iter;
+mod ops;
 
 pub use bitmap::iter::BitmapIterator;

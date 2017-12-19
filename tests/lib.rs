@@ -1,10 +1,11 @@
 extern crate croaring;
-#[cfg(test)]
-extern crate quickcheck;
-extern crate rand;
+extern crate proptest;
+extern crate byteorder;
 
-use croaring::Bitmap;
-use quickcheck::quickcheck;
+use croaring::{Bitmap, Treemap};
+use std::io::{Result, Read};
+use std::fs::File;
+use proptest::prelude::*;
 use std::u32;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
@@ -90,43 +91,116 @@ fn smoke2() {
     println!("{:?}", rb4);
 }
 
-#[cfg(test)]
-fn cardinality_round(data: Vec<u32>) -> bool {
-    let original = Bitmap::of(&data);
-    let mut a = data.clone();
-    a.sort();
-    a.dedup();
-    a.len() == original.cardinality() as usize
+fn read_file(path: &str) -> Result<Vec<u8>> {
+    let mut bitmap_file = File::open(path)?;
+    let file_metadata = bitmap_file.metadata()?;
+    let mut buffer = Vec::with_capacity(file_metadata.len() as usize);
+    bitmap_file.read_to_end(&mut buffer)?;
+
+    Ok(buffer)
 }
 
 #[test]
-fn cardinality_roundtrip() {
-    quickcheck(cardinality_round as fn(_) -> _)
-}
+fn test_treemap_deserialize_cpp() {
+    match read_file("tests/data/testcpp.bin") {
+        Ok(buffer) => {
+            use croaring::treemap::NativeSerializer;
 
-fn serialization_round_trip(original: Vec<u32>) -> bool {
-    let original = Bitmap::of(&original);
+            let mut treemap = Treemap::deserialize(&buffer).unwrap();
 
-    let buffer = original.serialize();
+            for i in 100..1000 {
+                assert!(treemap.contains(i));
+            }
 
-    let deserialized = Bitmap::deserialize(&buffer);
-
-    original == deserialized
+            assert!(treemap.contains(std::u32::MAX as u64));
+            assert!(treemap.contains(std::u64::MAX));
+        },
+        Err(err) => assert!(false, "Cannot read test file {}", err)
+    }
 }
 
 #[test]
-fn serialization_roundtrip() {
-    quickcheck(serialization_round_trip as fn(_) -> _)
+fn test_treemap_deserialize_jvm() {
+    match read_file("tests/data/testjvm.bin") {
+        Ok(buffer) => {
+            use croaring::treemap::JvmSerializer;
+
+            let mut treemap = Treemap::deserialize(&buffer).unwrap();
+
+            for i in 100..1000 {
+                assert!(treemap.contains(i));
+            }
+
+            assert!(treemap.contains(std::u32::MAX as u64));
+            assert!(treemap.contains(std::u64::MAX));
+        },
+        Err(err) => assert!(false, "Cannot read test file {}", err)
+    }
 }
 
-#[test]
-fn test_serialization_roundtrip() {
-    let original: Bitmap = (1..1000).collect();
+proptest! {
+    #[test]
+    fn bitmap_cardinality_roundtrip(
+        indices in prop::collection::vec(proptest::num::u32::ANY, 1..3000)
+    ) {
+        let original = Bitmap::of(&indices);
+        let mut a = indices.clone();
+        a.sort();
+        a.dedup();
+        a.len() == original.cardinality() as usize
+    }
 
-    let buffer = original.serialize();
+    #[test]
+    fn treemap_cardinality_roundtrip(
+        indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
+    ) {
+        let original = Treemap::of(&indices);
+        let mut a = indices.clone();
+        a.sort();
+        a.dedup();
+        a.len() == original.cardinality() as usize
+    }
 
-    let deserialized = Bitmap::deserialize(&buffer);
+    #[test]
+    fn test_bitmap_serialization_roundtrip(
+        indices in prop::collection::vec(proptest::num::u32::ANY, 1..3000)
+    ) {
+        let original = Bitmap::of(&indices);
 
-    assert_eq!(buffer.len(), original.get_serialized_size_in_bytes());
-    assert_eq!(original, deserialized);
+        let buffer = original.serialize();
+
+        let deserialized = Bitmap::deserialize(&buffer);
+
+        original == deserialized
+    }
+
+    #[test]
+    fn test_treemap_native_serialization_roundtrip(
+        indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
+    ) {
+        use croaring::treemap::NativeSerializer;
+
+        let original = Treemap::of(&indices);
+
+        let buffer = original.serialize().unwrap();
+
+        let deserialized = Treemap::deserialize(&buffer).unwrap();
+
+        original == deserialized
+    }
+
+    #[test]
+    fn test_treemap_jvm_serialization_roundtrip(
+        indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
+    ) {
+        use croaring::treemap::JvmSerializer;
+
+        let original = Treemap::of(&indices);
+
+        let buffer = original.serialize().unwrap();
+
+        let deserialized = Treemap::deserialize(&buffer).unwrap();
+
+        original == deserialized
+    }
 }

@@ -1,7 +1,7 @@
 use std::iter::{FromIterator, IntoIterator};
 use std::marker::PhantomData;
 
-use super::{Bitmap, ffi};
+use super::{ffi, Bitmap};
 
 pub struct BitmapIterator<'a> {
     iterator: *mut ffi::roaring_uint32_iterator_s,
