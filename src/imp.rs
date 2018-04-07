@@ -572,10 +572,12 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn serialize(&self) -> Vec<u8> {
-        let mut dst = Vec::with_capacity(self.get_serialized_size_in_bytes());
+        let capacity = self.get_serialized_size_in_bytes();
+        let mut dst = Vec::with_capacity(capacity);
 
         unsafe {
             ffi::roaring_bitmap_portable_serialize(self.bitmap, dst.as_mut_ptr() as *mut ::libc::c_char);
+            dst.set_len(capacity);
         }
 
         dst

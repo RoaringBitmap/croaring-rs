@@ -135,5 +135,6 @@ fn test_serialization_roundtrip() {
 
     let deserialized = Bitmap::deserialize(&buffer);
 
+    assert_eq!(buffer.len(), original.get_serialized_size_in_bytes());
     assert_eq!(original, deserialized);
 }
