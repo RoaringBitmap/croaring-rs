@@ -14,7 +14,6 @@ fn main() {
     config.compile("libroaring.a");
 
     let bindings = bindgen::Builder::default()
-        .no_unstable_rust()
         .header("CRoaring/roaring.h")
         .generate_inline_functions(true)
         .generate()

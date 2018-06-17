@@ -15,5 +15,5 @@ rand = "0.3"
 roaring = "0.5.2"
 
 [dependencies]
-libc = "0.2"
+libc = "0.2.42"
 croaring-sys = { path = "croaring-sys", version = "0.3.1" }
