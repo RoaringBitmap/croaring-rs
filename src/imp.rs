@@ -77,6 +77,63 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_add(self.bitmap, element) }
     }
 
+    /// Add all values in range [min_element, max_element)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add_range((1..3));
+    ///
+    /// assert!(!bitmap1.is_empty());
+    /// assert!(bitmap1.contains(1));
+    /// assert!(bitmap1.contains(2));
+    /// assert!(!bitmap1.contains(3));
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add_range((3..1));
+    /// assert!(bitmap2.is_empty());
+    ///
+    /// let mut bitmap3 = Bitmap::create();
+    /// bitmap3.add_range((3..3));
+    /// assert!(bitmap3.is_empty());
+    /// ```
+    #[inline]
+    pub fn add_range(&mut self, range: Range<u64>) -> () {
+        unsafe { ffi::roaring_bitmap_add_range(self.bitmap, range.start, range.end) }
+    }
+
+    /// Add all values in range [min_element, max_element]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap1 = Bitmap::create();
+    /// bitmap1.add_range_closed((1..3));
+    ///
+    /// assert!(!bitmap1.is_empty());
+    /// assert!(bitmap1.contains(1));
+    /// assert!(bitmap1.contains(2));
+    /// assert!(bitmap1.contains(3));
+    ///
+    /// let mut bitmap2 = Bitmap::create();
+    /// bitmap2.add_range_closed((3..1));
+    /// assert!(bitmap2.is_empty());
+    ///
+    /// let mut bitmap3 = Bitmap::create();
+    /// bitmap3.add_range_closed((3..3));
+    /// assert!(!bitmap3.is_empty());
+    /// assert!(bitmap3.contains(3));
+    /// ```
+    #[inline]
+    pub fn add_range_closed(&mut self, range: Range<u64>) -> () {
+        unsafe { ffi::roaring_bitmap_add_range(self.bitmap, range.start, range.end + 1) }
+    }
+
     /// Remove the integer element from the bitmap
     ///
     /// # Examples
