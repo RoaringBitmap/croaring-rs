@@ -77,7 +77,7 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_add(self.bitmap, element) }
     }
 
-    /// Add all values in range [min_element, max_element)
+    /// Add all values in range [range_min, range_max)
     ///
     /// # Examples
     ///
@@ -105,7 +105,7 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_add_range(self.bitmap, range.start, range.end) }
     }
 
-    /// Add all values in range [min_element, max_element]
+    /// Add all values in range [range_min, range_max]
     ///
     /// # Examples
     ///
@@ -130,8 +130,8 @@ impl Bitmap {
     /// assert!(bitmap3.contains(3));
     /// ```
     #[inline]
-    pub fn add_range_closed(&mut self, range: Range<u64>) -> () {
-        unsafe { ffi::roaring_bitmap_add_range(self.bitmap, range.start, range.end + 1) }
+    pub fn add_range_closed(&mut self, range: Range<u32>) -> () {
+        unsafe { ffi::roaring_bitmap_add_range_closed(self.bitmap, range.start, range.end + 1) }
     }
 
     /// Remove the integer element from the bitmap
