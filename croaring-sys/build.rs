@@ -5,13 +5,12 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    let mut config = gcc::Config::new();
-
-    config.flag("-std=c11");
-    config.flag("-march=native");
-    config.flag("-O3");
-    config.file("CRoaring/roaring.c");
-    config.compile("libroaring.a");
+    gcc::Build::new()
+      .flag("-std=c11")
+      .flag("-march=native")
+      .flag("-O3")
+      .file("CRoaring/roaring.c")
+      .compile("libroaring.a");
 
     let bindings = bindgen::Builder::default()
         .header("CRoaring/roaring.h")
