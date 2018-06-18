@@ -134,6 +134,22 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_add_range_closed(self.bitmap, range.start, range.end + 1) }
     }
 
+    /// Check whether a range of values of range are present
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
+    /// bitmap.add_range((1..3));
+    /// assert!(bitmap.contains_range((1..3)));
+    /// ```
+    #[inline]
+    pub fn contains_range(&mut self, range: Range<u64>) -> bool {
+        unsafe { ffi::roaring_bitmap_contains_range(self.bitmap, range.start, range.end) }
+    }
+
     /// Remove the integer element from the bitmap
     ///
     /// # Examples
