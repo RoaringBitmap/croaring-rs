@@ -77,6 +77,23 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_add(self.bitmap, element) }
     }
 
+    /// Add the integer element to the bitmap. Returns true if the value was
+    /// added, false if the value was already in the bitmap.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
+    /// assert!(bitmap.add_checked(1));
+    /// assert!(!bitmap.add_checked(1));
+    /// ```
+    #[inline]
+    pub fn add_checked(&mut self, element: u32) -> bool {
+        unsafe { ffi::roaring_bitmap_add_checked(self.bitmap, element) }
+    }
+
     /// Add all values in range [range_min, range_max)
     ///
     /// # Examples
@@ -166,6 +183,24 @@ impl Bitmap {
     #[inline]
     pub fn remove(&mut self, element: u32) -> () {
         unsafe { ffi::roaring_bitmap_remove(self.bitmap, element) }
+    }
+
+    /// Remove the integer element from the bitmap. Returns true if a the value
+    /// was removed, false if the value was present in the bitmap.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
+    /// bitmap.add(1);
+    /// assert!(bitmap.remove_checked(1));
+    /// assert!(!bitmap.remove_checked(1));
+    /// ```
+    #[inline]
+    pub fn remove_checked(&mut self, element: u32) -> bool {
+        unsafe { ffi::roaring_bitmap_remove_checked(self.bitmap, element) }
     }
 
     /// Contains returns true if the integer element is contained in the bitmap
