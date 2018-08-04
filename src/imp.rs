@@ -122,6 +122,28 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_add_range(self.bitmap, range.start, range.end) }
     }
 
+    /// Remove all values in range [range_min, range_max)
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
+    /// bitmap.add_range((1..4));
+    /// assert!(!bitmap.is_empty());
+    ///
+    /// bitmap.remove_range((1..3));
+    ///
+    /// assert!(!bitmap.contains(1));
+    /// assert!(!bitmap.contains(2));
+    /// assert!(bitmap.contains(3));
+    /// ```
+    #[inline]
+    pub fn remove_range(&mut self, range: Range<u64>) -> () {
+        unsafe { ffi::roaring_bitmap_remove_range(self.bitmap, range.start, range.end) }
+    }
+
     /// Add all values in range [range_min, range_max]
     ///
     /// # Examples
@@ -149,6 +171,28 @@ impl Bitmap {
     #[inline]
     pub fn add_range_closed(&mut self, range: Range<u32>) -> () {
         unsafe { ffi::roaring_bitmap_add_range_closed(self.bitmap, range.start, range.end + 1) }
+    }
+
+    /// Remove all values in range [range_min, range_max]
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
+    /// bitmap.add_range((1..4));
+    /// assert!(!bitmap.is_empty());
+    ///
+    /// bitmap.remove_range_closed((1..3));
+    ///
+    /// assert!(!bitmap.contains(1));
+    /// assert!(!bitmap.contains(2));
+    /// assert!(!bitmap.contains(3));
+    /// ```
+    #[inline]
+    pub fn remove_range_closed(&mut self, range: Range<u32>) -> () {
+        unsafe { ffi::roaring_bitmap_remove_range_closed(self.bitmap, range.start, range.end) }
     }
 
     /// Check whether a range of values of range are present
