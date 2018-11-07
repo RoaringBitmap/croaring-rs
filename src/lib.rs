@@ -53,15 +53,18 @@
 //! println!("{:?}", rb4);
 //! ```
 
-extern crate libc;
 extern crate croaring_sys as ffi;
+extern crate libc;
 
 pub struct Bitmap {
     bitmap: *mut ffi::roaring_bitmap_s,
 }
 
+unsafe impl Sync for Bitmap {}
+unsafe impl Send for Bitmap {}
+
 pub type Statistics = ffi::roaring_statistics_s;
 
 mod imp;
-mod ops;
 mod iter;
+mod ops;
