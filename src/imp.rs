@@ -265,6 +265,28 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_contains(self.bitmap, element) }
     }
 
+    /// Returns number of elements in range [range_start, range_end).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
+    /// bitmap.add(1);
+    /// bitmap.add(3);
+    /// bitmap.add(4);
+    ///
+    /// assert_eq!(bitmap.range_cardinality((0..1)), 0);
+    /// assert_eq!(bitmap.range_cardinality((0..2)), 1);
+    /// assert_eq!(bitmap.range_cardinality((2..5)), 2);
+    /// assert_eq!(bitmap.range_cardinality((0..5)), 3);
+    /// ```
+    #[inline]
+    pub fn range_cardinality(&self, range: Range<u64>) -> u64 {
+        unsafe { ffi::roaring_bitmap_range_cardinality(self.bitmap, range.start, range.end) }
+    }
+
     /// Returns the number of integers contained in the bitmap
     ///
     /// # Examples
