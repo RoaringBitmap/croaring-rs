@@ -1,16 +1,16 @@
 extern crate bindgen;
-extern crate gcc;
+extern crate cc;
 
 use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    gcc::Build::new()
-      .flag("-std=c11")
-      .flag("-march=native")
-      .flag("-O3")
-      .file("CRoaring/roaring.c")
-      .compile("libroaring.a");
+    cc::Build::new()
+        .flag("-std=c11")
+        .flag("-march=native")
+        .flag("-O3")
+        .file("CRoaring/roaring.c")
+        .compile("libroaring.a");
 
     let bindings = bindgen::Builder::default()
         .blacklist_type("max_align_t")
