@@ -8,14 +8,11 @@ os:
   - windows
 
 rust:
-  - stable
+  - stable-gnu
 
 before_script:
   - choco install llvm
 
 script:
-  - (cd croaring-sys && cargo test)
+  - cd croaring-sys && cargo test && cd ..
   - cargo test
-  - |
-    [ $TRAVIS_RUST_VERSION != nightly ] ||
-    cargo bench
