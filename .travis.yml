@@ -5,26 +5,13 @@ dist: trusty
 language: rust
 
 os:
-  - linux
   - windows
 
-env:
-  matrix:
-   - LLVM_VERSION=3.8
-
 rust:
-  - nightly
-  - beta
   - stable
 
 before_script:
-  - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-  - echo "deb http://apt.llvm.org/precise/ llvm-toolchain-precise-$LLVM_VERSION main" | sudo tee -a /etc/apt/sources.list
-  - sudo apt-get update -qq
-  - sudo apt-get install clang-$LLVM_VERSION
-  - sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-$LLVM_VERSION 100
-  - sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-$LLVM_VERSION 100
-  - git submodule update --init --recursive
+  - choco install llvm
 
 script:
   - (cd croaring-sys && cargo test)
