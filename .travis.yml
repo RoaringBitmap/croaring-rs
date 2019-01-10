@@ -8,10 +8,7 @@ os:
   - windows
 
 rust:
-  - stable-gnu
-
-before_script:
-  - choco install llvm
+  - stable
 
 script:
   - cd croaring-sys && cargo test && cd ..
