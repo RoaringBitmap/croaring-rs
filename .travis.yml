@@ -8,8 +8,9 @@ os:
   - windows
 
 rust:
-  - stable
+  - stable-gnu
 
 script:
+  - set CC=cc
   - cd croaring-sys && cargo test && cd ..
   - cargo test
