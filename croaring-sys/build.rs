@@ -6,9 +6,9 @@ use std::path::PathBuf;
 
 fn main() {
     cc::Build::new()
-        .flag("-std=c11")
-        .flag("-march=native")
-        .flag("-O3")
+        .flag_if_supported("-std=c11")
+        .flag_if_supported("-march=native")
+        .flag_if_supported("-O3")
         .file("CRoaring/roaring.c")
         .compile("libroaring.a");
 
