@@ -8,7 +8,7 @@ os:
   - windows
 
 env:
-  - CC=gcc
+  - CC=clang
 
 rust:
   - stable-gnu
