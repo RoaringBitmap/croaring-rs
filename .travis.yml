@@ -1,33 +1,192 @@
-sudo: required
-
-dist: trusty
+sudo: false
 
 language: rust
 
-os:
-  - linux
+stages:
+  - build
+  - test
+  - benchmark
 
-env:
-  matrix:
-   - LLVM_VERSION=3.8
+jobs:
+  include:
+    - os: osx
+      compiler: clang
+      env:
+        - CC=clang
+      script:
+        - cargo build -vv
+      stage: build
 
-rust:
-  - nightly
-  - beta
-  - stable
+      # - os: osx
+      #   compiler: clang
+      #   env:
+      #     - CC=clang
+      #     - TARGET=aarch64-apple-ios
+      #   before_script:
+      #     - rustup target add $TARGET
+      #   script:
+      #     - cargo build --target $TARGET -vv
+      #   stage: build
 
-before_script:
-  - wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
-  - echo "deb http://apt.llvm.org/precise/ llvm-toolchain-precise-$LLVM_VERSION main" | sudo tee -a /etc/apt/sources.list
-  - sudo apt-get update -qq
-  - sudo apt-get install clang-$LLVM_VERSION
-  - sudo update-alternatives --install /usr/bin/cc cc /usr/bin/clang-$LLVM_VERSION 100
-  - sudo update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-$LLVM_VERSION 100
-  - git submodule update --init --recursive
+    - os: osx
+      compiler: gcc
+      env:
+        - CC=gcc
+      script:
+        - cargo build -vv
+      stage: build
 
-script:
-  - (cd croaring-sys && cargo test)
-  - cargo test
-  - |
-    [ $TRAVIS_RUST_VERSION != nightly ] ||
-    cargo bench
+      # - os: linux
+      #   dist: xenial
+      #   compiler: clang
+      #   addons:
+      #     apt:
+      #       sources:
+      #         - ubuntu-toolchain-r-test
+      #         - llvm-toolchain-xenial-3.8
+      #       packages:
+      #         - clang-3.8
+      #   env:
+      #     - CC=clang-3.8
+      #     - TARGET=arm-linux-androideabi
+      #   before_script:
+      #     - rustup target add $TARGET
+      #   script:
+      #     - cargo build --target $TARGET -vv
+      #   stage: build
+
+    - os: linux
+      dist: xenial
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-3.8
+          packages:
+            - clang-3.8
+      env:
+        - CC=clang-3.8
+      script:
+        - cargo build -vv
+      stage: build
+
+    - os: linux
+      dist: xenial
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-3.9
+          packages:
+            - clang-3.9
+      env:
+        - CC=clang-3.9
+      script:
+        - cargo build -vv
+      stage: build
+
+    - os: linux
+      dist: xenial
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-4.0
+          packages:
+            - clang-4.0
+      env:
+        - CC=clang-4.0
+      script:
+        - cargo build -vv
+      stage: build
+
+    - os: linux
+      dist: xenial
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-5.0
+          packages:
+            - clang-5.0
+      env:
+        - CC=clang-5.0
+      script:
+        - cargo build -vv
+      stage: build
+
+    - os: linux
+      dist: xenial
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-6.0
+          packages:
+            - clang-6.0
+      env:
+        - CC=clang-6.0
+      script:
+        - cargo build -vv
+      stage: build
+
+    - os: linux
+      dist: xenial
+      compiler: clang
+      addons:
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-xenial-7
+          packages:
+            - clang-7
+      env:
+        - CC=clang-7
+      script:
+        - cargo build -vv
+      stage: build
+
+    - os: linux
+      compiler: gcc
+      env:
+        - CC=gcc
+      script:
+        - cargo build -vv
+      stage: build
+
+    - os: windows
+      compiler: msvc
+      script:
+        - cargo build -vv
+      stage: build
+
+    - script:
+      - |
+        cd croaring-sys && cargo test
+        cargo test --verbose
+      rust: stable
+      stage: test
+
+    - script:
+      - |
+        cd croaring-sys && cargo test
+        cargo test --verbose
+      rust: beta
+      stage: test
+
+    - script:
+      - |
+        cd croaring-sys && cargo test
+        cargo test --verbose
+      rust: nightly
+      stage: test
+
+    - script:
+      - cargo bench
+      rust: nightly
+      stage: benchmark
