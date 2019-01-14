@@ -18,7 +18,7 @@ impl Bitmap {
     pub fn create() -> Self {
         let bitmap = unsafe { ffi::roaring_bitmap_create() };
 
-        Bitmap { bitmap: bitmap }
+        Bitmap { bitmap }
     }
 
     /// Creates a new bitmap (initially empty) with a provided
@@ -37,7 +37,7 @@ impl Bitmap {
     pub fn create_with_capacity(capacity: u32) -> Self {
         let bitmap = unsafe { ffi::roaring_bitmap_create_with_capacity(capacity) };
 
-        Bitmap { bitmap: bitmap }
+        Bitmap { bitmap }
     }
 
     /// Add the integer element to the bitmap
@@ -56,7 +56,7 @@ impl Bitmap {
     /// assert!(bitmap.contains(3));
     /// ```
     #[inline]
-    pub fn add_many(&mut self, elements: &[u32]) -> () {
+    pub fn add_many(&mut self, elements: &[u32]) {
         unsafe { ffi::roaring_bitmap_add_many(self.bitmap, elements.len(), elements.as_ptr()) }
     }
 
@@ -73,7 +73,7 @@ impl Bitmap {
     /// assert!(!bitmap.is_empty());
     /// ```
     #[inline]
-    pub fn add(&mut self, element: u32) -> () {
+    pub fn add(&mut self, element: u32) {
         unsafe { ffi::roaring_bitmap_add(self.bitmap, element) }
     }
 
@@ -118,7 +118,7 @@ impl Bitmap {
     /// assert!(bitmap3.is_empty());
     /// ```
     #[inline]
-    pub fn add_range(&mut self, range: Range<u64>) -> () {
+    pub fn add_range(&mut self, range: Range<u64>) {
         unsafe { ffi::roaring_bitmap_add_range(self.bitmap, range.start, range.end) }
     }
 
@@ -140,7 +140,7 @@ impl Bitmap {
     /// assert!(bitmap.contains(3));
     /// ```
     #[inline]
-    pub fn remove_range(&mut self, range: Range<u64>) -> () {
+    pub fn remove_range(&mut self, range: Range<u64>) {
         unsafe { ffi::roaring_bitmap_remove_range(self.bitmap, range.start, range.end) }
     }
 
@@ -169,7 +169,7 @@ impl Bitmap {
     /// assert!(bitmap3.contains(3));
     /// ```
     #[inline]
-    pub fn add_range_closed(&mut self, range: Range<u32>) -> () {
+    pub fn add_range_closed(&mut self, range: Range<u32>) {
         unsafe { ffi::roaring_bitmap_add_range_closed(self.bitmap, range.start, range.end + 1) }
     }
 
@@ -191,7 +191,7 @@ impl Bitmap {
     /// assert!(!bitmap.contains(3));
     /// ```
     #[inline]
-    pub fn remove_range_closed(&mut self, range: Range<u32>) -> () {
+    pub fn remove_range_closed(&mut self, range: Range<u32>) {
         unsafe { ffi::roaring_bitmap_remove_range_closed(self.bitmap, range.start, range.end) }
     }
 
@@ -225,7 +225,7 @@ impl Bitmap {
     /// assert!(bitmap.is_empty());
     /// ```
     #[inline]
-    pub fn remove(&mut self, element: u32) -> () {
+    pub fn remove(&mut self, element: u32) {
         unsafe { ffi::roaring_bitmap_remove(self.bitmap, element) }
     }
 
@@ -369,7 +369,7 @@ impl Bitmap {
     /// assert!(!bitmap3.contains(25));
     /// ```
     #[inline]
-    pub fn and_inplace(&mut self, other: &Self) -> () {
+    pub fn and_inplace(&mut self, other: &Self) {
         unsafe { ffi::roaring_bitmap_and_inplace(self.bitmap, other.bitmap) }
     }
 
@@ -421,7 +421,7 @@ impl Bitmap {
     /// assert!(bitmap1.contains(25));
     /// ```
     #[inline]
-    pub fn or_inplace(&mut self, other: &Self) -> () {
+    pub fn or_inplace(&mut self, other: &Self) {
         unsafe { ffi::roaring_bitmap_or_inplace(self.bitmap, other.bitmap) }
     }
 
@@ -552,7 +552,7 @@ impl Bitmap {
     /// assert!(bitmap1.contains(35));
     /// ```
     #[inline]
-    pub fn xor_inplace(&mut self, other: &Self) -> () {
+    pub fn xor_inplace(&mut self, other: &Self) {
         unsafe { ffi::roaring_bitmap_xor_inplace(self.bitmap, other.bitmap) }
     }
 
@@ -649,7 +649,7 @@ impl Bitmap {
     /// assert!(!bitmap1.contains(35));
     /// ```
     #[inline]
-    pub fn andnot_inplace(&mut self, other: &Self) -> () {
+    pub fn andnot_inplace(&mut self, other: &Self) {
         unsafe { ffi::roaring_bitmap_andnot_inplace(self.bitmap, other.bitmap) }
     }
 
@@ -700,7 +700,7 @@ impl Bitmap {
     /// assert!(bitmap1.contains(4));
     /// ```
     #[inline]
-    pub fn flip_inplace(&mut self, range: Range<u64>) -> () {
+    pub fn flip_inplace(&mut self, range: Range<u64>) {
         unsafe { ffi::roaring_bitmap_flip_inplace(self.bitmap, range.start, range.end) }
     }
 
