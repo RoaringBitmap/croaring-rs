@@ -347,9 +347,7 @@ fn bench_is_empty_false(b: &mut Bencher) {
 
 #[bench]
 fn bench_of(b: &mut Bencher) {
-    b.iter(|| {
-        Bitmap::of(&vec![10, 20, 30, 40])
-    });
+    b.iter(|| Bitmap::of(&vec![10, 20, 30, 40]));
 }
 
 #[bench]

@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
-use {Bitmap, ffi};
+use {ffi, Bitmap};
 
 impl fmt::Debug for Bitmap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -32,7 +32,11 @@ impl Clone for Bitmap {
     /// ```
     #[inline]
     fn clone(&self) -> Bitmap {
-        unsafe { Bitmap { bitmap: ffi::roaring_bitmap_copy(self.bitmap) } }
+        unsafe {
+            Bitmap {
+                bitmap: ffi::roaring_bitmap_copy(self.bitmap),
+            }
+        }
     }
 }
 

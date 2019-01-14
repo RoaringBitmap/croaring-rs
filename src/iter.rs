@@ -1,11 +1,11 @@
-use std::marker::PhantomData;
 use std::iter::{FromIterator, IntoIterator};
+use std::marker::PhantomData;
 
-use {Bitmap, ffi};
+use {ffi, Bitmap};
 
 pub struct BitmapIterator<'a> {
     iterator: *mut ffi::roaring_uint32_iterator_s,
-    phantom: PhantomData<&'a ()>
+    phantom: PhantomData<&'a ()>,
 }
 
 impl<'a> BitmapIterator<'a> {
@@ -29,16 +29,12 @@ impl<'a> BitmapIterator<'a> {
 
     #[inline]
     fn has_value(&self) -> bool {
-        unsafe {
-            (*self.iterator).has_value
-        }
+        unsafe { (*self.iterator).has_value }
     }
 
     #[inline]
     fn advance(&mut self) -> bool {
-        unsafe {
-            ffi::roaring_advance_uint32_iterator(self.iterator)
-        }
+        unsafe { ffi::roaring_advance_uint32_iterator(self.iterator) }
     }
 }
 
@@ -51,8 +47,8 @@ impl<'a> Iterator for BitmapIterator<'a> {
                 self.advance();
 
                 Some(value)
-            },
-            None => None
+            }
+            None => None,
         }
     }
 }
@@ -83,7 +79,7 @@ impl Bitmap {
     /// assert_eq!(iterator.next(), Some(4));
     /// assert_eq!(iterator.next(), None);
     /// ```
-    pub fn iter(&self) ->  BitmapIterator {
+    pub fn iter(&self) -> BitmapIterator {
         BitmapIterator::new(self)
     }
 }
@@ -103,7 +99,7 @@ impl FromIterator<u32> for Bitmap {
     /// assert!(bitmap.contains(2));
     /// assert_eq!(bitmap.cardinality(), 2);
     /// ```
-    fn from_iter<I: IntoIterator<Item=u32>>(iter: I) -> Self {
+    fn from_iter<I: IntoIterator<Item = u32>>(iter: I) -> Self {
         Bitmap::of(&Vec::from_iter(iter))
     }
 }

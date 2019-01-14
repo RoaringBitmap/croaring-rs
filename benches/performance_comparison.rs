@@ -6,7 +6,7 @@ extern crate test;
 
 use croaring::Bitmap;
 use roaring::RoaringBitmap;
-use test::{Bencher, black_box};
+use test::{black_box, Bencher};
 
 #[bench]
 fn perf_comp_create_croaring(b: &mut Bencher) {
@@ -25,7 +25,6 @@ fn perf_comp_create_rust_roaring(b: &mut Bencher) {
         black_box(bitmap);
     });
 }
-
 
 #[bench]
 fn perf_comp_create_and_add_one_croaring(b: &mut Bencher) {
@@ -193,9 +192,7 @@ fn perf_comp_and_new_rust_roaring(b: &mut Bencher) {
     let bitmap1: RoaringBitmap = (1..100).collect();
     let bitmap2: RoaringBitmap = (100..200).collect();
 
-    b.iter(|| {
-        &bitmap1 & &bitmap2
-    });
+    b.iter(|| &bitmap1 & &bitmap2);
 }
 
 #[bench]
@@ -233,9 +230,7 @@ fn perf_comp_or_new_rust_roaring(b: &mut Bencher) {
     let bitmap1: RoaringBitmap = (1..100).collect();
     let bitmap2: RoaringBitmap = (100..200).collect();
 
-    b.iter(|| {
-        &bitmap1 | &bitmap2
-    });
+    b.iter(|| &bitmap1 | &bitmap2);
 }
 
 #[bench]
@@ -273,9 +268,7 @@ fn perf_comp_xor_new_rust_roaring(b: &mut Bencher) {
     let bitmap1: RoaringBitmap = (1..100).collect();
     let bitmap2: RoaringBitmap = (100..200).collect();
 
-    b.iter(|| {
-        &bitmap1 ^ &bitmap2
-    });
+    b.iter(|| &bitmap1 ^ &bitmap2);
 }
 
 #[bench]

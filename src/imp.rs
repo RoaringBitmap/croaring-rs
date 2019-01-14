@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use {Bitmap, Statistics, ffi};
+use {ffi, Bitmap, Statistics};
 
 impl Bitmap {
     /// Creates a new bitmap (initially empty)
@@ -330,7 +330,9 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn and(&self, other: &Self) -> Self {
-        Bitmap { bitmap: unsafe { ffi::roaring_bitmap_and(self.bitmap, other.bitmap) } }
+        Bitmap {
+            bitmap: unsafe { ffi::roaring_bitmap_and(self.bitmap, other.bitmap) },
+        }
     }
 
     /// Computes the intersection between two bitmaps and stores the result
@@ -393,7 +395,9 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn or(&self, other: &Self) -> Self {
-        Bitmap { bitmap: unsafe { ffi::roaring_bitmap_or(self.bitmap, other.bitmap) } }
+        Bitmap {
+            bitmap: unsafe { ffi::roaring_bitmap_or(self.bitmap, other.bitmap) },
+        }
     }
 
     /// Computes the union between two bitmaps and stores the result in
@@ -454,7 +458,7 @@ impl Bitmap {
         }
 
         Bitmap {
-            bitmap: unsafe { ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr()) }
+            bitmap: unsafe { ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr()) },
         }
     }
 
@@ -491,7 +495,7 @@ impl Bitmap {
         }
 
         Bitmap {
-            bitmap: unsafe { ffi::roaring_bitmap_or_many_heap(bms.len() as u32, bms.as_mut_ptr()) }
+            bitmap: unsafe { ffi::roaring_bitmap_or_many_heap(bms.len() as u32, bms.as_mut_ptr()) },
         }
     }
 
@@ -520,7 +524,9 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn xor(&self, other: &Self) -> Self {
-        Bitmap { bitmap: unsafe { ffi::roaring_bitmap_xor(self.bitmap, other.bitmap) } }
+        Bitmap {
+            bitmap: unsafe { ffi::roaring_bitmap_xor(self.bitmap, other.bitmap) },
+        }
     }
 
     /// Inplace version of roaring_bitmap_xor, stores result in current bitmap.
@@ -582,7 +588,7 @@ impl Bitmap {
         }
 
         Bitmap {
-            bitmap: unsafe { ffi::roaring_bitmap_xor_many(bms.len(), bms.as_mut_ptr()) }
+            bitmap: unsafe { ffi::roaring_bitmap_xor_many(bms.len(), bms.as_mut_ptr()) },
         }
     }
 
@@ -612,7 +618,9 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn andnot(&self, other: &Self) -> Self {
-        Bitmap { bitmap: unsafe { ffi::roaring_bitmap_andnot(self.bitmap, other.bitmap) } }
+        Bitmap {
+            bitmap: unsafe { ffi::roaring_bitmap_andnot(self.bitmap, other.bitmap) },
+        }
     }
 
     /// Computes the difference between two bitmaps and stores the result
@@ -667,7 +675,9 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn flip(&self, range: Range<u64>) -> Self {
-        Bitmap { bitmap: unsafe { ffi::roaring_bitmap_flip(self.bitmap, range.start, range.end) } }
+        Bitmap {
+            bitmap: unsafe { ffi::roaring_bitmap_flip(self.bitmap, range.start, range.end) },
+        }
     }
 
     /// Negates the bits in the given range (i.e., [rangeStart..rangeEnd)),
@@ -750,7 +760,10 @@ impl Bitmap {
         let mut dst = Vec::with_capacity(capacity);
 
         unsafe {
-            ffi::roaring_bitmap_portable_serialize(self.bitmap, dst.as_mut_ptr() as *mut ::libc::c_char);
+            ffi::roaring_bitmap_portable_serialize(
+                self.bitmap,
+                dst.as_mut_ptr() as *mut ::libc::c_char,
+            );
             dst.set_len(capacity);
         }
 
@@ -762,8 +775,10 @@ impl Bitmap {
     #[inline]
     pub fn deserialize(buffer: &[u8]) -> Self {
         unsafe {
-            Bitmap  {
-                bitmap: ffi::roaring_bitmap_portable_deserialize(buffer.as_ptr() as *const ::libc::c_char)
+            Bitmap {
+                bitmap: ffi::roaring_bitmap_portable_deserialize(
+                    buffer.as_ptr() as *const ::libc::c_char
+                ),
             }
         }
     }

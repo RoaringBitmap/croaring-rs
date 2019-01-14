@@ -1,10 +1,11 @@
-extern crate rand;
 extern crate croaring;
-#[cfg(test)] extern crate quickcheck;
+#[cfg(test)]
+extern crate quickcheck;
+extern crate rand;
 
-use std::u32;
 use croaring::Bitmap;
 use quickcheck::{QuickCheck, StdGen};
+use std::u32;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
 #[test]
@@ -38,7 +39,6 @@ fn smoke1() {
     assert_eq!(bitmap.contains(u32::MAX - 1), false);
     assert_eq!(bitmap.contains(u32::MAX), true);
 }
-
 
 // borrowed and adapted from https://github.com/Bitmap/gocroaring/blob/4a2fc02f79b1c36b904301e7d052f7f0017b6973/gocroaring_test.go#L24-L64
 #[test]
