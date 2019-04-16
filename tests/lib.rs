@@ -4,7 +4,7 @@ extern crate quickcheck;
 extern crate rand;
 
 use croaring::Bitmap;
-use quickcheck::{QuickCheck, StdGen};
+use quickcheck::quickcheck;
 use std::u32;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
@@ -101,11 +101,7 @@ fn cardinality_round(data: Vec<u32>) -> bool {
 
 #[test]
 fn cardinality_roundtrip() {
-    QuickCheck::new()
-        .gen(StdGen::new(rand::thread_rng(), 1_00_000))
-        .tests(10)
-        .max_tests(10)
-        .quickcheck(cardinality_round as fn(_) -> _)
+    quickcheck(cardinality_round as fn(_) -> _)
 }
 
 fn serialization_round_trip(original: Vec<u32>) -> bool {
@@ -120,11 +116,7 @@ fn serialization_round_trip(original: Vec<u32>) -> bool {
 
 #[test]
 fn serialization_roundtrip() {
-    QuickCheck::new()
-        .gen(StdGen::new(rand::thread_rng(), 1_00_000))
-        .tests(10)
-        .max_tests(10)
-        .quickcheck(serialization_round_trip as fn(_) -> _)
+    quickcheck(serialization_round_trip as fn(_) -> _)
 }
 
 #[test]

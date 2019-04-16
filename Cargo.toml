@@ -10,7 +10,7 @@ keywords = ["RoaringBitmap", "croaring", "bitmap"]
 documentation = "https://docs.rs/croaring"
 
 [dev-dependencies]
-quickcheck = "0.4.1"
+quickcheck = "0.8.2"
 rand = "0.3"
 roaring = "0.5.2"
 
