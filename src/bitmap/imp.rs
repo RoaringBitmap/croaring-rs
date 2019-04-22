@@ -1,6 +1,6 @@
 use std::ops::Range;
 
-use {ffi, Bitmap, Statistics};
+use super::{ffi, Bitmap, Statistics};
 
 impl Bitmap {
     /// Creates a new bitmap (initially empty)
