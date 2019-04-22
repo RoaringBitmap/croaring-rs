@@ -2,6 +2,7 @@ use Bitmap;
 use Treemap;
 
 use std::io::{Cursor, Result, Seek, SeekFrom};
+use std::mem::size_of;
 use byteorder::{NativeEndian, BigEndian, ReadBytesExt, WriteBytesExt};
 
 pub trait Serializer {}
@@ -13,6 +14,7 @@ pub trait NativeSerializer: Serializer {
 
     fn serialize(&self) -> Result<Vec<u8>>;
     fn deserialize(buffer: &[u8]) -> Result<Self::Item>;
+    fn get_serialized_size_in_bytes(&self) -> usize;
 }
 
 impl Serializer for Treemap {}
@@ -51,6 +53,33 @@ impl NativeSerializer for Treemap {
 
         Ok(treemap)
     }
+
+    /// How many bytes are required to serialize this bitmap with
+    /// NativeSerializer
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Treemap;
+    /// use croaring::treemap::NativeSerializer;
+    ///
+    /// let mut treemap = Treemap::create();
+    ///
+    /// for i in 100..1000 {
+    ///   treemap.add(i);
+    /// }
+    ///
+    /// treemap.add(std::u32::MAX as u64);
+    /// treemap.add(std::u64::MAX);
+    ///
+    /// assert_eq!(treemap.get_serialized_size_in_bytes(), 1860);
+    /// ```
+    fn get_serialized_size_in_bytes(&self) -> usize {
+        self.map.iter().fold(
+            size_of::<u64>() + self.map.len() * size_of::<u32>(),
+            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes()
+        )
+    }
 }
 
 /// croaring::Treemap serializer that is compatible with JVM version of Treemap
@@ -61,6 +90,7 @@ pub trait JvmSerializer: Serializer {
 
     fn serialize(&self) -> Result<Vec<u8>>;
     fn deserialize(buffer: &[u8]) -> Result<Self::Item>;
+    fn get_serialized_size_in_bytes(&self) -> usize;
 }
 
 impl JvmSerializer for Treemap {
@@ -99,5 +129,32 @@ impl JvmSerializer for Treemap {
         }
 
         Ok(treemap)
+    }
+
+    /// How many bytes are required to serialize this bitmap with
+    /// JvmSerializer
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Treemap;
+    /// use croaring::treemap::JvmSerializer;
+    ///
+    /// let mut treemap = Treemap::create();
+    ///
+    /// for i in 100..1000 {
+    ///   treemap.add(i);
+    /// }
+    ///
+    /// treemap.add(std::u32::MAX as u64);
+    /// treemap.add(std::u64::MAX);
+    ///
+    /// assert_eq!(treemap.get_serialized_size_in_bytes(), 1857);
+    /// ```
+    fn get_serialized_size_in_bytes(&self) -> usize {
+        self.map.iter().fold(
+            size_of::<u8>() + size_of::<u32>() + self.map.len() * size_of::<u32>(),
+            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes()
+        )
     }
 }
