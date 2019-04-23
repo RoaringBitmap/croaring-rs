@@ -571,4 +571,45 @@ impl Treemap {
 
         treemap
     }
+
+    /// Compresses treemap's bitmaps. Returns true if any of the bitmaps
+    /// were modified.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Treemap;
+    ///
+    /// let mut treemap: Treemap = (100..1000).collect();
+    ///
+    /// assert_eq!(treemap.cardinality(), 900);
+    /// assert!(treemap.run_optimize());
+    /// ```
+    pub fn run_optimize(&mut self) -> bool {
+        self.map.iter_mut().fold(
+            false,
+            |result, (_, bitmap)| result || bitmap.run_optimize()
+        )
+    }
+
+    /// Removes run-length encoding from treemap's bitmaps. Returns true if
+    /// change was made to any of the bitmaps.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Treemap;
+    ///
+    /// let mut treemap: Treemap = (100..1000).collect();
+    ///
+    /// assert_eq!(treemap.cardinality(), 900);
+    /// assert!(treemap.run_optimize());
+    /// assert!(treemap.remove_run_compression());
+    /// ```
+    pub fn remove_run_compression(&mut self) -> bool {
+        self.map.iter_mut().fold(
+            false,
+            |result, (_, bitmap)| result || bitmap.remove_run_compression()
+        )
+    }
 }

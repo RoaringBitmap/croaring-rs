@@ -1,7 +1,6 @@
-use std::iter::{Iterator, FromIterator, IntoIterator};
+use std::iter::FromIterator;
 
-use std::collections::btree_map;
-use super::{Bitmap, Treemap, BitmapIterator, util};
+use super::Treemap;
 
 impl FromIterator<u64> for Treemap {
     /// Convenience method for creating treemap from an iterator.

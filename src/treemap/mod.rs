@@ -23,6 +23,7 @@ use std::collections::BTreeMap;
 use Bitmap;
 
 mod imp;
+mod iter;
 mod serialization;
 mod ops;
 mod util;
