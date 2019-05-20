@@ -106,7 +106,7 @@ fn test_treemap_deserialize_cpp() {
         Ok(buffer) => {
             use croaring::treemap::NativeSerializer;
 
-            let mut treemap = Treemap::deserialize(&buffer).unwrap();
+            let treemap = Treemap::deserialize(&buffer).unwrap();
 
             for i in 100..1000 {
                 assert!(treemap.contains(i));
@@ -125,7 +125,7 @@ fn test_treemap_deserialize_jvm() {
         Ok(buffer) => {
             use croaring::treemap::JvmSerializer;
 
-            let mut treemap = Treemap::deserialize(&buffer).unwrap();
+            let treemap = Treemap::deserialize(&buffer).unwrap();
 
             for i in 100..1000 {
                 assert!(treemap.contains(i));
