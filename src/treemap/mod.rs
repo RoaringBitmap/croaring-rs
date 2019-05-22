@@ -21,6 +21,7 @@
 //! ```
 use std::collections::BTreeMap;
 use Bitmap;
+use BitmapIterator;
 
 mod imp;
 mod iter;
