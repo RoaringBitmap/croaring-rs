@@ -3,7 +3,7 @@ A [Rust](https://www.rust-lang.org) wrapper for CRoaring (a C/C++ implementation
 
 The original java version can be found at https://github.com/RoaringBitmap/RoaringBitmap
 
-### Usage example
+### Bitmap usage example
 
 ```rust
 use croaring::Bitmap;
@@ -55,6 +55,44 @@ rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
 println!("{:?}", rb4);
 ```
 
+For 64bit Bitmap support, checkout the [`Treemap`](https://docs.rs/croaring/latest/croaring/struct.Treemap.html). `Treemap` is not API-compatible with `Bitmap`, yet most the functionality is overlapping.
+
+### Treemap usage example
+
+```rust
+use std::u64;
+use croaring::Treemap;
+
+let mut treemap = Treemap::create();
+treemap.add(u64::MAX);
+treemap.remove(u64::MAX);
+
+/// Serialization compatible with croaring Treemap version at https://github.com/RoaringBitmap/CRoaring/blob/b88b002407b42fafaea23ea5009a54a24d1c1ed4/cpp/roaring64map.hh
+
+use croaring::treemap::NativeSerializer;
+
+let mut treemap1 = Treemap::create();
+
+for i in 100..1000 {
+  treemap1.add(i);
+}
+
+treemap1.add(std::u32::MAX as u64);
+treemap1.add(std::u64::MAX);
+
+/// Serialization compatible with JVM Treemap version at https://github.com/RoaringBitmap/RoaringBitmap/blob/34654b2d5c3e75e7f9bca1672f4c0b5800d60cf3/roaringbitmap/src/main/java/org/roaringbitmap/longlong/Roaring64NavigableMap.java
+use croaring::treemap::JvmSerializer;
+
+let mut treemap2 = Treemap::create();
+
+for i in 100..1000 {
+  treemap2.add(i);
+}
+
+treemap2.add(std::u32::MAX as u64);
+treemap2.add(std::u64::MAX);
+```
+
 ### Building locally
 
 ```
@@ -81,4 +119,4 @@ cargo bench
 
 ### Documentation
 
-Current documentation is available at https://saulius.github.io/croaring-rs/croaring/
+Current documentation is available at https://docs.rs/croaring/latest/croaring/
