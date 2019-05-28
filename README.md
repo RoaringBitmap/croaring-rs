@@ -55,7 +55,7 @@ rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
 println!("{:?}", rb4);
 ```
 
-For 64bit Bitmap support, checkout the [`Treemap`](https://docs.rs/croaring/latest/croaring/struct.Treemap.html). `Treemap` is not API-compatible with `Bitmap`, yet most the functionality is overlapping.
+For 64bit Bitmap support, checkout the [`Treemap`](https://docs.rs/croaring/0.4.0/croaring/treemap/struct.Treemap.html). `Treemap` is not API-compatible with `Bitmap`, yet most the functionality is overlapping.
 
 ### Treemap usage example
 
