@@ -1050,16 +1050,20 @@ impl Bitmap {
     /// let mut bitmap: Bitmap = (5..10).collect();
     /// let empty_bitmap: Bitmap = Bitmap::create();
     ///
-    /// assert_eq!(bitmap.minimum(), 5);
-    /// assert_eq!(empty_bitmap.minimum(), std::u32::MAX);
+    /// assert_eq!(bitmap.minimum(), Some(5));
+    /// assert_eq!(empty_bitmap.minimum(), None);
     ///
     /// bitmap.add(3);
     ///
-    /// assert_eq!(bitmap.minimum(), 3);
+    /// assert_eq!(bitmap.minimum(), Some(3));
     /// ```
     #[inline]
-    pub fn minimum(&self) -> u32 {
-        unsafe { ffi::roaring_bitmap_minimum(self.bitmap) }
+    pub fn minimum(&self) -> Option<u32> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(unsafe { ffi::roaring_bitmap_minimum(self.bitmap) })
+        }
     }
 
     /// Returns the greatest value in the set.
@@ -1073,16 +1077,20 @@ impl Bitmap {
     /// let mut bitmap: Bitmap = (5..10).collect();
     /// let empty_bitmap: Bitmap = Bitmap::create();
     ///
-    /// assert_eq!(bitmap.maximum(), 9);
-    /// assert_eq!(empty_bitmap.maximum(), 0);
+    /// assert_eq!(bitmap.maximum(), Some(9));
+    /// assert_eq!(empty_bitmap.maximum(), None);
     ///
     /// bitmap.add(15);
     ///
-    /// assert_eq!(bitmap.maximum(), 15);
+    /// assert_eq!(bitmap.maximum(), Some(15));
     /// ```
     #[inline]
-    pub fn maximum(&self) -> u32 {
-        unsafe { ffi::roaring_bitmap_maximum(self.bitmap) }
+    pub fn maximum(&self) -> Option<u32> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(unsafe { ffi::roaring_bitmap_maximum(self.bitmap) })
+        }
     }
 
     /// Rank returns the number of values smaller or equal to x.

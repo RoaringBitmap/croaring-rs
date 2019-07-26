@@ -135,16 +135,15 @@ impl Treemap {
     /// treemap.add(120);
     /// treemap.add(1000);
     ///
-    /// assert_eq!(treemap.minimum(), 120);
-    /// assert_eq!(empty_treemap.minimum(), std::u64::MAX);
+    /// assert_eq!(treemap.minimum(), Some(120));
+    /// assert_eq!(empty_treemap.minimum(), None);
     /// ```
-    pub fn minimum(&self) -> u64 {
+    pub fn minimum(&self) -> Option<u64> {
         self.map
             .iter()
             .filter(|(_, bitmap)| !bitmap.is_empty())
-            .map(|(k, bitmap)| util::join(*k, bitmap.minimum()))
+            .map(|(k, bitmap)| util::join(*k, bitmap.minimum().unwrap()))
             .next()
-            .unwrap_or(u64::MAX)
     }
 
     /// Returns the greatest value in the set.
@@ -161,16 +160,16 @@ impl Treemap {
     /// treemap.add(120);
     /// treemap.add(1000);
     ///
-    /// assert_eq!(treemap.maximum(), 1000);
-    /// assert_eq!(empty_treemap.maximum(), 0);
+    /// assert_eq!(treemap.maximum(), Some(1000));
+    /// assert_eq!(empty_treemap.maximum(), None);
     /// ```
-    pub fn maximum(&self) -> u64 {
+    pub fn maximum(&self) -> Option<u64> {
         self.map
             .iter()
+            .rev()
             .filter(|(_, bitmap)| !bitmap.is_empty())
-            .map(|(k, bitmap)| util::join(*k, bitmap.maximum()))
+            .map(|(k, bitmap)| util::join(*k, bitmap.maximum().unwrap()))
             .next()
-            .unwrap_or(0)
     }
 
     /// And computes the intersection between two treemaps and returns the
