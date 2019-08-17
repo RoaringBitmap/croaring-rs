@@ -1,5 +1,6 @@
 use std::iter::{FromIterator, IntoIterator};
 use std::marker::PhantomData;
+use std::convert::TryInto;
 
 use super::{ffi, Bitmap};
 
@@ -36,6 +37,26 @@ impl<'a> BitmapIterator<'a> {
     fn advance(&mut self) -> bool {
         unsafe { ffi::roaring_advance_uint32_iterator(self.iterator) }
     }
+
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap: Bitmap = (1..20).collect();
+    /// let mut chunked_iterator = bitmap.iter().chunks(4);
+    ///
+    /// assert_eq!(chunked_iterator.next(), Some(vec![1, 2, 3, 4]));
+    /// assert_eq!(chunked_iterator.next(), Some(vec![5, 6, 7, 8]));
+    /// assert_eq!(chunked_iterator.next(), Some(vec![9, 10, 11, 12]));
+    /// assert_eq!(chunked_iterator.next(), Some(vec![13, 14, 15, 16]));
+    /// assert_eq!(chunked_iterator.next(), Some(vec![17, 18, 19]));
+    /// assert_eq!(chunked_iterator.next(), None);
+    /// ```
+    pub fn chunks(self, chunk_size: usize) -> BitmapChunks<'a> {
+        assert!(chunk_size != 0, "chunk_size must not be zero");
+        BitmapChunks::new(self, chunk_size)
+    }
 }
 
 impl<'a> Iterator for BitmapIterator<'a> {
@@ -56,6 +77,41 @@ impl<'a> Iterator for BitmapIterator<'a> {
 impl<'a> Drop for BitmapIterator<'a> {
     fn drop(&mut self) {
         unsafe { ffi::roaring_free_uint32_iterator(self.iterator) }
+    }
+}
+
+pub struct BitmapChunks<'a> {
+    iterator: BitmapIterator<'a>,
+    size: usize,
+}
+
+impl<'a> BitmapChunks<'a> {
+    pub fn new(iterator: BitmapIterator<'a>, size: usize) -> Self {
+        BitmapChunks { iterator, size }
+    }
+}
+
+impl<'a> Iterator for BitmapChunks<'a> {
+    type Item = Vec<u32>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let mut buffer = Vec::with_capacity(self.size);
+
+        unsafe {
+            let returned_chunk_size = ffi::roaring_read_uint32_iterator(
+                self.iterator.iterator,
+                buffer.as_mut_ptr(),
+                self.size.try_into().unwrap()
+            );
+
+            buffer.set_len(returned_chunk_size.try_into().unwrap());
+        }
+
+        if buffer.is_empty() {
+            None
+        } else {
+            Some(buffer)
+        }
     }
 }
 
