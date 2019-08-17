@@ -647,6 +647,13 @@ impl Bitmap {
     /// assert!(bitmap1.contains(15));
     /// assert!(!bitmap1.contains(25));
     /// assert!(!bitmap1.contains(35));
+    ///
+    /// let mut bitmap3 = Bitmap::create();
+    /// bitmap3.add(15);
+    /// let mut bitmap4 = Bitmap::create();
+    /// bitmap3.andnot_inplace(&bitmap4);
+    /// assert_eq!(bitmap3.cardinality(), 1);
+    /// assert!(bitmap3.contains(15));
     /// ```
     #[inline]
     pub fn andnot_inplace(&mut self, other: &Self) {

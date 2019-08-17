@@ -230,15 +230,20 @@ impl Treemap {
     ///
     /// treemap1.and_inplace(&treemap2);
     ///
-    /// assert!(treemap1.cardinality() == 0);
+    /// assert_eq!(treemap1.cardinality(), 0);
     /// assert!(!treemap1.contains(u64::MAX));
     /// assert!(!treemap1.contains(25));
     ///
     /// treemap3.and_inplace(&treemap4);
     ///
-    /// assert!(treemap3.cardinality() == 1);
+    /// assert_eq!(treemap3.cardinality(), 1);
     /// assert!(treemap3.contains(u64::MAX));
     /// assert!(!treemap3.contains(25));
+    ///
+    /// let mut treemap5 = Treemap::create();
+    /// treemap5.add(u64::MAX);
+    /// treemap5.and_inplace(&Treemap::create());
+    /// assert_eq!(treemap5.cardinality(), 0);
     /// ```
     pub fn and_inplace(&mut self, other: &Self) {
         let mut keys_to_remove: Vec<u32> = Vec::new();
@@ -323,13 +328,13 @@ impl Treemap {
     ///
     /// treemap1.and_inplace(&treemap2);
     ///
-    /// assert!(treemap1.cardinality() == 0);
+    /// assert_eq!(treemap1.cardinality(), 0);
     /// assert!(!treemap1.contains(15));
     /// assert!(!treemap1.contains(25));
     ///
     /// treemap3.and_inplace(&bitmap4);
     ///
-    /// assert!(treemap3.cardinality() == 1);
+    /// assert_eq!(treemap3.cardinality(), 1);
     /// assert!(treemap3.contains(15));
     /// assert!(!treemap3.contains(25));
     /// ```
@@ -365,7 +370,7 @@ impl Treemap {
     ///
     /// let treemap3 = treemap1.xor(&treemap2);
     ///
-    /// assert!(treemap3.cardinality() == 2);
+    /// assert_eq!(treemap3.cardinality(), 2);
     /// assert!(treemap3.contains(15));
     /// assert!(!treemap3.contains(25));
     /// assert!(treemap3.contains(35));
@@ -405,10 +410,15 @@ impl Treemap {
     ///
     /// treemap1.xor_inplace(&treemap2);
     ///
-    /// assert!(treemap1.cardinality() == 2);
+    /// assert_eq!(treemap1.cardinality(), 2);
     /// assert!(treemap1.contains(15));
-    /// assert!(!treemap1.contains(u64::MAX));
     /// assert!(treemap1.contains(35));
+    ///
+    /// let mut treemap3 = Treemap::create();
+    /// treemap3.add(15);
+    /// treemap3.xor_inplace(&Treemap::create());
+    /// assert_eq!(treemap3.cardinality(), 1);
+    /// assert!(treemap3.contains(15));
     /// ```
     pub fn xor_inplace(&mut self, other: &Self) {
         let mut keys_to_remove: Vec<u32> = Vec::new();
@@ -475,6 +485,7 @@ impl Treemap {
     /// # Examples
     ///
     /// ```
+    /// use std::u32;
     /// use std::u64;
     /// use croaring::Treemap;
     ///
@@ -482,6 +493,7 @@ impl Treemap {
     ///
     /// treemap1.add(15);
     /// treemap1.add(25);
+    /// treemap1.add(u64::MAX - 10);
     ///
     /// let mut treemap2 = Treemap::create();
     ///
@@ -490,24 +502,24 @@ impl Treemap {
     ///
     /// treemap1.andnot_inplace(&treemap2);
     ///
-    /// assert_eq!(treemap1.cardinality(), 1);
+    /// assert_eq!(treemap1.cardinality(), 2);
     /// assert!(treemap1.contains(15));
+    /// assert!(treemap1.contains(u64::MAX - 10));
     /// assert!(!treemap1.contains(u64::MAX));
     /// assert!(!treemap1.contains(35));
+    ///
+    /// let mut treemap3 = Treemap::create();
+    /// treemap3.add(15);
+    /// let treemap4 = Treemap::create();
+    /// treemap3.andnot_inplace(&treemap4);
+    /// assert_eq!(treemap3.cardinality(), 1);
+    /// assert!(treemap3.contains(15));
     /// ```
     pub fn andnot_inplace(&mut self, other: &Self) {
-        let mut keys_to_remove: Vec<u32> = Vec::new();
-
         for (key, bitmap) in &mut self.map {
             if let Some(other_bitmap) = other.map.get(key) {
                 bitmap.andnot_inplace(other_bitmap);
-            } else {
-                keys_to_remove.push(*key);
             }
-        }
-
-        for key in keys_to_remove {
-            self.map.remove(&key);
         }
     }
 
