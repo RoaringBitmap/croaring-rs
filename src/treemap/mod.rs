@@ -29,7 +29,7 @@ mod serialization;
 mod ops;
 mod util;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct Treemap {
     pub map: BTreeMap<u32, Bitmap>,
 }

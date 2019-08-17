@@ -1,6 +1,23 @@
+use std::fmt;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
 use super::Treemap;
+
+impl fmt::Debug for Treemap {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if self.cardinality() < 32 {
+            write!(f, "Treemap<{:?}>", self.to_vec())
+        } else {
+            write!(
+                f,
+                "Treemap<{}, [{:?}..{:?}]>",
+                self.cardinality(),
+                self.minimum().unwrap(),
+                self.maximum().unwrap()
+            )
+        }
+    }
+}
 
 impl BitAnd for Treemap {
     type Output = Treemap;
