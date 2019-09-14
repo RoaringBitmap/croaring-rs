@@ -3,15 +3,40 @@ name: Rust
 on: [push]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  test:
+    name: Test on ${{ matrix.os }} using Rust ${{ matrix.rust }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        rust: [stable, nightly]
+
     steps:
     - uses: actions/checkout@v1
+
     - name: Init CRoaring submodule
       run: git submodule update --init --recursive
+
+    - name: Install Rust
+      shell: bash
+      run: |
+        if hash rustup 2>/dev/null; then
+          rustup toolchain install ${{ matrix.rust }}
+        else
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ matrix.rust }}
+          mv $HOME/.cargo/bin/* /usr/local/bin
+        fi
+
+    - name: Install LLVM
+      if: matrix.os == 'windows-latest'
+      run: choco upgrade llvm -y
+
     - name: Build
-      run: cargo build --verbose
+      run: cargo +${{ matrix.rust }} build
+
     - name: Test
-      run: cargo test
+      run: cargo +${{ matrix.rust }} test
+
     - name: Benchmark
-      run: cargo benchmark
+      if: matrix.rust == 'nightly'
+      run: cargo +${{ matrix.rust }} bench
