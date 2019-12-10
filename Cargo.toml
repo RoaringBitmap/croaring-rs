@@ -1,6 +1,6 @@
 [package]
 name = "croaring"
-version = "0.4.1"
+version = "0.4.2"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 license = "Apache-2.0"
 description = "Rust wrapper for CRoaring"
