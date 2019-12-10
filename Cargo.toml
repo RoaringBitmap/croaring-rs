@@ -15,5 +15,5 @@ roaring = "0.5.2"
 
 [dependencies]
 libc = "0.2.42"
-croaring-sys = { path = "croaring-sys", version = "0.4.1" }
+croaring-sys = { path = "croaring-sys" }
 byteorder = "1"
