@@ -779,15 +779,47 @@ impl Bitmap {
 
     /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
     /// See example of #serialize function.
+    ///
+    /// On invalid input returns None.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let original_bitmap: Bitmap = (1..5).collect();
+    /// let serialized_buffer = original_bitmap.serialize();
+    ///
+    /// let deserialized_bitmap = Bitmap::try_deserialize(&serialized_buffer);
+    /// assert_eq!(original_bitmap, deserialized_bitmap.unwrap());
+    ///
+    /// let invalid_buffer: Vec<u8> = vec![3];
+    /// let deserialized_bitmap = Bitmap::try_deserialize(&invalid_buffer);
+    /// assert!(deserialized_bitmap.is_none());
+    /// ```
     #[inline]
-    pub fn deserialize(buffer: &[u8]) -> Self {
+    pub fn try_deserialize(buffer: &[u8]) -> Option<Self> {
         unsafe {
-            Bitmap {
-                bitmap: ffi::roaring_bitmap_portable_deserialize(
-                    buffer.as_ptr() as *const ::libc::c_char
-                ),
+            let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
+                buffer.as_ptr() as *const ::libc::c_char,
+                buffer.len() as ::libc::size_t
+            );
+
+            if !bitmap.is_null() {
+                Some(Bitmap { bitmap })
+            } else {
+                None
             }
         }
+    }
+
+    /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
+    /// See example of #serialize function.
+    ///
+    /// On invalid input returns empty bitmap.
+    #[inline]
+    pub fn deserialize(buffer: &[u8]) -> Self {
+        Self::try_deserialize(buffer).unwrap_or(Bitmap::create())
     }
 
     /// Creates a new bitmap from a slice of u32 integers
