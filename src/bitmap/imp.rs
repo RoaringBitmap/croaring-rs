@@ -247,7 +247,6 @@ impl Bitmap {
       unsafe { ffi::roaring_bitmap_remove(self.bitmap, element) }
     }
 
-
     /// Remove the integer element from the bitmap. Returns true if a the value
     /// was removed, false if the value was present in the bitmap.
     ///
