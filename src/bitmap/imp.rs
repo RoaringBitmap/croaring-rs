@@ -226,7 +226,7 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn clear(&mut self) {
-        unsafe { ffi::roaring_bitmap_clear(self.bitmap) }
+      unsafe { ffi::roaring_bitmap_clear(self.bitmap) }
     }
 
     /// Clear the integer element from the bitmap
@@ -242,10 +242,10 @@ impl Bitmap {
     ///
     /// assert!(bitmap.is_empty());
     /// ```
-        #[inline]
-        pub fn remove(&mut self, element: u32) {
-            unsafe { ffi::roaring_bitmap_remove(self.bitmap, element) }
-        }
+    #[inline]
+    pub fn remove(&mut self, element: u32) {
+      unsafe { ffi::roaring_bitmap_remove(self.bitmap, element) }
+    }
 
 
     /// Remove the integer element from the bitmap. Returns true if a the value
