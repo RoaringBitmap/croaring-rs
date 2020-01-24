@@ -39,6 +39,9 @@ fn smoke1() {
     assert_eq!(bitmap.contains(u32::MAX - 2), true);
     assert_eq!(bitmap.contains(u32::MAX - 1), false);
     assert_eq!(bitmap.contains(u32::MAX), true);
+    bitmap.clear();
+    assert_eq!(bitmap.cardinality(), 0);
+    assert_eq!(bitmap.is_empty(), true);
 }
 
 // borrowed and adapted from https://github.com/Bitmap/gocroaring/blob/4a2fc02f79b1c36b904301e7d052f7f0017b6973/gocroaring_test.go#L24-L64
