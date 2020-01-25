@@ -211,7 +211,7 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_contains_range(self.bitmap, range.start, range.end) }
     }
 
-    /// Remove the integer element from the bitmap
+    /// Empties the bitmap
     ///
     /// # Examples
     ///
@@ -220,6 +220,7 @@ impl Bitmap {
     ///
     /// let mut bitmap = Bitmap::create();
     /// bitmap.add(1);
+    /// bitmap.add(2);
     /// bitmap.clear();
     ///
     /// assert!(bitmap.is_empty());

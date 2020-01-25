@@ -73,6 +73,30 @@ impl Treemap {
         self.map.values().all(Bitmap::is_empty)
     }
 
+    /// Empties the Treemap
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::u64;
+    /// use croaring::Treemap;
+    ///
+    /// let mut treemap = Treemap::create();
+    ///
+    /// treemap.add(1);
+    /// treemap.add(u64::MAX);
+    ///
+    /// assert!(!treemap.is_empty());
+    ///
+    /// treemap.clear();
+    ///
+    /// assert!(treemap.is_empty());
+    /// ```
+    pub fn clear(&mut self) {
+        self.map.iter_mut().for_each(|(_, bitmap)| bitmap.clear())
+    }
+
+
     /// Remove element from the Treemap
     ///
     /// # Examples
