@@ -838,7 +838,7 @@ impl Bitmap {
     /// On invalid input returns empty bitmap.
     #[inline]
     pub fn deserialize(buffer: &[u8]) -> Self {
-        Self::try_deserialize(buffer).unwrap_or(Bitmap::create())
+        Self::try_deserialize(buffer).unwrap_or_else(Bitmap::create)
     }
 
     /// Creates a new bitmap from a slice of u32 integers
