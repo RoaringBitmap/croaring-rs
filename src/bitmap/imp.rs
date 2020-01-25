@@ -220,6 +220,24 @@ impl Bitmap {
     ///
     /// let mut bitmap = Bitmap::create();
     /// bitmap.add(1);
+    /// bitmap.clear();
+    ///
+    /// assert!(bitmap.is_empty());
+    /// ```
+    #[inline]
+    pub fn clear(&mut self) {
+        unsafe { ffi::roaring_bitmap_clear(self.bitmap) }
+    }
+
+    /// Clear the integer element from the bitmap
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create();
+    /// bitmap.add(1);
     /// bitmap.remove(1);
     ///
     /// assert!(bitmap.is_empty());
