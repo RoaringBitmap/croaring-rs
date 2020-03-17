@@ -5,10 +5,19 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    cc::Build::new()
+    let mut builder = cc::Build::new();
+    builder
         .flag_if_supported("-std=c11")
-        .flag_if_supported("-march=native")
-        .flag_if_supported("-O3")
+        .flag_if_supported("-O3");
+
+    if cfg!(feature = "compat") {
+        builder.define("DISABLEAVX", Some("1"));
+    }
+    else {
+        builder.flag_if_supported("-march=native");
+    }
+
+    builder
         .file("CRoaring/roaring.c")
         .compile("libroaring.a");
 
