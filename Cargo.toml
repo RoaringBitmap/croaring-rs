@@ -10,7 +10,7 @@ keywords = ["RoaringBitmap", "croaring", "bitmap"]
 documentation = "https://docs.rs/croaring"
 
 [features]
-compat = []
+compat = ["croaring-sys/compat"]
 
 [dev-dependencies]
 proptest = "0.9"

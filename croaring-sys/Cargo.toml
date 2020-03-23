@@ -9,6 +9,9 @@ documentation = "https://docs.rs/croaring-sys"
 build = "build.rs"
 description = "Raw bindings to CRoaring"
 
+[features]
+compat = []
+
 [dependencies]
 libc = "0.2.42"
 
