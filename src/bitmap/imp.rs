@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::ops::Range;
 
 use super::{ffi, Bitmap, Statistics};
@@ -57,7 +58,7 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn add_many(&mut self, elements: &[u32]) {
-        unsafe { ffi::roaring_bitmap_add_many(self.bitmap, elements.len(), elements.as_ptr()) }
+        unsafe { ffi::roaring_bitmap_add_many(self.bitmap, elements.len().try_into().unwrap(), elements.as_ptr()) }
     }
 
     /// Add the integer element to the bitmap
@@ -477,7 +478,7 @@ impl Bitmap {
         }
 
         Bitmap {
-            bitmap: unsafe { ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr()) },
+            bitmap: unsafe { ffi::roaring_bitmap_or_many(bms.len().try_into().unwrap(), bms.as_mut_ptr()) },
         }
     }
 
@@ -607,7 +608,7 @@ impl Bitmap {
         }
 
         Bitmap {
-            bitmap: unsafe { ffi::roaring_bitmap_xor_many(bms.len(), bms.as_mut_ptr()) },
+            bitmap: unsafe { ffi::roaring_bitmap_xor_many(bms.len().try_into().unwrap(), bms.as_mut_ptr()) },
         }
     }
 
@@ -762,7 +763,7 @@ impl Bitmap {
     /// Computes the serialized size in bytes of the Bitmap.
     #[inline]
     pub fn get_serialized_size_in_bytes(&self) -> usize {
-        unsafe { ffi::roaring_bitmap_portable_size_in_bytes(self.bitmap) }
+        unsafe { ffi::roaring_bitmap_portable_size_in_bytes(self.bitmap).try_into().unwrap() }
     }
 
     /// Serializes a bitmap to a slice of bytes.
@@ -821,7 +822,7 @@ impl Bitmap {
         unsafe {
             let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
                 buffer.as_ptr() as *const ::libc::c_char,
-                buffer.len() as ::libc::size_t
+                buffer.len().try_into().unwrap()
             );
 
             if !bitmap.is_null() {
@@ -866,7 +867,7 @@ impl Bitmap {
     #[inline]
     pub fn of(elements: &[u32]) -> Self {
         Bitmap {
-            bitmap: unsafe { ffi::roaring_bitmap_of_ptr(elements.len(), elements.as_ptr()) },
+            bitmap: unsafe { ffi::roaring_bitmap_of_ptr(elements.len().try_into().unwrap(), elements.as_ptr()) },
         }
     }
 
