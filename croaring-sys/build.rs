@@ -5,12 +5,16 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
-    cc::Build::new()
-        .flag_if_supported("-std=c11")
-        .flag_if_supported("-march=native")
-        .flag_if_supported("-O3")
-        .file("CRoaring/roaring.c")
-        .compile("libroaring.a");
+    let mut build = cc::Build::new();
+    build.file("CRoaring/roaring.c");
+
+    if let Ok(target_arch) = env::var("ROARING_ARCH") {
+        build.flag_if_supported(&format!("-march={}", target_arch));
+    } else {
+        build.flag_if_supported("-march=native");
+    }
+
+    build.compile("libroaring.a");
 
     let bindings = bindgen::Builder::default()
         .blacklist_type("max_align_t")
