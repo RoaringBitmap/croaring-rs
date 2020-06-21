@@ -93,7 +93,7 @@ treemap2.add(std::u32::MAX as u64);
 treemap2.add(std::u64::MAX);
 ```
 
-### Building locally
+### Building
 
 ```
 git clone --recursive https://github.com/saulius/croaring-rs/
@@ -101,7 +101,14 @@ cd croaring-rs
 cargo build
 ```
 
-Tested on Rust [stable/beta/nightly and LLVM version 3.8](https://github.com/saulius/croaring-rs/blob/master/.travis.yml).
+As with [CRoaring](https://github.com/RoaringBitmap/CRoaring/) `croaring-rs`
+build allows the compiler to target the architecture of the build machine by
+using the `-march=native` flag. In this way the compiler is given freedom to
+use instructions that your CPU support. However binaries built this way can
+be dangerous to run on older CPU architectures (e.g. missing `POPCOUNT`
+instruction). You can specify `ROARING_ARCH` environment variable to control 
+the target CPU architecture, e.g.
+`ROARING_ARCH=ivybridge cargo build --release`.
 
 ### Testing
 
