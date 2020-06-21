@@ -9,7 +9,7 @@ on:
       - master
 
 env:
-  RUSTFLAGS: -D warnings
+  RUSTFLAGS: -A warnings
 
 jobs:
   test:
