@@ -5,7 +5,17 @@ use super::{ffi, Bitmap};
 
 impl fmt::Debug for Bitmap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Bitmap<{:?}>", self.to_vec())
+        if self.cardinality() < 32 {
+            write!(f, "Bitmap<{:?}>", self.to_vec())
+        } else {
+            write!(
+                f,
+                "Bitmap<{:?} values between {:?} and {:?}>",
+                self.cardinality(),
+                self.minimum().unwrap(),
+                self.maximum().unwrap()
+            )
+        }
     }
 }
 
