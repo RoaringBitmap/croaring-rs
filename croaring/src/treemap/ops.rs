@@ -19,6 +19,12 @@ impl fmt::Debug for Treemap {
     }
 }
 
+impl Default for Treemap {
+    fn default() -> Self {
+        Self::create()
+    }
+}
+
 impl BitAnd for Treemap {
     type Output = Treemap;
 

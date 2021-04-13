@@ -19,6 +19,12 @@ impl fmt::Debug for Bitmap {
     }
 }
 
+impl Default for Bitmap {
+    fn default() -> Self {
+        Self::create()
+    }
+}
+
 impl PartialEq for Bitmap {
     #[inline]
     fn eq(&self, other: &Bitmap) -> bool {
