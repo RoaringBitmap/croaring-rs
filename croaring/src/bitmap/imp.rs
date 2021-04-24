@@ -1,4 +1,5 @@
 use std::convert::TryInto;
+use std::convert::TryFrom;
 use std::ops::Range;
 
 use super::{ffi, Bitmap, Statistics};
@@ -17,7 +18,7 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn create() -> Self {
-        let bitmap = unsafe { ffi::roaring_bitmap_create() };
+        let bitmap = unsafe { ffi::roaring_bitmap_create_with_capacity(0) };
 
         Bitmap { bitmap }
     }
@@ -120,7 +121,12 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn add_range(&mut self, range: Range<u64>) {
-        unsafe { ffi::roaring_bitmap_add_range(self.bitmap, range.start, range.end) }
+        match (u32::try_from(range.start).ok(), u32::try_from(range.end).ok()) {
+            (Some(start), Some(end)) => unsafe {
+                ffi::roaring_bitmap_add_range_closed(self.bitmap, start, end - 1)
+            }
+            _ => ()
+        }
     }
 
     /// Remove all values in range [range_min, range_max)
@@ -142,7 +148,12 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn remove_range(&mut self, range: Range<u64>) {
-        unsafe { ffi::roaring_bitmap_remove_range(self.bitmap, range.start, range.end) }
+        match (u32::try_from(range.start).ok(), u32::try_from(range.end).ok()) {
+            (Some(start), Some(end)) => unsafe {
+                ffi::roaring_bitmap_remove_range_closed(self.bitmap, start, end - 1)
+            }
+            _ => ()
+        }
     }
 
     /// Add all values in range [range_min, range_max]

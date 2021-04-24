@@ -10,16 +10,14 @@ fn main() {
 
     if let Ok(target_arch) = env::var("ROARING_ARCH") {
         build.flag_if_supported(&format!("-march={}", target_arch));
-    } else {
-        build.flag_if_supported("-march=native");
     }
 
     build.compile("libroaring.a");
 
     let bindings = bindgen::Builder::default()
-        .blacklist_type("max_align_t")
         .header("CRoaring/roaring.h")
         .generate_inline_functions(true)
+        .generate_comments(false)
         .generate()
         .expect("Unable to generate bindings");
 
