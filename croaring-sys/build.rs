@@ -10,8 +10,6 @@ fn main() {
 
     if let Ok(target_arch) = env::var("ROARING_ARCH") {
         build.flag_if_supported(&format!("-march={}", target_arch));
-    } else {
-        build.flag_if_supported("-march=native");
     }
 
     build.compile("libroaring.a");
