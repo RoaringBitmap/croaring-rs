@@ -2,11 +2,12 @@ extern crate byteorder;
 extern crate croaring;
 extern crate proptest;
 
-use croaring::{Bitmap, Treemap};
-use proptest::prelude::*;
 use std::fs::File;
 use std::io::{Read, Result};
 use std::u32;
+
+use croaring::{Bitmap, Treemap};
+use proptest::prelude::*;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
 #[test]
