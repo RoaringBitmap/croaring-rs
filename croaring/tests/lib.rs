@@ -1,11 +1,11 @@
+extern crate byteorder;
 extern crate croaring;
 extern crate proptest;
-extern crate byteorder;
 
 use croaring::{Bitmap, Treemap};
-use std::io::{Result, Read};
-use std::fs::File;
 use proptest::prelude::*;
+use std::fs::File;
+use std::io::{Read, Result};
 use std::u32;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
@@ -117,8 +117,8 @@ fn test_treemap_deserialize_cpp() {
 
             assert!(treemap.contains(std::u32::MAX as u64));
             assert!(treemap.contains(std::u64::MAX));
-        },
-        Err(err) => assert!(false, "Cannot read test file {}", err)
+        }
+        Err(err) => assert!(false, "Cannot read test file {}", err),
     }
 }
 
@@ -136,8 +136,8 @@ fn test_treemap_deserialize_jvm() {
 
             assert!(treemap.contains(std::u32::MAX as u64));
             assert!(treemap.contains(std::u64::MAX));
-        },
-        Err(err) => assert!(false, "Cannot read test file {}", err)
+        }
+        Err(err) => assert!(false, "Cannot read test file {}", err),
     }
 }
 
@@ -150,7 +150,7 @@ proptest! {
         let mut a = indices.clone();
         a.sort();
         a.dedup();
-        a.len() == original.cardinality() as usize
+        prop_assert_eq!(a.len(), original.cardinality() as usize);
     }
 
     #[test]
@@ -161,7 +161,7 @@ proptest! {
         let mut a = indices.clone();
         a.sort();
         a.dedup();
-        a.len() == original.cardinality() as usize
+        prop_assert_eq!(a.len(), original.cardinality() as usize);
     }
 
     #[test]
@@ -174,7 +174,7 @@ proptest! {
 
         let deserialized = Bitmap::deserialize(&buffer);
 
-        original == deserialized
+        prop_assert_eq!(original , deserialized);
     }
 
     #[test]
@@ -189,7 +189,7 @@ proptest! {
 
         let deserialized = Treemap::deserialize(&buffer).unwrap();
 
-        original == deserialized
+        prop_assert_eq!(original , deserialized);
     }
 
     #[test]
@@ -204,6 +204,6 @@ proptest! {
 
         let deserialized = Treemap::deserialize(&buffer).unwrap();
 
-        original == deserialized
+        prop_assert_eq!(original , deserialized);
     }
 }
