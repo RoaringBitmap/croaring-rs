@@ -101,13 +101,10 @@ cd croaring-rs
 cargo build
 ```
 
-As with [CRoaring](https://github.com/RoaringBitmap/CRoaring/) `croaring-rs`
-build allows the compiler to target the architecture of the build machine by
-using the `-march=native` flag. In this way the compiler is given freedom to
-use instructions that your CPU support. However binaries built this way can
-be dangerous to run on older CPU architectures (e.g. missing `POPCOUNT`
-instruction). You can specify `ROARING_ARCH` environment variable to control 
-the target CPU architecture, e.g.
+In `croaring-rs`, just like in [CRoaring](https://github.com/RoaringBitmap/CRoaring/),
+some CPU related code optimizations are enabled dynamically at runtime. If you are
+building binaries for specific CPU architectures you can specify `ROARING_ARCH` environment 
+variable to control enabled code optimizations, e.g. 
 `ROARING_ARCH=ivybridge cargo build --release`.
 
 ### Testing
