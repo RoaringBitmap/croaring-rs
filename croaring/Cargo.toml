@@ -10,10 +10,10 @@ keywords = ["RoaringBitmap", "croaring", "bitmap"]
 documentation = "https://docs.rs/croaring"
 
 [dev-dependencies]
-proptest = "0.9"
-roaring = "0.5.2"
+proptest = "1"
+roaring = "0.7"
 
 [dependencies]
-libc = "0.2.42"
+libc = "0.2"
 croaring-sys = { path = "../croaring-sys", version = "0.5.0" }
 byteorder = "1"

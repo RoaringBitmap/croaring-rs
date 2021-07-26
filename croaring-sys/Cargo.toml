@@ -10,8 +10,8 @@ build = "build.rs"
 description = "Raw bindings to CRoaring"
 
 [dependencies]
-libc = "0.2.42"
+libc = "0.2"
 
 [build-dependencies]
-cc = "1.0"
-bindgen = "0.58.1"
+cc = "1"
+bindgen = "0.59"

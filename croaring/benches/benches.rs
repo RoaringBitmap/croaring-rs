@@ -284,7 +284,7 @@ fn bench_flip(b: &mut Bencher) {
     bitmap.add(1);
 
     b.iter(|| {
-        bitmap.flip((1..3));
+        bitmap.flip(1..3);
     });
 }
 
@@ -295,7 +295,7 @@ fn bench_flip_inplace(b: &mut Bencher) {
     bitmap.add(1);
 
     b.iter(|| {
-        bitmap.flip_inplace((1..3));
+        bitmap.flip_inplace(1..3);
     });
 }
 
