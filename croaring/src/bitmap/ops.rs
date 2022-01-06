@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
-use super::{ffi, Bitmap};
+use super::Bitmap;
 
 impl fmt::Debug for Bitmap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

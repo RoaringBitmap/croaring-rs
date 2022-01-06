@@ -1,5 +1,5 @@
-use Bitmap;
-use Treemap;
+use crate::Bitmap;
+use crate::Treemap;
 
 use super::util;
 use std::collections::btree_map::Entry;

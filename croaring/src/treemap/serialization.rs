@@ -1,5 +1,5 @@
-use Bitmap;
-use Treemap;
+use crate::Bitmap;
+use crate::Treemap;
 
 use std::io::{Cursor, Result, Seek, SeekFrom};
 use std::mem::size_of;

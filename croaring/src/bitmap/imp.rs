@@ -2,7 +2,7 @@ use std::convert::TryInto;
 use std::convert::TryFrom;
 use std::ops::Range;
 
-use super::{ffi, Bitmap, Statistics};
+use super::{Bitmap, Statistics};
 
 impl Bitmap {
     /// Creates a new bitmap (initially empty)

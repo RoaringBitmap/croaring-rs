@@ -1,6 +1,7 @@
 [package]
 name = "croaring-sys"
 version = "0.5.1"
+edition = "2021"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 license = "Apache-2.0"
 repository = "https://github.com/saulius/croaring-rs.git"
@@ -14,4 +15,4 @@ libc = "0.2"
 
 [build-dependencies]
 cc = "1"
-bindgen = "0.59"
+bindgen = { version = "0.59", default-features = false, features = ["runtime"] }

@@ -1,6 +1,7 @@
 [package]
 name = "croaring"
 version = "0.5.1"
+edition = "2021"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 license = "Apache-2.0"
 description = "Rust wrapper for CRoaring"
@@ -11,9 +12,9 @@ documentation = "https://docs.rs/croaring"
 
 [dev-dependencies]
 proptest = "1"
-roaring = "0.7"
+roaring = "0.8"
 
 [dependencies]
 libc = "0.2"
-croaring-sys = { path = "../croaring-sys", version = "0.5.0" }
+ffi = { package = "croaring-sys", path = "../croaring-sys", version = "0.5.0" }
 byteorder = "1"

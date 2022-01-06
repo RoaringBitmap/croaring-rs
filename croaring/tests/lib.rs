@@ -1,7 +1,3 @@
-extern crate byteorder;
-extern crate croaring;
-extern crate proptest;
-
 use std::fs::File;
 use std::io::{Read, Result};
 use std::u32;
