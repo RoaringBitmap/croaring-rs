@@ -1,7 +1,5 @@
 #![feature(test)]
 
-extern crate croaring;
-extern crate roaring;
 extern crate test;
 
 use croaring::Bitmap;

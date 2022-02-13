@@ -19,9 +19,9 @@
 //! assert!(treemap.contains(u64::from(u32::MAX)+ 1));
 //! assert_eq!(treemap.cardinality(), 3);
 //! ```
+use crate::Bitmap;
+use crate::BitmapIterator;
 use std::collections::BTreeMap;
-use Bitmap;
-use BitmapIterator;
 
 mod imp;
 mod iter;
@@ -34,4 +34,4 @@ pub struct Treemap {
     pub map: BTreeMap<u32, Bitmap>,
 }
 
-pub use treemap::serialization::{NativeSerializer, JvmSerializer};
+pub use crate::treemap::serialization::{JvmSerializer, NativeSerializer};

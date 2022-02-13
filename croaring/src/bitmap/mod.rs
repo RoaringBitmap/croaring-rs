@@ -53,8 +53,6 @@
 //! println!("{:?}", rb4);
 //! ```
 
-use super::ffi;
-
 pub struct Bitmap {
     bitmap: *mut ffi::roaring_bitmap_s,
 }
@@ -68,4 +66,4 @@ mod imp;
 mod iter;
 mod ops;
 
-pub use bitmap::iter::BitmapIterator;
+pub use crate::bitmap::iter::BitmapIterator;
