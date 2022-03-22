@@ -4,37 +4,39 @@ use std::marker::PhantomData;
 use super::Bitmap;
 
 pub struct BitmapIterator<'a> {
-    iterator: *mut ffi::roaring_uint32_iterator_s,
-    phantom: PhantomData<&'a ()>,
+    iterator: ffi::roaring_uint32_iterator_s,
+    phantom: PhantomData<&'a Bitmap>,
 }
 
 impl<'a> BitmapIterator<'a> {
-    fn new(bitmap: &Bitmap) -> Self {
+    fn new(bitmap: &'a Bitmap) -> Self {
+        let mut iterator = std::mem::MaybeUninit::uninit();
+        unsafe {
+            ffi::roaring_init_iterator(bitmap.bitmap, iterator.as_mut_ptr());
+        }
         BitmapIterator {
-            iterator: unsafe { ffi::roaring_create_iterator(bitmap.bitmap) },
+            iterator: unsafe { iterator.assume_init() },
             phantom: PhantomData,
         }
     }
 
     #[inline]
     fn current_value(&self) -> Option<u32> {
-        unsafe {
-            if self.has_value() {
-                Some((*self.iterator).current_value)
-            } else {
-                None
-            }
+        if self.has_value() {
+            Some(self.iterator.current_value)
+        } else {
+            None
         }
     }
 
     #[inline]
     fn has_value(&self) -> bool {
-        unsafe { (*self.iterator).has_value }
+        self.iterator.has_value
     }
 
     #[inline]
     fn advance(&mut self) -> bool {
-        unsafe { ffi::roaring_advance_uint32_iterator(self.iterator) }
+        unsafe { ffi::roaring_advance_uint32_iterator(&mut self.iterator) }
     }
 }
 
@@ -50,12 +52,6 @@ impl<'a> Iterator for BitmapIterator<'a> {
             }
             None => None,
         }
-    }
-}
-
-impl<'a> Drop for BitmapIterator<'a> {
-    fn drop(&mut self) {
-        unsafe { ffi::roaring_free_uint32_iterator(self.iterator) }
     }
 }
 
