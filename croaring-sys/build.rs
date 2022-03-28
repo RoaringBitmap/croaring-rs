@@ -2,6 +2,9 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo:rerun-if-changed=CRoaring");
+    println!("cargo:rerun-if-env-changed=ROARING_ARCH");
+
     let mut build = cc::Build::new();
     build.file("CRoaring/roaring.c");
 
@@ -9,12 +12,16 @@ fn main() {
         build.flag_if_supported(&format!("-march={}", target_arch));
     }
 
+    build.flag_if_supported("-Wno-unused-function");
     build.compile("libroaring.a");
 
     let bindings = bindgen::Builder::default()
         .header("CRoaring/roaring.h")
         .generate_inline_functions(true)
-        .generate_comments(false)
+        .allowlist_function("roaring.*")
+        .allowlist_type("roaring.*")
+        .allowlist_var("roaring.*")
+        .allowlist_var("ROARING.*")
         .generate()
         .expect("Unable to generate bindings");
 

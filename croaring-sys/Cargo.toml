@@ -10,6 +10,9 @@ documentation = "https://docs.rs/croaring-sys"
 build = "build.rs"
 description = "Raw bindings to CRoaring"
 
+[lib]
+doctest = false
+
 [dependencies]
 libc = "0.2"
 
