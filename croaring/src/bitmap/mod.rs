@@ -54,7 +54,7 @@
 //! ```
 
 pub struct Bitmap {
-    bitmap: *mut ffi::roaring_bitmap_s,
+    bitmap: ffi::roaring_bitmap_t,
 }
 
 unsafe impl Sync for Bitmap {}
