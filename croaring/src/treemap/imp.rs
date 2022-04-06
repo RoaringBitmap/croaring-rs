@@ -562,9 +562,9 @@ impl Treemap {
     /// assert_eq!(treemap.to_vec(), [15, 25, u64::MAX]);
     /// ```
     pub fn to_vec(&self) -> Vec<u64> {
-        let treemap_size = self.cardinality();
+        let treemap_size: usize = self.cardinality().try_into().unwrap();
 
-        let mut buffer: Vec<u64> = Vec::with_capacity(treemap_size as usize);
+        let mut buffer: Vec<u64> = Vec::with_capacity(treemap_size);
 
         for (key, bitmap) in &self.map {
             bitmap.iter().for_each(|bit| buffer.push(util::join(*key, bit)));

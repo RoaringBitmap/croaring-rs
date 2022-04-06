@@ -482,11 +482,7 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn fast_or(bitmaps: &[&Bitmap]) -> Self {
-        let mut bms: Vec<*const ffi::roaring_bitmap_s> = Vec::with_capacity(bitmaps.len());
-
-        for (i, item) in bitmaps.iter().enumerate() {
-            bms.insert(i, item.bitmap);
-        }
+        let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps.iter().map(|item| item.bitmap as *const _).collect();
 
         Bitmap {
             bitmap: unsafe { ffi::roaring_bitmap_or_many(bms.len().try_into().unwrap(), bms.as_mut_ptr()) },
@@ -519,11 +515,7 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn fast_or_heap(bitmaps: &[&Bitmap]) -> Self {
-        let mut bms: Vec<*const ffi::roaring_bitmap_s> = Vec::with_capacity(bitmaps.len());
-
-        for (i, item) in bitmaps.iter().enumerate() {
-            bms.insert(i, item.bitmap);
-        }
+        let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps.iter().map(|item| item.bitmap as *const _).collect();
 
         Bitmap {
             bitmap: unsafe { ffi::roaring_bitmap_or_many_heap(bms.len() as u32, bms.as_mut_ptr()) },
@@ -612,11 +604,7 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn fast_xor(bitmaps: &[&Bitmap]) -> Self {
-        let mut bms: Vec<*const ffi::roaring_bitmap_s> = Vec::with_capacity(bitmaps.len());
-
-        for (i, item) in bitmaps.iter().enumerate() {
-            bms.insert(i, item.bitmap);
-        }
+        let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps.iter().map(|item| item.bitmap as *const _).collect();
 
         Bitmap {
             bitmap: unsafe { ffi::roaring_bitmap_xor_many(bms.len().try_into().unwrap(), bms.as_mut_ptr()) },
@@ -757,18 +745,14 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn to_vec(&self) -> Vec<u32> {
-        let bitmap_size = self.cardinality();
+        let bitmap_size: usize = self.cardinality().try_into().unwrap();
 
-        let mut buffer: Vec<u32> = Vec::with_capacity(bitmap_size as usize);
-        let buffer_ptr = buffer.as_mut_ptr();
-
+        let mut buffer: Vec<u32> = Vec::with_capacity(bitmap_size);
         unsafe {
-            ::std::mem::forget(buffer);
-
-            ffi::roaring_bitmap_to_uint32_array(self.bitmap, buffer_ptr);
-
-            Vec::from_raw_parts(buffer_ptr, bitmap_size as usize, bitmap_size as usize)
+            ffi::roaring_bitmap_to_uint32_array(self.bitmap, buffer.as_mut_ptr());
+            buffer.set_len(bitmap_size);
         }
+        buffer
     }
 
     /// Computes the serialized size in bytes of the Bitmap.
