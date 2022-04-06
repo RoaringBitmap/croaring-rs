@@ -97,6 +97,16 @@ impl FromIterator<u64> for Treemap {
     /// assert_eq!(treemap.cardinality(), 11);
     /// ```
     fn from_iter<I: IntoIterator<Item = u64>>(iter: I) -> Self {
-        Treemap::of(&Vec::from_iter(iter))
+        let mut result = Self::create();
+        result.extend(iter);
+        result
+    }
+}
+
+impl Extend<u64> for Treemap {
+    fn extend<T: IntoIterator<Item=u64>>(&mut self, iter: T) {
+        for item in iter {
+            self.add(item);
+        }
     }
 }
