@@ -3,10 +3,14 @@ use std::marker::PhantomData;
 
 use super::Bitmap;
 
+#[derive(Clone)]
 pub struct BitmapIterator<'a> {
     iterator: ffi::roaring_uint32_iterator_s,
     phantom: PhantomData<&'a Bitmap>,
 }
+
+unsafe impl Send for BitmapIterator<'_> {}
+unsafe impl Sync for BitmapIterator<'_> {}
 
 impl<'a> BitmapIterator<'a> {
     fn new(bitmap: &'a Bitmap) -> Self {
@@ -37,6 +41,19 @@ impl<'a> BitmapIterator<'a> {
     #[inline]
     fn advance(&mut self) -> bool {
         unsafe { ffi::roaring_advance_uint32_iterator(&mut self.iterator) }
+    }
+
+    /// Attempt to read many values from the iterator into `dst`
+    ///
+    /// Returns the number of items read from the iterator, may be `< dst.len()` iff
+    /// the iterator is exhausted.
+    ///
+    /// This can be much more efficient than repeated iteration.
+    #[inline]
+    pub fn next_many(&mut self, dst: &mut [u32]) -> usize {
+        let count: u32 = u32::try_from(dst.len()).unwrap_or(u32::MAX);
+        let result = unsafe { ffi::roaring_read_uint32_iterator(&mut self.iterator, dst.as_mut_ptr(), count)};
+        result as usize
     }
 }
 
