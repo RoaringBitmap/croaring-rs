@@ -49,10 +49,55 @@ impl<'a> BitmapIterator<'a> {
     /// the iterator is exhausted.
     ///
     /// This can be much more efficient than repeated iteration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap: Bitmap = Bitmap::create();
+    /// bitmap.add_range(0..100);
+    /// bitmap.add(222);
+    /// bitmap.add(555);
+    ///
+    /// let mut buf = [0; 100];
+    /// let mut iter = bitmap.iter();
+    /// assert_eq!(iter.next_many(&mut buf), 100);
+    /// // Get the first 100 items, from the original range added
+    /// for (i, item) in buf.iter().enumerate() {
+    ///     assert_eq!(*item, i as u32);
+    /// }
+    /// // Calls to next_many() can be interleaved with calls to next()
+    /// assert_eq!(iter.next(), Some(222));
+    /// assert_eq!(iter.next_many(&mut buf), 1);
+    /// assert_eq!(buf[0], 555);
+    ///
+    /// assert_eq!(iter.next(), None);
+    /// assert_eq!(iter.next_many(&mut buf), 0);
+    /// ```
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// fn print_by_chunks(bitmap: &Bitmap) {
+    ///     let mut buf = [0; 1024];
+    ///     let mut iter = bitmap.iter();
+    ///     loop {
+    ///         let n = iter.next_many(&mut buf);
+    ///         if n == 0 {
+    ///             break;
+    ///         }
+    ///         println!("{:?}", &buf[..n]);
+    ///     }
+    /// }
+    ///
+    /// # print_by_chunks(&Bitmap::of(&[1, 2, 8, 20, 1000]));
+    /// ```
     #[inline]
     pub fn next_many(&mut self, dst: &mut [u32]) -> usize {
         let count: u32 = u32::try_from(dst.len()).unwrap_or(u32::MAX);
         let result = unsafe { ffi::roaring_read_uint32_iterator(&mut self.iterator, dst.as_mut_ptr(), count)};
+        debug_assert!(result <= count);
         result as usize
     }
 }
