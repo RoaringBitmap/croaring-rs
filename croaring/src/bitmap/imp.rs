@@ -1,8 +1,7 @@
 use ffi::roaring_bitmap_t;
-use std::convert::TryFrom;
 use std::convert::TryInto;
 use std::mem;
-use std::ops::Range;
+use std::ops::{Bound, RangeBounds};
 
 use super::{Bitmap, Statistics};
 
@@ -128,7 +127,7 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_add_checked(&mut self.bitmap, element) }
     }
 
-    /// Add all values in range [range_min, range_max)
+    /// Add all values in range
     ///
     /// # Examples
     ///
@@ -150,18 +149,25 @@ impl Bitmap {
     /// let mut bitmap3 = Bitmap::create();
     /// bitmap3.add_range((3..3));
     /// assert!(bitmap3.is_empty());
+    ///
+    /// let mut bitmap4 = Bitmap::create();
+    /// bitmap4.add_range(..=2);
+    /// bitmap4.add_range(u32::MAX..=u32::MAX);
+    /// assert!(bitmap4.contains(0));
+    /// assert!(bitmap4.contains(1));
+    /// assert!(bitmap4.contains(2));
+    /// assert!(bitmap4.contains(u32::MAX));
+    /// assert_eq!(bitmap4.cardinality(), 4);
     /// ```
     #[inline]
-    pub fn add_range(&mut self, range: Range<u64>) {
-        match (u32::try_from(range.start), u32::try_from(range.end)) {
-            (Ok(start), Ok(end)) => unsafe {
-                ffi::roaring_bitmap_add_range_closed(&mut self.bitmap, start, end - 1)
-            },
-            _ => (),
+    pub fn add_range<R: RangeBounds<u32>>(&mut self, range: R) {
+        let (start, end) = range_to_inclusive(range);
+        unsafe {
+            ffi::roaring_bitmap_add_range_closed(&mut self.bitmap, start, end);
         }
     }
 
-    /// Remove all values in range [range_min, range_max)
+    /// Remove all values in range
     ///
     /// # Examples
     ///
@@ -179,66 +185,11 @@ impl Bitmap {
     /// assert!(bitmap.contains(3));
     /// ```
     #[inline]
-    pub fn remove_range(&mut self, range: Range<u64>) {
-        match (u32::try_from(range.start), u32::try_from(range.end)) {
-            (Ok(start), Ok(end)) => unsafe {
-                ffi::roaring_bitmap_remove_range_closed(&mut self.bitmap, start, end - 1)
-            },
-            _ => (),
-        }
-    }
-
-    /// Add all values in range [range_min, range_max]
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add_range_closed((1..3));
-    ///
-    /// assert!(!bitmap1.is_empty());
-    /// assert!(bitmap1.contains(1));
-    /// assert!(bitmap1.contains(2));
-    /// assert!(bitmap1.contains(3));
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add_range_closed((3..1));
-    /// assert!(bitmap2.is_empty());
-    ///
-    /// let mut bitmap3 = Bitmap::create();
-    /// bitmap3.add_range_closed((3..3));
-    /// assert!(!bitmap3.is_empty());
-    /// assert!(bitmap3.contains(3));
-    /// ```
-    #[inline]
-    pub fn add_range_closed(&mut self, range: Range<u32>) {
+    pub fn remove_range<R: RangeBounds<u32>>(&mut self, range: R) {
+        let (start, end) = range_to_inclusive(range);
         unsafe {
-            ffi::roaring_bitmap_add_range_closed(&mut self.bitmap, range.start, range.end + 1)
+            ffi::roaring_bitmap_remove_range_closed(&mut self.bitmap, start, end);
         }
-    }
-
-    /// Remove all values in range [range_min, range_max]
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap = Bitmap::create();
-    /// bitmap.add_range((1..4));
-    /// assert!(!bitmap.is_empty());
-    ///
-    /// bitmap.remove_range_closed((1..3));
-    ///
-    /// assert!(!bitmap.contains(1));
-    /// assert!(!bitmap.contains(2));
-    /// assert!(!bitmap.contains(3));
-    /// ```
-    #[inline]
-    pub fn remove_range_closed(&mut self, range: Range<u32>) {
-        unsafe { ffi::roaring_bitmap_remove_range_closed(&mut self.bitmap, range.start, range.end) }
     }
 
     /// Check whether a range of values of range are present
@@ -251,10 +202,15 @@ impl Bitmap {
     /// let mut bitmap = Bitmap::create();
     /// bitmap.add_range((1..3));
     /// assert!(bitmap.contains_range((1..3)));
+    ///
+    /// bitmap.add(u32::MAX - 1);
+    /// bitmap.add(u32::MAX);
+    /// assert!(bitmap.contains_range((u32::MAX - 1)..=u32::MAX))
     /// ```
     #[inline]
-    pub fn contains_range(&mut self, range: Range<u64>) -> bool {
-        unsafe { ffi::roaring_bitmap_contains_range(&mut self.bitmap, range.start, range.end) }
+    pub fn contains_range<R: RangeBounds<u32>>(&mut self, range: R) -> bool {
+        let (start, end) = range_to_exclusive(range);
+        unsafe { ffi::roaring_bitmap_contains_range(&mut self.bitmap, start, end) }
     }
 
     /// Empties the bitmap
@@ -330,7 +286,7 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_contains(&self.bitmap, element) }
     }
 
-    /// Returns number of elements in range [range_start, range_end).
+    /// Returns number of elements in range
     ///
     /// # Examples
     ///
@@ -342,14 +298,16 @@ impl Bitmap {
     /// bitmap.add(3);
     /// bitmap.add(4);
     ///
-    /// assert_eq!(bitmap.range_cardinality((0..1)), 0);
-    /// assert_eq!(bitmap.range_cardinality((0..2)), 1);
+    /// assert_eq!(bitmap.range_cardinality((..1)), 0);
+    /// assert_eq!(bitmap.range_cardinality((..2)), 1);
     /// assert_eq!(bitmap.range_cardinality((2..5)), 2);
-    /// assert_eq!(bitmap.range_cardinality((0..5)), 3);
+    /// assert_eq!(bitmap.range_cardinality((..5)), 3);
+    /// assert_eq!(bitmap.range_cardinality((1..=4)), 3);
     /// ```
     #[inline]
-    pub fn range_cardinality(&self, range: Range<u64>) -> u64 {
-        unsafe { ffi::roaring_bitmap_range_cardinality(&self.bitmap, range.start, range.end) }
+    pub fn range_cardinality<R: RangeBounds<u32>>(&self, range: R) -> u64 {
+        let (start, end) = range_to_exclusive(range);
+        unsafe { ffi::roaring_bitmap_range_cardinality(&self.bitmap, start, end) }
     }
 
     /// Returns the number of integers contained in the bitmap
@@ -723,7 +681,7 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_andnot_inplace(&mut self.bitmap, &other.bitmap) }
     }
 
-    /// Negates the bits in the given range (i.e., [rangeStart..rangeEnd)),
+    /// Negates the bits in the given range
     /// any integer present in this range and in the bitmap is removed.
     /// Returns result as a new bitmap.
     ///
@@ -744,17 +702,18 @@ impl Bitmap {
     /// assert!(bitmap2.contains(4));
     /// ```
     #[inline]
-    pub fn flip(&self, range: Range<u64>) -> Self {
+    pub fn flip<R: RangeBounds<u32>>(&mut self, range: R) -> Self {
+        let (start, end) = range_to_exclusive(range);
         unsafe {
             Self::take_heap(ffi::roaring_bitmap_flip(
                 &self.bitmap,
-                range.start,
-                range.end,
+                start,
+                end,
             ))
         }
     }
 
-    /// Negates the bits in the given range (i.e., [rangeStart..rangeEnd)),
+    /// Negates the bits in the given range
     /// any integer present in this range and in the bitmap is removed.
     /// Stores the result in the current bitmap.
     ///
@@ -774,8 +733,9 @@ impl Bitmap {
     /// assert!(bitmap1.contains(4));
     /// ```
     #[inline]
-    pub fn flip_inplace(&mut self, range: Range<u64>) {
-        unsafe { ffi::roaring_bitmap_flip_inplace(&mut self.bitmap, range.start, range.end) }
+    pub fn flip_inplace<R: RangeBounds<u32>>(&mut self, range: R) {
+        let (start, end) = range_to_exclusive(range);
+        unsafe { ffi::roaring_bitmap_flip_inplace(&mut self.bitmap, start, end) }
     }
 
     /// Returns a vector containing all of the integers stored in the Bitmap
@@ -1303,4 +1263,38 @@ impl Bitmap {
 
         statistics
     }
+}
+
+fn range_to_inclusive<R: RangeBounds<u32>>(range: R) -> (u32, u32) {
+    let start = match range.start_bound() {
+        Bound::Included(&i) => i,
+        Bound::Excluded(&i) => match i.checked_add(1) {
+            Some(i) => i,
+            None => return (1, 0),
+        }
+        Bound::Unbounded => 0,
+    };
+    let end = match range.end_bound() {
+        Bound::Included(&i) => i,
+        Bound::Excluded(&i) => match i.checked_sub(1) {
+            Some(i) => i,
+            None => return (1, 0),
+        }
+        Bound::Unbounded => u32::MAX,
+    };
+    (start, end)
+}
+
+fn range_to_exclusive<R: RangeBounds<u32>>(range: R) -> (u64, u64) {
+    let start = match range.start_bound() {
+        Bound::Included(&i) => u64::from(i),
+        Bound::Excluded(&i) => u64::from(i) + 1,
+        Bound::Unbounded => 0,
+    };
+    let end = match range.end_bound() {
+        Bound::Included(&i) => u64::from(i) + 1,
+        Bound::Excluded(&i) => u64::from(i),
+        Bound::Unbounded => u64::MAX,
+    };
+    (start, end)
 }

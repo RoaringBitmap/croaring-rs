@@ -564,13 +564,21 @@ impl Treemap {
     pub fn to_vec(&self) -> Vec<u64> {
         let treemap_size: usize = self.cardinality().try_into().unwrap();
 
-        let mut buffer: Vec<u64> = Vec::with_capacity(treemap_size);
+        let mut result: Vec<u64> = Vec::with_capacity(treemap_size);
+        let mut buffer = [0; 1024];
 
-        for (key, bitmap) in &self.map {
-            bitmap.iter().for_each(|bit| buffer.push(util::join(*key, bit)));
+        for (&key, bitmap) in &self.map {
+            let mut iter = bitmap.iter();
+            loop {
+                let n = iter.next_many(&mut buffer);
+                if n == 0 {
+                    break;
+                }
+                result.extend(buffer[..n].iter().map(|&bit| util::join(key, bit)))
+            }
         }
 
-        buffer
+        result
     }
 
     /// Creates a new treemap from a slice of u64 integers

@@ -13,7 +13,7 @@ fn main() {
     }
 
     build.flag_if_supported("-Wno-unused-function");
-    build.compile("libroaring.a");
+    build.compile("roaring");
 
     let bindings = bindgen::Builder::default()
         .header("CRoaring/roaring.h")
