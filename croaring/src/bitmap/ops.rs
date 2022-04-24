@@ -1,5 +1,5 @@
-use std::fmt;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
+use std::fmt;
 
 use super::Bitmap;
 
@@ -28,7 +28,7 @@ impl Default for Bitmap {
 impl PartialEq for Bitmap {
     #[inline]
     fn eq(&self, other: &Bitmap) -> bool {
-        unsafe { ffi::roaring_bitmap_equals(self.bitmap, other.bitmap) }
+        unsafe { ffi::roaring_bitmap_equals(&self.bitmap, &other.bitmap) }
     }
 }
 
@@ -47,18 +47,37 @@ impl Clone for Bitmap {
     /// assert_eq!(bitmap1, bitmap2);
     /// ```
     #[inline]
-    fn clone(&self) -> Bitmap {
+    fn clone(&self) -> Self {
+        let mut result = Self::create();
+        result.clone_from(self);
+        result
+    }
+
+    fn clone_from(&mut self, source: &Self) {
         unsafe {
-            Bitmap {
-                bitmap: ffi::roaring_bitmap_copy(self.bitmap),
-            }
+            let success = ffi::roaring_bitmap_overwrite(&mut self.bitmap, &source.bitmap);
+            assert!(success, "Memory allocation failure cloning roaring bitmap");
         }
     }
 }
 
 impl Drop for Bitmap {
     fn drop(&mut self) {
-        unsafe { ffi::roaring_bitmap_free(self.bitmap) }
+        // This depends somewhat heavily on the implementation of croaring,
+        // Ensure this is still valid every time we update the version of croaring.
+        const _: () = assert!(
+            ffi::ROARING_VERSION_MAJOR == 0
+                && ffi::ROARING_VERSION_MINOR == 3
+                && ffi::ROARING_VERSION_REVISION == 4
+        );
+
+        // Per https://github.com/RoaringBitmap/CRoaring/blob/4f8dbdb0cc884626b20ef0cc9e891f701fe157cf/cpp/roaring.hh#L182
+        // > By contract, calling roaring_bitmap_clear() is enough to
+        // > release all auxiliary memory used by the structure.
+        //
+        // We do not currently expose a way to get a frozen bitmap, but if we ever do,
+        // look at the roaring.hh destructor for implementation
+        unsafe { ffi::roaring_bitmap_clear(&mut self.bitmap) }
     }
 }
 

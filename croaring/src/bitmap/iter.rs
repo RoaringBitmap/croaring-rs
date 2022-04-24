@@ -16,7 +16,7 @@ impl<'a> BitmapIterator<'a> {
     fn new(bitmap: &'a Bitmap) -> Self {
         let mut iterator = std::mem::MaybeUninit::uninit();
         unsafe {
-            ffi::roaring_init_iterator(bitmap.bitmap, iterator.as_mut_ptr());
+            ffi::roaring_init_iterator(&bitmap.bitmap, iterator.as_mut_ptr());
         }
         BitmapIterator {
             iterator: unsafe { iterator.assume_init() },
