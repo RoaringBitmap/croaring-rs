@@ -1,6 +1,6 @@
 [package]
 name = "croaring"
-version = "0.5.2"
+version = "0.6.0"
 edition = "2021"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 license = "Apache-2.0"
@@ -16,5 +16,5 @@ roaring = "0.8"
 
 [dependencies]
 libc = "0.2"
-ffi = { package = "croaring-sys", path = "../croaring-sys", version = "0.5.2" }
+ffi = { package = "croaring-sys", path = "../croaring-sys", version = "0.6.0" }
 byteorder = "1"
