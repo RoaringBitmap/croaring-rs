@@ -298,7 +298,7 @@ impl Bitmap {
     /// assert_eq!(shifted_down.to_vec(), [0, 999, u32::MAX - 1]);
     /// let shifted_up = bitmap1.add_offset(1);
     /// assert_eq!(shifted_up.to_vec(), [1, 2, 1001]);
-    /// let big_shifted = bitmap1.add_offset(i64::from(u32::MAX));
+    /// let big_shifted = bitmap1.add_offset(i64::from(u32::MAX) + 1);
     /// assert_eq!(big_shifted.to_vec(), []);
     /// ```
     #[inline]
