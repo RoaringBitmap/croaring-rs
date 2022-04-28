@@ -78,7 +78,7 @@ impl<'a> BitAnd<&'a Treemap> for Treemap {
     /// ```
     #[inline]
     fn bitand(self, other: &'a Treemap) -> Treemap {
-        self.and(&other)
+        self.and(other)
     }
 }
 
@@ -106,7 +106,7 @@ impl<'a, 'b> BitAnd<&'a Treemap> for &'b Treemap {
     /// ```
     #[inline]
     fn bitand(self, other: &'a Treemap) -> Treemap {
-        self.and(&other)
+        self.and(other)
     }
 }
 
@@ -201,7 +201,7 @@ impl<'a> BitOr<&'a Treemap> for Treemap {
     /// ```
     #[inline]
     fn bitor(self, other: &'a Treemap) -> Treemap {
-        self.or(&other)
+        self.or(other)
     }
 }
 
@@ -229,7 +229,7 @@ impl<'a, 'b> BitOr<&'a Treemap> for &'b Treemap {
     /// ```
     #[inline]
     fn bitor(self, other: &'a Treemap) -> Treemap {
-        self.or(&other)
+        self.or(other)
     }
 }
 
@@ -319,7 +319,7 @@ impl<'a> BitXor<&'a Treemap> for Treemap {
     /// ```
     #[inline]
     fn bitxor(self, other: &'a Treemap) -> Treemap {
-        self.xor(&other)
+        self.xor(other)
     }
 }
 
@@ -351,7 +351,7 @@ impl<'a, 'b> BitXor<&'a Treemap> for &'b Treemap {
     /// ```
     #[inline]
     fn bitxor(self, other: &'a Treemap) -> Treemap {
-        self.xor(&other)
+        self.xor(other)
     }
 }
 
@@ -449,7 +449,7 @@ impl<'a> Sub<&'a Treemap> for Treemap {
     /// ```
     #[inline]
     fn sub(self, other: &'a Treemap) -> Treemap {
-        self.andnot(&other)
+        self.andnot(other)
     }
 }
 
@@ -483,7 +483,7 @@ impl<'a, 'b> Sub<&'a Treemap> for &'b Treemap {
     /// ```
     #[inline]
     fn sub(self, other: &'a Treemap) -> Treemap {
-        self.andnot(&other)
+        self.andnot(other)
     }
 }
 

@@ -133,7 +133,7 @@ impl<'a> BitAnd<&'a Bitmap> for Bitmap {
     /// ```
     #[inline]
     fn bitand(self, other: &'a Bitmap) -> Bitmap {
-        self.and(&other)
+        self.and(other)
     }
 }
 
@@ -161,7 +161,7 @@ impl<'a, 'b> BitAnd<&'a Bitmap> for &'b Bitmap {
     /// ```
     #[inline]
     fn bitand(self, other: &'a Bitmap) -> Bitmap {
-        self.and(&other)
+        self.and(other)
     }
 }
 
@@ -256,7 +256,7 @@ impl<'a> BitOr<&'a Bitmap> for Bitmap {
     /// ```
     #[inline]
     fn bitor(self, other: &'a Bitmap) -> Bitmap {
-        self.or(&other)
+        self.or(other)
     }
 }
 
@@ -284,7 +284,7 @@ impl<'a, 'b> BitOr<&'a Bitmap> for &'b Bitmap {
     /// ```
     #[inline]
     fn bitor(self, other: &'a Bitmap) -> Bitmap {
-        self.or(&other)
+        self.or(other)
     }
 }
 
@@ -372,7 +372,7 @@ impl<'a> BitXor<&'a Bitmap> for Bitmap {
     /// ```
     #[inline]
     fn bitxor(self, other: &'a Bitmap) -> Bitmap {
-        self.xor(&other)
+        self.xor(other)
     }
 }
 
@@ -403,7 +403,7 @@ impl<'a, 'b> BitXor<&'a Bitmap> for &'b Bitmap {
     /// ```
     #[inline]
     fn bitxor(self, other: &'a Bitmap) -> Bitmap {
-        self.xor(&other)
+        self.xor(other)
     }
 }
 
@@ -498,7 +498,7 @@ impl<'a> Sub<&'a Bitmap> for Bitmap {
     /// ```
     #[inline]
     fn sub(self, other: &'a Bitmap) -> Bitmap {
-        self.andnot(&other)
+        self.andnot(other)
     }
 }
 
@@ -531,7 +531,7 @@ impl<'a, 'b> Sub<&'a Bitmap> for &'b Bitmap {
     /// ```
     #[inline]
     fn sub(self, other: &'a Bitmap) -> Bitmap {
-        self.andnot(&other)
+        self.andnot(other)
     }
 }
 

@@ -202,18 +202,18 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
-    /// bitmap.add_range((1..3));
+    /// let bitmap = Bitmap::of(&[1, 2]);
     /// assert!(bitmap.contains_range((1..3)));
     ///
+    /// let mut bitmap = bitmap.clone();
     /// bitmap.add(u32::MAX - 1);
     /// bitmap.add(u32::MAX);
     /// assert!(bitmap.contains_range((u32::MAX - 1)..=u32::MAX))
     /// ```
     #[inline]
-    pub fn contains_range<R: RangeBounds<u32>>(&mut self, range: R) -> bool {
+    pub fn contains_range<R: RangeBounds<u32>>(&self, range: R) -> bool {
         let (start, end) = range_to_exclusive(range);
-        unsafe { ffi::roaring_bitmap_contains_range(&mut self.bitmap, start, end) }
+        unsafe { ffi::roaring_bitmap_contains_range(&self.bitmap, start, end) }
     }
 
     /// Empties the bitmap
