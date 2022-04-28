@@ -1,382 +1,204 @@
-#![feature(test)]
-
-extern crate test;
+use criterion::{
+    black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput,
+};
 
 use croaring::{Bitmap, Portable};
-use test::Bencher;
 
-#[bench]
-fn bench_create(b: &mut Bencher) {
-    b.iter(|| Bitmap::create());
-}
+fn create(c: &mut Criterion) {
+    c.bench_function("create", |b| b.iter(Bitmap::create));
 
-#[bench]
-fn bench_create_with_capacity(b: &mut Bencher) {
-    b.iter(|| {
-        Bitmap::create_with_capacity(10000);
+    c.bench_function("create_with_capacity", |b| {
+        b.iter(|| Bitmap::create_with_capacity(10000))
     });
 }
 
-#[bench]
-fn bench_add(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
+fn add(c: &mut Criterion) {
+    c.bench_function("add", |b| {
+        let mut bitmap = Bitmap::create();
 
-    b.iter(|| {
-        bitmap.add(10000);
+        b.iter(|| bitmap.add(10000));
     });
 }
 
-#[bench]
-fn bench_add_many(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
-    let int_slice = &[10, 100, 10000, 1_000_000, 10_000_000];
+fn add_many(c: &mut Criterion) {
+    c.bench_function("add_many", |b| {
+        let mut bitmap = Bitmap::create();
+        let int_slice = &[10, 100, 10_000, 1_000_000, 10_000_000];
 
-    b.iter(|| {
-        bitmap.add_many(int_slice);
+        b.iter(|| bitmap.add_many(black_box(int_slice)));
     });
 }
 
-#[bench]
-fn bench_remove(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
+fn remove(c: &mut Criterion) {
+    c.bench_function("remove", |b| {
+        let mut bitmap = Bitmap::create();
 
-    b.iter(|| {
-        bitmap.remove(10000);
+        b.iter(|| bitmap.remove(10000));
     });
 }
 
-#[bench]
-fn bench_contains_true(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
+fn contains(c: &mut Criterion) {
+    let mut group = c.benchmark_group("contains");
+    group.bench_function("true", |b| {
+        let mut bitmap = Bitmap::create();
 
-    bitmap.add(5);
+        bitmap.add(5);
 
-    b.iter(|| {
-        bitmap.contains(5);
+        b.iter(|| bitmap.contains(5));
+    });
+
+    group.bench_function("false", |b| {
+        let bitmap = Bitmap::create();
+
+        b.iter(|| bitmap.contains(5));
     });
 }
 
-#[bench]
-fn bench_contains_false(b: &mut Bencher) {
-    let bitmap = Bitmap::create();
+fn cardinality(c: &mut Criterion) {
+    let mut group = c.benchmark_group("cardinality");
 
-    b.iter(|| {
-        bitmap.contains(5);
+    for &size in &[100_000, 1_000_000] {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, &size| {
+            let bitmap: Bitmap = (0..size).collect();
+
+            b.iter(|| bitmap.cardinality());
+        });
+    }
+}
+
+fn binops(c: &mut Criterion) {
+    let bitmap1 = Bitmap::of(&[500, 1000]);
+    let bitmap2 = Bitmap::of(&[1000, 2000]);
+
+    macro_rules! bench_op {
+        ($new:ident, $inplace:ident) => {{
+            let mut group = c.benchmark_group(stringify!($new));
+
+            group.bench_function("new", |b| {
+                b.iter(|| bitmap1.$new(&bitmap2));
+            });
+            group.bench_function("inplace", |b| {
+                b.iter_batched(
+                    || bitmap1.clone(),
+                    |mut dst_bitmap| dst_bitmap.$inplace(&bitmap2),
+                    BatchSize::SmallInput,
+                );
+            });
+
+            group
+        }};
+        ($new:ident, $inplace:ident, $fast:ident) => {{
+            let mut group = bench_op!($new, $inplace);
+
+            group.bench_function("fast", |b| {
+                b.iter(|| Bitmap::$fast(&[&bitmap1, &bitmap2]));
+            });
+
+            group
+        }};
+        ($new:ident, $inplace:ident, $fast:ident, $fast_heap:ident) => {{
+            let mut group = bench_op!($new, $inplace, $fast);
+
+            group.bench_function("fast_heap", |b| {
+                b.iter(|| Bitmap::$fast_heap(&[&bitmap1, &bitmap2]));
+            });
+
+            group
+        }};
+    }
+
+    bench_op!(and, and_inplace);
+    bench_op!(or, or_inplace, fast_or, fast_or_heap);
+    bench_op!(xor, xor_inplace, fast_xor);
+    bench_op!(andnot, andnot_inplace);
+}
+
+fn flip(c: &mut Criterion) {
+    let bitmap = Bitmap::of(&[1]);
+
+    let mut group = c.benchmark_group("flip");
+    group.bench_function("new", |b| {
+        b.iter(|| bitmap.flip(1..3));
+    });
+    group.bench_function("inplace", |b| {
+        b.iter_batched(
+            || bitmap.clone(),
+            |mut bitmap| bitmap.flip_inplace(1..3),
+            BatchSize::SmallInput,
+        );
     });
 }
 
-#[bench]
-fn bench_cardinality_100000(b: &mut Bencher) {
-    let bitmap: Bitmap = (1..100000).collect();
-
-    b.iter(|| {
-        bitmap.cardinality();
+fn to_vec(c: &mut Criterion) {
+    c.bench_function("to_vec", |b| {
+        let bitmap = Bitmap::of(&[1, 2, 3]);
+        b.iter(|| bitmap.to_vec());
     });
 }
 
-#[bench]
-fn bench_cardinality_1000000(b: &mut Bencher) {
-    let bitmap: Bitmap = (1..1000000).collect();
-
-    b.iter(|| {
-        bitmap.cardinality();
+fn get_serialized_size_in_bytes(c: &mut Criterion) {
+    c.bench_function("get_serialized_size_in_bytes", |b| {
+        let bitmap = Bitmap::of(&[1, 2, 3]);
+        b.iter(|| bitmap.get_serialized_size_in_bytes::<Portable>());
     });
 }
 
-#[bench]
-fn bench_and(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(500);
-    bitmap1.add(1000);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(1000);
-    bitmap2.add(2000);
-
-    b.iter(|| {
-        bitmap1.and(&bitmap2);
+fn is_empty(c: &mut Criterion) {
+    let mut group = c.benchmark_group("is_empty");
+    group.bench_function("true", |b| {
+        let bitmap = Bitmap::create();
+        b.iter(|| bitmap.is_empty());
+    });
+    group.bench_function("false", |b| {
+        let bitmap = Bitmap::of(&[1000]);
+        b.iter(|| bitmap.is_empty());
     });
 }
 
-#[bench]
-fn bench_and_inplace(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(500);
-    bitmap1.add(1000);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(1000);
-    bitmap2.add(2000);
-
-    b.iter(|| {
-        bitmap1.and_inplace(&bitmap2);
+fn of(c: &mut Criterion) {
+    c.bench_function("of", |b| {
+        b.iter(|| Bitmap::of(black_box(&[10, 20, 30, 40])));
     });
 }
 
-#[bench]
-fn bench_or(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(500);
-    bitmap1.add(1000);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(1000);
-    bitmap2.add(2000);
-
-    b.iter(|| {
-        bitmap1.or(&bitmap2);
-    });
+fn serialize(c: &mut Criterion) {
+    let mut group = c.benchmark_group("serialize");
+    for &size in &[100_000, 1_000_000] {
+        let bitmap: Bitmap = (1..size).collect();
+        group.throughput(Throughput::Elements(size.into()));
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
+            b.iter(|| bitmap.serialize::<Portable>());
+        });
+    }
 }
 
-#[bench]
-fn bench_or_inplace(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(500);
-    bitmap1.add(1000);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(1000);
-    bitmap2.add(2000);
-
-    b.iter(|| {
-        bitmap1.or_inplace(&bitmap2);
-    });
+fn deserialize(c: &mut Criterion) {
+    let mut group = c.benchmark_group("deserialize");
+    for &size in &[100_000, 1_000_000] {
+        let bitmap: Bitmap = (1..size).collect();
+        let serialized_buffer = bitmap.serialize::<Portable>();
+        group.throughput(Throughput::Elements(size.into()));
+        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
+            b.iter(|| Bitmap::deserialize::<Portable>(&serialized_buffer));
+        });
+    }
 }
 
-#[bench]
-fn bench_fast_or(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(500);
-    bitmap1.add(1000);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(1000);
-    bitmap2.add(2000);
-
-    b.iter(|| {
-        Bitmap::fast_or(&[&bitmap1, &bitmap2]);
-    });
-}
-
-#[bench]
-fn bench_fast_or_heap(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(500);
-    bitmap1.add(1000);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(1000);
-    bitmap2.add(2000);
-
-    b.iter(|| {
-        Bitmap::fast_or_heap(&[&bitmap1, &bitmap2]);
-    });
-}
-
-#[bench]
-fn bench_xor(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(15);
-    bitmap1.add(25);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(25);
-    bitmap2.add(35);
-
-    b.iter(|| {
-        bitmap1.xor(&bitmap2);
-    });
-}
-
-#[bench]
-fn bench_xor_inplace(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(15);
-    bitmap1.add(25);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(25);
-    bitmap2.add(35);
-
-    b.iter(|| {
-        bitmap1.xor_inplace(&bitmap2);
-    });
-}
-
-#[bench]
-fn bench_fast_xor(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(15);
-    bitmap1.add(25);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(25);
-    bitmap2.add(35);
-
-    b.iter(|| {
-        Bitmap::fast_or(&[&bitmap1, &bitmap2]);
-    });
-}
-
-#[bench]
-fn bench_andnot(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(15);
-    bitmap1.add(25);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(25);
-    bitmap2.add(35);
-
-    b.iter(|| {
-        bitmap1.andnot(&bitmap2);
-    });
-}
-
-#[bench]
-fn bench_andnot_inplace(b: &mut Bencher) {
-    let mut bitmap1 = Bitmap::create();
-
-    bitmap1.add(15);
-    bitmap1.add(25);
-
-    let mut bitmap2 = Bitmap::create();
-
-    bitmap2.add(25);
-    bitmap2.add(35);
-
-    b.iter(|| {
-        bitmap1.andnot_inplace(&bitmap2);
-    });
-}
-
-#[bench]
-fn bench_flip(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
-
-    bitmap.add(1);
-
-    b.iter(|| {
-        bitmap.flip(1..3);
-    });
-}
-
-#[bench]
-fn bench_flip_inplace(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
-
-    bitmap.add(1);
-
-    b.iter(|| {
-        bitmap.flip_inplace(1..3);
-    });
-}
-
-#[bench]
-fn bench_to_vec(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
-
-    bitmap.add(1);
-    bitmap.add(2);
-    bitmap.add(3);
-
-    b.iter(|| {
-        bitmap.to_vec();
-    });
-}
-
-#[bench]
-fn bench_get_serialized_size_in_bytes(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
-
-    bitmap.add(1);
-    bitmap.add(2);
-    bitmap.add(3);
-
-    b.iter(|| {
-        bitmap.get_serialized_size_in_bytes::<Portable>();
-    });
-}
-
-#[bench]
-fn bench_is_empty_true(b: &mut Bencher) {
-    let bitmap = Bitmap::create();
-
-    b.iter(|| {
-        bitmap.is_empty();
-    });
-}
-
-#[bench]
-fn bench_is_empty_false(b: &mut Bencher) {
-    let mut bitmap = Bitmap::create();
-
-    bitmap.add(1000);
-
-    b.iter(|| {
-        bitmap.is_empty();
-    });
-}
-
-#[bench]
-fn bench_of(b: &mut Bencher) {
-    b.iter(|| Bitmap::of(&[10, 20, 30, 40]));
-}
-
-#[bench]
-fn bench_serialize_100000(b: &mut Bencher) {
-    let bitmap: Bitmap = (1..100000).collect();
-
-    b.iter(|| {
-        bitmap.serialize::<Portable>();
-    });
-}
-
-#[bench]
-fn bench_serialize_1000000(b: &mut Bencher) {
-    let bitmap: Bitmap = (1..1000000).collect();
-
-    b.iter(|| {
-        bitmap.serialize::<Portable>();
-    });
-}
-
-#[bench]
-fn bench_deserialize_100000(b: &mut Bencher) {
-    let bitmap: Bitmap = (1..100000).collect();
-    let serialized_buffer = bitmap.serialize::<Portable>();
-
-    b.iter(|| {
-        Bitmap::deserialize::<Portable>(&serialized_buffer);
-    });
-}
-
-#[bench]
-fn bench_deserialize_1000000(b: &mut Bencher) {
-    let bitmap: Bitmap = (1..1000000).collect();
-    let serialized_buffer = bitmap.serialize::<Portable>();
-
-    b.iter(|| {
-        Bitmap::deserialize::<Portable>(&serialized_buffer);
-    });
-}
+criterion_group!(
+    benches,
+    create,
+    add,
+    add_many,
+    remove,
+    contains,
+    cardinality,
+    binops,
+    flip,
+    to_vec,
+    get_serialized_size_in_bytes,
+    is_empty,
+    of,
+    serialize,
+    deserialize,
+);
+criterion_main!(benches);

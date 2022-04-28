@@ -17,7 +17,16 @@ buildtime_bindgen = ["ffi/buildtime_bindgen"]
 [dev-dependencies]
 proptest = "1"
 roaring = "0.10"
+criterion = { version = "0.5", features = ["html_reports"] }
 
 [dependencies]
 ffi = { package = "croaring-sys", path = "../croaring-sys", version = "0.9.0" }
 byteorder = "1"
+
+[[bench]]
+name = "benches"
+harness = false
+
+[[bench]]
+name = "performance_comparison"
+harness = false
