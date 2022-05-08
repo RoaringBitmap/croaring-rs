@@ -101,8 +101,8 @@ impl Bitmap {
     /// use croaring::Bitmap;
     ///
     /// let mut bitmap = Bitmap::create();
+    /// assert!(bitmap.is_empty());
     /// bitmap.add(1);
-    ///
     /// assert!(!bitmap.is_empty());
     /// ```
     #[inline]
@@ -183,6 +183,9 @@ impl Bitmap {
     /// assert!(!bitmap.contains(1));
     /// assert!(!bitmap.contains(2));
     /// assert!(bitmap.contains(3));
+    ///
+    /// bitmap.add_range(u32::MAX..=u32::MAX);
+    /// assert!(bitmap.contains(u32::MAX));
     /// ```
     #[inline]
     pub fn remove_range<R: RangeBounds<u32>>(&mut self, range: R) {
@@ -199,18 +202,18 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
-    /// bitmap.add_range((1..3));
+    /// let bitmap = Bitmap::of(&[1, 2]);
     /// assert!(bitmap.contains_range((1..3)));
     ///
+    /// let mut bitmap = bitmap.clone();
     /// bitmap.add(u32::MAX - 1);
     /// bitmap.add(u32::MAX);
     /// assert!(bitmap.contains_range((u32::MAX - 1)..=u32::MAX))
     /// ```
     #[inline]
-    pub fn contains_range<R: RangeBounds<u32>>(&mut self, range: R) -> bool {
+    pub fn contains_range<R: RangeBounds<u32>>(&self, range: R) -> bool {
         let (start, end) = range_to_exclusive(range);
-        unsafe { ffi::roaring_bitmap_contains_range(&mut self.bitmap, start, end) }
+        unsafe { ffi::roaring_bitmap_contains_range(&self.bitmap, start, end) }
     }
 
     /// Empties the bitmap
@@ -275,8 +278,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
-    /// bitmap.add(1);
+    /// let bitmap = Bitmap::of(&[1]);
     ///
     /// assert!(bitmap.contains(1));
     /// assert!(!bitmap.contains(2));
@@ -293,10 +295,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
-    /// bitmap.add(1);
-    /// bitmap.add(3);
-    /// bitmap.add(4);
+    /// let bitmap = Bitmap::of(&[1, 3, 4]);
     ///
     /// assert_eq!(bitmap.range_cardinality((..1)), 0);
     /// assert_eq!(bitmap.range_cardinality((..2)), 1);
@@ -317,10 +316,11 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
-    /// bitmap.add(1);
+    /// let bitmap = Bitmap::of(&[1]);
     ///
     /// assert_eq!(bitmap.cardinality(), 1);
+    ///
+    /// let mut bitmap = bitmap.clone();
     ///
     /// bitmap.add(2);
     ///
@@ -339,12 +339,8 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(1);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(1);
-    /// bitmap2.add(2);
+    /// let bitmap1 = Bitmap::of(&[1]);
+    /// let bitmap2 = Bitmap::of(&[1, 2]);
     ///
     /// let bitmap3 = bitmap1.and(&bitmap2);
     ///
@@ -364,28 +360,20 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    ///
-    /// let mut bitmap3 = Bitmap::create();
-    /// bitmap3.add(15);
-    ///
-    /// let mut bitmap4 = Bitmap::create();
-    /// bitmap4.add(15);
-    /// bitmap4.add(25);
+    /// let mut bitmap1 = Bitmap::of(&[15]);
+    /// let bitmap2 = Bitmap::of(&[25]);
+    /// let mut bitmap3 = Bitmap::of(&[15]);
+    /// let bitmap4 = Bitmap::of(&[15, 25]);
     ///
     /// bitmap1.and_inplace(&bitmap2);
     ///
-    /// assert!(bitmap1.cardinality() == 0);
+    /// assert_eq!(bitmap1.cardinality(), 0);
     /// assert!(!bitmap1.contains(15));
     /// assert!(!bitmap1.contains(25));
     ///
     /// bitmap3.and_inplace(&bitmap4);
     ///
-    /// assert!(bitmap3.cardinality() == 1);
+    /// assert_eq!(bitmap3.cardinality(), 1);
     /// assert!(bitmap3.contains(15));
     /// assert!(!bitmap3.contains(25));
     /// ```
@@ -402,15 +390,12 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
+    /// let bitmap1 = Bitmap::of(&[15]);
+    /// let bitmap2 = Bitmap::of(&[25]);
     ///
     /// let bitmap3 = bitmap1.or(&bitmap2);
     ///
-    /// assert!(bitmap3.cardinality() == 2);
+    /// assert_eq!(bitmap3.cardinality(), 2);
     /// assert!(bitmap3.contains(15));
     /// assert!(bitmap3.contains(25));
     /// ```
@@ -427,15 +412,12 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
+    /// let mut bitmap1 = Bitmap::of(&[15]);
+    /// let bitmap2 = Bitmap::of(&[25]);
     ///
     /// bitmap1.or_inplace(&bitmap2);
     ///
-    /// assert!(bitmap1.cardinality() == 2);
+    /// assert_eq!(bitmap1.cardinality(), 2);
     /// assert!(bitmap1.contains(15));
     /// assert!(bitmap1.contains(25));
     /// ```
@@ -452,14 +434,9 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    ///
-    /// let mut bitmap3 = Bitmap::create();
-    /// bitmap3.add(35);
+    /// let bitmap1 = Bitmap::of(&[15]);
+    /// let bitmap2 = Bitmap::of(&[25]);
+    /// let bitmap3 = Bitmap::of(&[35]);
     ///
     /// let bitmap4 = Bitmap::fast_or(&[&bitmap1, &bitmap2, &bitmap3]);
     ///
@@ -491,14 +468,9 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    ///
-    /// let mut bitmap3 = Bitmap::create();
-    /// bitmap3.add(35);
+    /// let bitmap1 = Bitmap::of(&[15]);
+    /// let bitmap2 = Bitmap::of(&[25]);
+    /// let bitmap3 = Bitmap::of(&[35]);
     ///
     /// let bitmap4 = Bitmap::fast_or_heap(&[&bitmap1, &bitmap2, &bitmap3]);
     ///
@@ -530,17 +502,12 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    /// bitmap1.add(25);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    /// bitmap2.add(35);
+    /// let bitmap1 = Bitmap::of(&[15, 25]);
+    /// let bitmap2 = Bitmap::of(&[25, 35]);
     ///
     /// let bitmap3 = bitmap1.xor(&bitmap2);
     ///
-    /// assert!(bitmap3.cardinality() == 2);
+    /// assert_eq!(bitmap3.cardinality(), 2);
     /// assert!(bitmap3.contains(15));
     /// assert!(!bitmap3.contains(25));
     /// assert!(bitmap3.contains(35));
@@ -557,17 +524,12 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    /// bitmap1.add(25);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    /// bitmap2.add(35);
+    /// let mut bitmap1 = Bitmap::of(&[15, 25]);
+    /// let bitmap2 = Bitmap::of(&[25, 35]);
     ///
     /// bitmap1.xor_inplace(&bitmap2);
     ///
-    /// assert!(bitmap1.cardinality() == 2);
+    /// assert_eq!(bitmap1.cardinality(), 2);
     /// assert!(bitmap1.contains(15));
     /// assert!(!bitmap1.contains(25));
     /// assert!(bitmap1.contains(35));
@@ -585,17 +547,12 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    /// bitmap1.add(25);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    /// bitmap2.add(35);
+    /// let bitmap1 = Bitmap::of(&[15, 25]);
+    /// let bitmap2 = Bitmap::of(&[25, 35]);
     ///
     /// let bitmap3 = Bitmap::fast_xor(&[&bitmap1, &bitmap2]);
     ///
-    /// assert!(bitmap3.cardinality() == 2);
+    /// assert_eq!(bitmap3.cardinality(), 2);
     /// assert!(bitmap3.contains(15));
     /// assert!(!bitmap3.contains(25));
     /// assert!(bitmap3.contains(35));
@@ -622,15 +579,8 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    ///
-    /// bitmap1.add(15);
-    /// bitmap1.add(25);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    ///
-    /// bitmap2.add(25);
-    /// bitmap2.add(35);
+    /// let bitmap1 = Bitmap::of(&[15, 25]);
+    /// let bitmap2 = Bitmap::of(&[25, 35]);
     ///
     /// let bitmap3 = bitmap1.andnot(&bitmap2);
     ///
@@ -652,15 +602,8 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    ///
-    /// bitmap1.add(15);
-    /// bitmap1.add(25);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    ///
-    /// bitmap2.add(25);
-    /// bitmap2.add(35);
+    /// let mut bitmap1 = Bitmap::of(&[15, 25]);
+    /// let bitmap2 = Bitmap::of(&[25, 35]);
     ///
     /// bitmap1.andnot_inplace(&bitmap2);
     ///
@@ -669,9 +612,8 @@ impl Bitmap {
     /// assert!(!bitmap1.contains(25));
     /// assert!(!bitmap1.contains(35));
     ///
-    /// let mut bitmap3 = Bitmap::create();
-    /// bitmap3.add(15);
-    /// let mut bitmap4 = Bitmap::create();
+    /// let mut bitmap3 = Bitmap::of(&[15]);
+    /// let bitmap4 = Bitmap::create();
     /// bitmap3.andnot_inplace(&bitmap4);
     /// assert_eq!(bitmap3.cardinality(), 1);
     /// assert!(bitmap3.contains(15));
@@ -690,19 +632,21 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(4);
+    /// let bitmap1 = Bitmap::of(&[4]);
     ///
-    /// let bitmap2 = bitmap1.flip((1..3));
+    /// let bitmap2 = bitmap1.flip(1..3);
     ///
     /// assert_eq!(bitmap2.cardinality(), 3);
     /// assert!(bitmap2.contains(1));
     /// assert!(bitmap2.contains(2));
     /// assert!(!bitmap2.contains(3));
     /// assert!(bitmap2.contains(4));
+    ///
+    /// let bitmap3 = bitmap1.flip(1..=5);
+    /// assert_eq!(bitmap3.to_vec(), [1, 2, 3, 5])
     /// ```
     #[inline]
-    pub fn flip<R: RangeBounds<u32>>(&mut self, range: R) -> Self {
+    pub fn flip<R: RangeBounds<u32>>(&self, range: R) -> Self {
         let (start, end) = range_to_exclusive(range);
         unsafe {
             Self::take_heap(ffi::roaring_bitmap_flip(
@@ -722,15 +666,16 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(4);
-    /// bitmap1.flip_inplace((1..3));
+    /// let mut bitmap1 = Bitmap::of(&[4]);
+    /// bitmap1.flip_inplace(1..3);
     ///
     /// assert_eq!(bitmap1.cardinality(), 3);
     /// assert!(bitmap1.contains(1));
     /// assert!(bitmap1.contains(2));
     /// assert!(!bitmap1.contains(3));
     /// assert!(bitmap1.contains(4));
+    /// bitmap1.flip_inplace(4..=4);
+    /// assert_eq!(bitmap1.to_vec(), [1, 2]);
     /// ```
     #[inline]
     pub fn flip_inplace<R: RangeBounds<u32>>(&mut self, range: R) {
@@ -744,12 +689,9 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
-    /// bitmap.add(15);
-    /// bitmap.add(25);
+    /// let bitmap = Bitmap::of(&[15, 25]);
     ///
     /// assert_eq!(bitmap.to_vec(), [15, 25]);
-    /// assert!(bitmap.to_vec() != [10, 15, 25]);
     /// ```
     #[inline]
     pub fn to_vec(&self) -> Vec<u32> {
@@ -891,7 +833,10 @@ impl Bitmap {
     /// let mut bitmap: Bitmap = (100..1000).collect();
     ///
     /// assert_eq!(bitmap.cardinality(), 900);
+    /// let old_size = bitmap.get_serialized_size_in_bytes();
     /// assert!(bitmap.run_optimize());
+    /// let new_size = bitmap.get_serialized_size_in_bytes();
+    /// assert!(new_size < old_size);
     /// ```
     #[inline]
     pub fn run_optimize(&mut self) -> bool {
@@ -1029,12 +974,8 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(1);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(1);
-    /// bitmap2.add(2);
+    /// let bitmap1 = Bitmap::of(&[1]);
+    /// let bitmap2 = Bitmap::of(&[1, 2]);
     ///
     /// assert_eq!(bitmap1.and_cardinality(&bitmap2), 1);
     /// ```
@@ -1050,11 +991,8 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
+    /// let bitmap1 = Bitmap::of(&[15]);
+    /// let bitmap2 = Bitmap::of(&[25]);
     ///
     /// assert_eq!(bitmap1.or_cardinality(&bitmap2), 2);
     #[inline]
@@ -1069,15 +1007,8 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    ///
-    /// bitmap1.add(15);
-    /// bitmap1.add(25);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    ///
-    /// bitmap2.add(25);
-    /// bitmap2.add(35);
+    /// let bitmap1 = Bitmap::of(&[15, 25]);
+    /// let bitmap2 = Bitmap::of(&[25, 35]);
     ///
     /// assert_eq!(bitmap1.andnot_cardinality(&bitmap2), 1);
     /// ```
@@ -1093,13 +1024,8 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    /// bitmap1.add(25);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    /// bitmap2.add(35);
+    /// let bitmap1 = Bitmap::of(&[15, 25]);
+    /// let bitmap2 = Bitmap::of(&[25, 35]);
     ///
     /// assert_eq!(bitmap1.xor_cardinality(&bitmap2), 2);
     /// ```
@@ -1109,7 +1035,8 @@ impl Bitmap {
     }
 
     /// Returns the smallest value in the set.
-    /// Returns std::u32::MAX if the set is empty.
+    ///
+    /// Returns `None` if the set is empty.
     ///
     /// # Examples
     ///
@@ -1136,7 +1063,8 @@ impl Bitmap {
     }
 
     /// Returns the greatest value in the set.
-    /// Returns 0 if the set is empty.
+    ///
+    /// Returns `None` if the set is empty.
     ///
     /// # Examples
     ///
@@ -1176,6 +1104,7 @@ impl Bitmap {
     /// bitmap.add(15);
     ///
     /// assert_eq!(bitmap.rank(11), 5);
+    /// assert_eq!(bitmap.rank(15), 6);
     /// ```
     #[inline]
     pub fn rank(&self, x: u32) -> u64 {

@@ -223,7 +223,7 @@ impl Treemap {
         for (key, bitmap) in &self.map {
             other
                 .map
-                .get(&key)
+                .get(key)
                 .map(|other_bitmap| treemap.map.insert(*key, bitmap.and(other_bitmap)));
         }
 
