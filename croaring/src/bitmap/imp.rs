@@ -19,11 +19,10 @@ impl Bitmap {
         // the version of croaring.
         const _: () = assert!(
             ffi::ROARING_VERSION_MAJOR == 0
-                && ffi::ROARING_VERSION_MINOR == 3
-                && ffi::ROARING_VERSION_REVISION == 4
+                && ffi::ROARING_VERSION_MINOR == 5
+                && ffi::ROARING_VERSION_REVISION == 0
         );
-        // When changing roaring version, check if this should use `roaring_free` instead
-        libc::free(p as *mut _);
+        ffi::roaring_free(p as *mut _);
         result
     }
 
@@ -286,6 +285,27 @@ impl Bitmap {
     #[inline]
     pub fn contains(&self, element: u32) -> bool {
         unsafe { ffi::roaring_bitmap_contains(&self.bitmap, element) }
+    }
+
+    /// Compute a new bitmap, which contains all values from this bitmap, but shifted by `offset`
+    ///
+    /// Any values which would be `< 0`, or `> u32::MAX` are dropped.
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap1 = Bitmap::of(&[0, 1, 1000, u32::MAX]);
+    /// let shifted_down = bitmap1.add_offset(-1);
+    /// assert_eq!(shifted_down.to_vec(), [0, 999, u32::MAX - 1]);
+    /// let shifted_up = bitmap1.add_offset(1);
+    /// assert_eq!(shifted_up.to_vec(), [1, 2, 1001]);
+    /// let big_shifted = bitmap1.add_offset(i64::from(u32::MAX) + 1);
+    /// assert_eq!(big_shifted.to_vec(), []);
+    /// ```
+    #[inline]
+    pub fn add_offset(&self, offset: i64) -> Self {
+        unsafe { Bitmap::take_heap(ffi::roaring_bitmap_add_offset(&self.bitmap, offset)) }
     }
 
     /// Returns number of elements in range
