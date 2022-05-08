@@ -1,6 +1,6 @@
 [package]
 name = "croaring-sys"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 authors = ["Saulius Grigaliunas <saulius@ninja.lt>"]
 license = "Apache-2.0"
