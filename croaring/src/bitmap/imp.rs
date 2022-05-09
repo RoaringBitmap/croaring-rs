@@ -1035,6 +1035,29 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_intersect(&self.bitmap, &other.bitmap) }
     }
 
+    /// Check if a bitmap has any values set in `range`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap = Bitmap::of(&[1, 100, 101, u32::MAX]);
+    ///
+    /// assert!(bitmap.intersect_with_range(0..10));
+    /// assert!(!bitmap.intersect_with_range(2..100));
+    /// assert!(bitmap.intersect_with_range(999..=u32::MAX));
+    ///
+    /// // Empty ranges
+    /// assert!(!bitmap.intersect_with_range(100..100));
+    /// assert!(!bitmap.intersect_with_range(100..0));
+    /// ```
+    #[inline]
+    pub fn intersect_with_range<R: RangeBounds<u32>>(&self, range: R) -> bool {
+        let (start, end) = range_to_exclusive(range);
+        unsafe { ffi::roaring_bitmap_intersect_with_range(&self.bitmap, start, end) }
+    }
+
     /// Return the Jaccard index between Self and &other
     ///
     /// ```
