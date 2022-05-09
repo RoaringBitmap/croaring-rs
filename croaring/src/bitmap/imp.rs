@@ -881,6 +881,12 @@ impl Bitmap {
     /// // Step of zero
     /// assert_eq!(Bitmap::from_range_with_step(0..100, 0), Bitmap::create());
     ///
+    /// // No values of step in range
+    /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(0), Bound::Included(10)), 100);
+    /// assert_eq!(bitmap, Bitmap::create());
+    /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(u32::MAX), Bound::Included(u32::MAX)), 1);
+    /// assert_eq!(bitmap, Bitmap::create());
+    ///
     /// // Exclusive ranges still step from the start, but do not include it
     /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(10), Bound::Included(30)), 10);
     /// assert_eq!(bitmap.to_vec(), [20, 30]);
