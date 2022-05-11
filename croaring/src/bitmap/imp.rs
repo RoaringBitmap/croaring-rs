@@ -915,6 +915,26 @@ impl Bitmap {
         }
     }
 
+    /// Shrink the memory allocation of the bitmap if needed
+    ///
+    /// Returns the number of bytes saved
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create_with_capacity(10);
+    /// let saved_bytes = bitmap.shrink_to_fit();
+    /// assert!(saved_bytes > 0);
+    /// let more_saved_bytes = bitmap.shrink_to_fit();
+    /// assert_eq!(more_saved_bytes, 0);
+    #[inline]
+    pub fn shrink_to_fit(&mut self) -> usize {
+        let result = unsafe { ffi::roaring_bitmap_shrink_to_fit(&mut self.bitmap) };
+        result as usize
+    }
+
     /// Compresses of the bitmap. Returns true if the bitmap was modified.
     ///
     /// # Examples
