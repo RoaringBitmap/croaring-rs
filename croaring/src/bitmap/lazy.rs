@@ -9,7 +9,7 @@ impl<'a> LazyBitmap<'a> {
     ///
     /// # Arguments
     /// * `other` - The other bitmap to union with.
-    /// * `force_bitmaps` - Whether to force conversions to bitsets when modifying containers
+    /// * `force_bitsets` - Whether to force conversions to bitsets when modifying containers
     #[inline]
     pub fn or_inplace(&mut self, other: &Bitmap, force_bitsets: bool) -> &mut Self {
         unsafe {
