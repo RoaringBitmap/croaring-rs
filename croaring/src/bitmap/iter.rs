@@ -96,9 +96,39 @@ impl<'a> BitmapIterator<'a> {
     #[inline]
     pub fn next_many(&mut self, dst: &mut [u32]) -> usize {
         let count: u32 = u32::try_from(dst.len()).unwrap_or(u32::MAX);
-        let result = unsafe { ffi::roaring_read_uint32_iterator(&mut self.iterator, dst.as_mut_ptr(), count)};
+        let result = unsafe {
+            ffi::roaring_read_uint32_iterator(&mut self.iterator, dst.as_mut_ptr(), count)
+        };
         debug_assert!(result <= count);
         result as usize
+    }
+
+    /// Reset the iterator to the first value `>= val`
+    ///
+    /// This can move the iterator forwards or backwards.
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::of(&[0, 1, 100, 1000, u32::MAX]);
+    /// let mut iter = bitmap.iter();
+    /// iter.reset_at_or_after(0);
+    /// assert_eq!(iter.next(), Some(0));
+    /// iter.reset_at_or_after(0);
+    /// assert_eq!(iter.next(), Some(0));
+    ///
+    /// iter.reset_at_or_after(101);
+    /// assert_eq!(iter.next(), Some(1000));
+    /// assert_eq!(iter.next(), Some(u32::MAX));
+    /// assert_eq!(iter.next(), None);
+    /// iter.reset_at_or_after(u32::MAX);
+    /// assert_eq!(iter.next(), Some(u32::MAX));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    #[inline]
+    pub fn reset_at_or_after(&mut self, val: u32) {
+        unsafe { ffi::roaring_move_uint32_iterator_equalorlarger(&mut self.iterator, val) };
     }
 }
 

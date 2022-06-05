@@ -668,13 +668,7 @@ impl Bitmap {
     #[inline]
     pub fn flip<R: RangeBounds<u32>>(&self, range: R) -> Self {
         let (start, end) = range_to_exclusive(range);
-        unsafe {
-            Self::take_heap(ffi::roaring_bitmap_flip(
-                &self.bitmap,
-                start,
-                end,
-            ))
-        }
+        unsafe { Self::take_heap(ffi::roaring_bitmap_flip(&self.bitmap, start, end)) }
     }
 
     /// Negates the bits in the given range
@@ -843,6 +837,104 @@ impl Bitmap {
         }
     }
 
+    /// Create a new bitmap with all values in `range`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::ops::Bound;
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap1 = Bitmap::from_range(5..10);
+    /// assert_eq!(bitmap1.to_vec(), [5, 6, 7, 8, 9]);
+    ///
+    /// let bitmap2 = Bitmap::from_range(5..=7);
+    /// assert_eq!(bitmap2.to_vec(), [5, 6, 7]);
+    ///
+    /// let bitmap3 = Bitmap::from_range((Bound::Excluded(2), Bound::Excluded(6)));
+    /// assert_eq!(bitmap3.to_vec(), [3, 4, 5]);
+    #[inline]
+    pub fn from_range<R: RangeBounds<u32>>(range: R) -> Self {
+        let mut result = Self::create();
+        result.add_range(range);
+        result
+    }
+
+    /// Create a new bitmap with all values in `range` which are a multiple of `step` away from the lower bound
+    ///
+    /// If `step` is zero or there are no values which are a multiple of `step` away from the lower bound
+    /// within `range`, an empty bitmap is returned.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::ops::Bound;
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap = Bitmap::from_range_with_step(0..10, 3);
+    /// assert_eq!(bitmap.to_vec(), [0, 3, 6, 9]);
+    ///
+    /// // empty ranges
+    /// assert_eq!(Bitmap::from_range_with_step(0..0, 1), Bitmap::create());
+    /// assert_eq!(Bitmap::from_range_with_step(100..=0, 1), Bitmap::create());
+    ///
+    /// // Step of zero
+    /// assert_eq!(Bitmap::from_range_with_step(0..100, 0), Bitmap::create());
+    ///
+    /// // No values of step in range
+    /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(0), Bound::Included(10)), 100);
+    /// assert_eq!(bitmap, Bitmap::create());
+    /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(u32::MAX), Bound::Included(u32::MAX)), 1);
+    /// assert_eq!(bitmap, Bitmap::create());
+    ///
+    /// // Exclusive ranges still step from the start, but do not include it
+    /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(10), Bound::Included(30)), 10);
+    /// assert_eq!(bitmap.to_vec(), [20, 30]);
+    /// ```
+    #[inline]
+    pub fn from_range_with_step<R: RangeBounds<u32>>(range: R, step: u32) -> Self {
+        // This can't use `range_to_exclusive` because when the start is excluded, we want
+        // to start at the next step, not one more
+        let start = match range.start_bound() {
+            Bound::Included(&i) => u64::from(i),
+            Bound::Excluded(&i) => u64::from(i) + u64::from(step),
+            Bound::Unbounded => 0,
+        };
+        let end = match range.end_bound() {
+            Bound::Included(&i) => u64::from(i) + 1,
+            Bound::Excluded(&i) => u64::from(i),
+            Bound::Unbounded => u64::MAX,
+        };
+        unsafe {
+            let result = ffi::roaring_bitmap_from_range(start, end, step);
+            if result.is_null() {
+                Self::create()
+            } else {
+                Self::take_heap(result)
+            }
+        }
+    }
+
+    /// Shrink the memory allocation of the bitmap if needed
+    ///
+    /// Returns the number of bytes saved
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::create_with_capacity(10);
+    /// let saved_bytes = bitmap.shrink_to_fit();
+    /// assert!(saved_bytes > 0);
+    /// let more_saved_bytes = bitmap.shrink_to_fit();
+    /// assert_eq!(more_saved_bytes, 0);
+    #[inline]
+    pub fn shrink_to_fit(&mut self) -> usize {
+        let result = unsafe { ffi::roaring_bitmap_shrink_to_fit(&mut self.bitmap) };
+        result as usize
+    }
+
     /// Compresses of the bitmap. Returns true if the bitmap was modified.
     ///
     /// # Examples
@@ -967,6 +1059,29 @@ impl Bitmap {
     #[inline]
     pub fn intersect(&self, other: &Self) -> bool {
         unsafe { ffi::roaring_bitmap_intersect(&self.bitmap, &other.bitmap) }
+    }
+
+    /// Check if a bitmap has any values set in `range`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap = Bitmap::of(&[1, 100, 101, u32::MAX]);
+    ///
+    /// assert!(bitmap.intersect_with_range(0..10));
+    /// assert!(!bitmap.intersect_with_range(2..100));
+    /// assert!(bitmap.intersect_with_range(999..=u32::MAX));
+    ///
+    /// // Empty ranges
+    /// assert!(!bitmap.intersect_with_range(100..100));
+    /// assert!(!bitmap.intersect_with_range(100..0));
+    /// ```
+    #[inline]
+    pub fn intersect_with_range<R: RangeBounds<u32>>(&self, range: R) -> bool {
+        let (start, end) = range_to_exclusive(range);
+        unsafe { ffi::roaring_bitmap_intersect_with_range(&self.bitmap, start, end) }
     }
 
     /// Return the Jaccard index between Self and &other
@@ -1220,7 +1335,7 @@ fn range_to_inclusive<R: RangeBounds<u32>>(range: R) -> (u32, u32) {
         Bound::Excluded(&i) => match i.checked_add(1) {
             Some(i) => i,
             None => return (1, 0),
-        }
+        },
         Bound::Unbounded => 0,
     };
     let end = match range.end_bound() {
@@ -1228,7 +1343,7 @@ fn range_to_inclusive<R: RangeBounds<u32>>(range: R) -> (u32, u32) {
         Bound::Excluded(&i) => match i.checked_sub(1) {
             Some(i) => i,
             None => return (1, 0),
-        }
+        },
         Bound::Unbounded => u32::MAX,
     };
     (start, end)
