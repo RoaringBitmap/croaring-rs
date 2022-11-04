@@ -12,7 +12,7 @@ documentation = "https://docs.rs/croaring"
 
 [dev-dependencies]
 proptest = "1"
-roaring = "0.8"
+roaring = "0.10"
 
 [dependencies]
 libc = "0.2"
