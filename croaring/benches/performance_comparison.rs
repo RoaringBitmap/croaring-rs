@@ -209,7 +209,7 @@ fn perf_comp_and_inplace_rust_roaring(b: &mut Bencher) {
     let bitmap2: RoaringBitmap = (100..200).collect();
 
     b.iter(|| {
-        bitmap1.intersect_with(black_box(&bitmap2));
+        bitmap1 &= black_box(&bitmap2);
     });
 }
 
@@ -247,7 +247,7 @@ fn perf_comp_or_inplace_rust_roaring(b: &mut Bencher) {
     let bitmap2: RoaringBitmap = (100..200).collect();
 
     b.iter(|| {
-        bitmap1.union_with(black_box(&bitmap2));
+        bitmap1 |= &bitmap2;
     });
 }
 
@@ -285,7 +285,7 @@ fn perf_comp_xor_inplace_rust_roaring(b: &mut Bencher) {
     let bitmap2: RoaringBitmap = (100..200).collect();
 
     b.iter(|| {
-        bitmap1.symmetric_difference_with(black_box(&bitmap2));
+        bitmap1 ^= black_box(&bitmap2);
     });
 }
 
