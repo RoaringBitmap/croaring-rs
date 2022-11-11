@@ -45,12 +45,6 @@ jobs:
       run: echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $GITHUB_ENV
       shell: bash
 
-    # This confuses Rust's bindgen
-    # See https://github.com/rust-lang/rust-bindgen/issues/1506
-    - name: Uninstall LLVM from Homebrew
-      if: matrix.os == 'macos-latest'
-      run: brew uninstall llvm
-
     - name: Build
       run: cargo +${{ matrix.rust }} build
 
