@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::fs::File;
 use std::io::{Read, Result};
 use std::u32;
@@ -136,6 +137,35 @@ fn test_treemap_deserialize_jvm() {
         }
         Err(err) => assert!(false, "Cannot read test file {}", err),
     }
+}
+
+#[test]
+fn treemap_run_optimized() {
+
+    use croaring::treemap::JvmSerializer;
+
+    let mut initial = Bitmap::create();
+    initial.add(1);
+    initial.add(2);
+    initial.add(3);
+    initial.add(4);
+    initial.add(5);
+    initial.add(100);
+    initial.add(1000);
+    let optimized = {
+        let mut result = initial.clone();
+        result.run_optimize();
+        result
+    };
+
+    let tree_unoptimized = Treemap { map: BTreeMap::from([(1, initial.clone()), (2, initial)])};
+    let tree_optimized = Treemap { map: BTreeMap::from([(1, optimized.clone()), (2, optimized)])};
+
+    let mut test = tree_unoptimized.clone();
+    test.run_optimize();
+    assert_eq!(test.get_serialized_size_in_bytes(), tree_optimized.get_serialized_size_in_bytes());
+    test.remove_run_compression();
+    assert_eq!(test.get_serialized_size_in_bytes(), tree_unoptimized.get_serialized_size_in_bytes());
 }
 
 proptest! {
