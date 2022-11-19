@@ -631,7 +631,7 @@ impl Treemap {
     pub fn run_optimize(&mut self) -> bool {
         self.map.iter_mut().fold(
             false,
-            |result, (_, bitmap)| result || bitmap.run_optimize()
+            |result, (_, bitmap)| bitmap.run_optimize() || result
         )
     }
 
@@ -652,7 +652,7 @@ impl Treemap {
     pub fn remove_run_compression(&mut self) -> bool {
         self.map.iter_mut().fold(
             false,
-            |result, (_, bitmap)| result || bitmap.remove_run_compression()
+            |result, (_, bitmap)| bitmap.remove_run_compression() || result
         )
     }
 }
