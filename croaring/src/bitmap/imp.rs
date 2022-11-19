@@ -19,7 +19,7 @@ impl Bitmap {
         // the version of croaring.
         const _: () = assert!(
             ffi::ROARING_VERSION_MAJOR == 0
-                && ffi::ROARING_VERSION_MINOR == 6
+                && ffi::ROARING_VERSION_MINOR == 8
                 && ffi::ROARING_VERSION_REVISION == 0
         );
         ffi::roaring_free(p as *mut _);

@@ -23,9 +23,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
 
-    - name: Init CRoaring submodule
-      run: git submodule update --init --recursive
-
     - name: Install Rust
       shell: bash
       run: |
