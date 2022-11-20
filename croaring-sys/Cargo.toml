@@ -10,6 +10,10 @@ documentation = "https://docs.rs/croaring-sys"
 build = "build.rs"
 description = "Raw bindings to CRoaring"
 
+[features]
+default = []
+buildtime_bindgen = ["bindgen"]
+
 [lib]
 doctest = false
 
@@ -18,4 +22,4 @@ libc = "0.2"
 
 [build-dependencies]
 cc = "1"
-bindgen = { version = "0.61", default-features = false, features = ["runtime"] }
+bindgen = { version = "0.62", optional = true, default-features = false, features = ["runtime"] }
