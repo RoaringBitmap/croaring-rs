@@ -21,17 +21,13 @@ jobs:
         rust: [stable, nightly]
 
     steps:
-    - uses: actions/checkout@v1
+    - uses: hecrj/setup-rust-action@v1
+      with:
+        rust-version: ${{ matrix.rust }}
+        targets: ${{ matrix.target }}
+        components: 'rustfmt, clippy'
 
-    - name: Install Rust
-      shell: bash
-      run: |
-        if hash rustup 2>/dev/null; then
-          rustup toolchain install ${{ matrix.rust }}
-        else
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain ${{ matrix.rust }}
-          mv $HOME/.cargo/bin/* /usr/local/bin
-        fi
+    - uses: actions/checkout@v2
 
     - name: Install LLVM
       if: matrix.os == 'windows-latest'
@@ -41,6 +37,14 @@ jobs:
       if: matrix.os =='windows-latest'
       run: echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $GITHUB_ENV
       shell: bash
+
+    - name: Cargo fmt
+      run: cargo +${{ matrix.rust }} fmt --all -- --check
+      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly'
+
+    - name: Cargo clippy
+      run: cargo +${{ matrix.rust }} clippy --all-targets --workspace
+      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly'
 
     - name: Build
       run: cargo +${{ matrix.rust }} build
