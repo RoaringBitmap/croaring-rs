@@ -15,18 +15,29 @@ fn main() {
     build.flag_if_supported("-Wno-unused-function");
     build.compile("roaring");
 
-    let bindings = bindgen::Builder::default()
-        .header("CRoaring/roaring.h")
-        .generate_inline_functions(true)
-        .allowlist_function("roaring.*")
-        .allowlist_type("roaring.*")
-        .allowlist_var("roaring.*")
-        .allowlist_var("ROARING.*")
-        .generate()
-        .expect("Unable to generate bindings");
-
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    bindings
-        .write_to_file(out_path.join("croaring-sys.rs"))
-        .expect("Couldn't write bindings!");
+
+    #[cfg(feature = "buildtime_bindgen")]
+    {
+        bindgen::Builder::default()
+            .header("CRoaring/roaring.h")
+            .generate_inline_functions(true)
+            .allowlist_function("roaring.*")
+            .allowlist_type("roaring.*")
+            .allowlist_var("roaring.*")
+            .allowlist_var("ROARING.*")
+            .generate()
+            .unwrap_or_else(|_| panic!("could not run bindgen on header CRoaring/roaring.h"))
+            .write_to_file(out_path.join("croaring-sys.rs"))
+            .expect("Couldn't write bindings!");
+    }
+    #[cfg(not(feature = "buildtime_bindgen"))]
+    {
+        use std::fs;
+        fs::copy(
+            "CRoaring/bindgen_bundled_version.rs",
+            out_path.join("croaring-sys.rs"),
+        )
+        .expect("Could not copy bindings to output directory");
+    }
 }
