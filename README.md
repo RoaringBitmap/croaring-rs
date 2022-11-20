@@ -107,6 +107,19 @@ building binaries for specific CPU architectures you can specify `ROARING_ARCH` 
 variable to control enabled code optimizations, e.g. 
 `ROARING_ARCH=ivybridge cargo build --release`.
 
+#### C binding generation
+
+Since version `0.7.0` `croaring-rs` ships with pre-generated bindings to `CRoaring` library
+in order to speed up builds and remove the need for a recent `clang` version. However
+you can revert to old behaviour and generate bindings with `bindgen` during build time. In
+order to do it please use `buildtime_bindgen` feature flag, e.g.:
+
+```
+[dependencies.croaring]
+version = "0.7"
+features = ["buildtime_bindgen"]
+```
+
 ### Testing
 
 Running unit tests and doc tests:

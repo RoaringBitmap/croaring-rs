@@ -10,6 +10,10 @@ readme = "../README.md"
 keywords = ["RoaringBitmap", "croaring", "bitmap"]
 documentation = "https://docs.rs/croaring"
 
+[features]
+default = []
+buildtime_bindgen = ["ffi/buildtime_bindgen"]
+
 [dev-dependencies]
 proptest = "1"
 roaring = "0.10"
