@@ -7,19 +7,13 @@ use test::Bencher;
 
 #[bench]
 fn bench_create(b: &mut Bencher) {
-    b.iter(|| {
-        let bitmap = Bitmap::create();
-
-        bitmap
-    });
+    b.iter(|| Bitmap::create());
 }
 
 #[bench]
 fn bench_create_with_capacity(b: &mut Bencher) {
     b.iter(|| {
-        let bitmap = Bitmap::create_with_capacity(10000);
-
-        bitmap
+        Bitmap::create_with_capacity(10000);
     });
 }
 
@@ -35,7 +29,7 @@ fn bench_add(b: &mut Bencher) {
 #[bench]
 fn bench_add_many(b: &mut Bencher) {
     let mut bitmap = Bitmap::create();
-    let int_slice = &[10, 100, 10000, 1000_000, 10_000_000];
+    let int_slice = &[10, 100, 10000, 1_000_000, 10_000_000];
 
     b.iter(|| {
         bitmap.add_many(int_slice);
@@ -346,7 +340,7 @@ fn bench_is_empty_false(b: &mut Bencher) {
 
 #[bench]
 fn bench_of(b: &mut Bencher) {
-    b.iter(|| Bitmap::of(&vec![10, 20, 30, 40]));
+    b.iter(|| Bitmap::of(&[10, 20, 30, 40]));
 }
 
 #[bench]

@@ -1,7 +1,7 @@
+use super::util;
+use super::{Bitmap, BitmapIterator, Treemap};
 use std::collections::btree_map;
 use std::iter::{self, FromIterator};
-use super::util;
-use super::{BitmapIterator, Treemap, Bitmap};
 
 struct To64Iter<'a> {
     key: u32,
@@ -23,9 +23,11 @@ fn to64iter<'a>(t: (&'a u32, &'a Bitmap)) -> To64Iter<'a> {
     }
 }
 
-type InnerIter<'a> = iter::FlatMap<btree_map::Iter<'a, u32, Bitmap>,
-                                   To64Iter<'a>,
-                                   fn((&'a u32, &'a Bitmap)) -> To64Iter<'a>>;
+type InnerIter<'a> = iter::FlatMap<
+    btree_map::Iter<'a, u32, Bitmap>,
+    To64Iter<'a>,
+    fn((&'a u32, &'a Bitmap)) -> To64Iter<'a>,
+>;
 
 pub struct TreemapIterator<'a> {
     iter: InnerIter<'a>,
@@ -33,9 +35,7 @@ pub struct TreemapIterator<'a> {
 
 impl<'a> TreemapIterator<'a> {
     fn new(treemap: &'a Treemap) -> Self {
-        let iter = treemap.map
-                       .iter()
-                       .flat_map(to64iter as _);
+        let iter = treemap.map.iter().flat_map(to64iter as _);
 
         TreemapIterator { iter }
     }
@@ -104,7 +104,7 @@ impl FromIterator<u64> for Treemap {
 }
 
 impl Extend<u64> for Treemap {
-    fn extend<T: IntoIterator<Item=u64>>(&mut self, iter: T) {
+    fn extend<T: IntoIterator<Item = u64>>(&mut self, iter: T) {
         for item in iter {
             self.add(item);
         }

@@ -7,6 +7,7 @@ use super::{Bitmap, Statistics};
 
 impl Bitmap {
     #[inline]
+    #[allow(clippy::assertions_on_constants)]
     unsafe fn take_heap(p: *mut roaring_bitmap_t) -> Self {
         // Based heavily on the `roaring.hh` cpp header from croaring
 
@@ -83,13 +84,7 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn add_many(&mut self, elements: &[u32]) {
-        unsafe {
-            ffi::roaring_bitmap_add_many(
-                &mut self.bitmap,
-                elements.len().try_into().unwrap(),
-                elements.as_ptr(),
-            )
-        }
+        unsafe { ffi::roaring_bitmap_add_many(&mut self.bitmap, elements.len(), elements.as_ptr()) }
     }
 
     /// Add the integer element to the bitmap
@@ -472,12 +467,7 @@ impl Bitmap {
             .map(|item| &item.bitmap as *const _)
             .collect();
 
-        unsafe {
-            Self::take_heap(ffi::roaring_bitmap_or_many(
-                bms.len().try_into().unwrap(),
-                bms.as_mut_ptr(),
-            ))
-        }
+        unsafe { Self::take_heap(ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr())) }
     }
 
     /// Compute the union of 'number' bitmaps using a heap. This can
@@ -584,12 +574,7 @@ impl Bitmap {
             .map(|item| &item.bitmap as *const _)
             .collect();
 
-        unsafe {
-            Self::take_heap(ffi::roaring_bitmap_xor_many(
-                bms.len().try_into().unwrap(),
-                bms.as_mut_ptr(),
-            ))
-        }
+        unsafe { Self::take_heap(ffi::roaring_bitmap_xor_many(bms.len(), bms.as_mut_ptr())) }
     }
 
     /// Computes the difference between two bitmaps and returns the result.
@@ -722,11 +707,7 @@ impl Bitmap {
     /// Computes the serialized size in bytes of the Bitmap.
     #[inline]
     pub fn get_serialized_size_in_bytes(&self) -> usize {
-        unsafe {
-            ffi::roaring_bitmap_portable_size_in_bytes(&self.bitmap)
-                .try_into()
-                .unwrap()
-        }
+        unsafe { ffi::roaring_bitmap_portable_size_in_bytes(&self.bitmap) }
     }
 
     /// Serializes a bitmap to a slice of bytes.
@@ -785,7 +766,7 @@ impl Bitmap {
         unsafe {
             let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
                 buffer.as_ptr() as *const ::libc::c_char,
-                buffer.len().try_into().unwrap(),
+                buffer.len(),
             );
 
             if !bitmap.is_null() {
@@ -831,7 +812,7 @@ impl Bitmap {
     pub fn of(elements: &[u32]) -> Self {
         unsafe {
             Self::take_heap(ffi::roaring_bitmap_of_ptr(
-                elements.len().try_into().unwrap(),
+                elements.len(),
                 elements.as_ptr(),
             ))
         }

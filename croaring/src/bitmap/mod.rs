@@ -64,8 +64,8 @@ pub type Statistics = ffi::roaring_statistics_s;
 
 mod imp;
 mod iter;
-mod ops;
 mod lazy;
+mod ops;
 
-pub use crate::bitmap::lazy::LazyBitmap;
 pub use crate::bitmap::iter::BitmapIterator;
+pub use crate::bitmap::lazy::LazyBitmap;

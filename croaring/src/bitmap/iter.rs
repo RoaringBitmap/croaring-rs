@@ -193,7 +193,7 @@ impl FromIterator<u32> for Bitmap {
 }
 
 impl Extend<u32> for Bitmap {
-    fn extend<T: IntoIterator<Item=u32>>(&mut self, iter: T) {
+    fn extend<T: IntoIterator<Item = u32>>(&mut self, iter: T) {
         for item in iter {
             self.add(item);
         }

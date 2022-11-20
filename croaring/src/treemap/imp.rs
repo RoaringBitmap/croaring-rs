@@ -96,7 +96,6 @@ impl Treemap {
         self.map.iter_mut().for_each(|(_, bitmap)| bitmap.clear())
     }
 
-
     /// Remove element from the Treemap
     ///
     /// # Examples
@@ -629,10 +628,9 @@ impl Treemap {
     /// assert!(treemap.run_optimize());
     /// ```
     pub fn run_optimize(&mut self) -> bool {
-        self.map.iter_mut().fold(
-            false,
-            |result, (_, bitmap)| bitmap.run_optimize() || result
-        )
+        self.map
+            .iter_mut()
+            .fold(false, |result, (_, bitmap)| bitmap.run_optimize() || result)
     }
 
     /// Removes run-length encoding from treemap's bitmaps. Returns true if
@@ -650,9 +648,8 @@ impl Treemap {
     /// assert!(treemap.remove_run_compression());
     /// ```
     pub fn remove_run_compression(&mut self) -> bool {
-        self.map.iter_mut().fold(
-            false,
-            |result, (_, bitmap)| bitmap.remove_run_compression() || result
-        )
+        self.map.iter_mut().fold(false, |result, (_, bitmap)| {
+            bitmap.remove_run_compression() || result
+        })
     }
 }
