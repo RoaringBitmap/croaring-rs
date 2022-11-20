@@ -7,7 +7,7 @@ use super::{Bitmap, Statistics};
 
 impl Bitmap {
     #[inline]
-    unsafe fn take_heap(p: *mut roaring_bitmap_t) -> Self {
+    #[allow(clippy::assertions_on_constants)] unsafe fn take_heap(p: *mut roaring_bitmap_t) -> Self {
         // Based heavily on the `roaring.hh` cpp header from croaring
 
         assert!(!p.is_null());
@@ -86,7 +86,7 @@ impl Bitmap {
         unsafe {
             ffi::roaring_bitmap_add_many(
                 &mut self.bitmap,
-                elements.len().try_into().unwrap(),
+                elements.len(),
                 elements.as_ptr(),
             )
         }
@@ -474,7 +474,7 @@ impl Bitmap {
 
         unsafe {
             Self::take_heap(ffi::roaring_bitmap_or_many(
-                bms.len().try_into().unwrap(),
+                bms.len(),
                 bms.as_mut_ptr(),
             ))
         }
@@ -586,7 +586,7 @@ impl Bitmap {
 
         unsafe {
             Self::take_heap(ffi::roaring_bitmap_xor_many(
-                bms.len().try_into().unwrap(),
+                bms.len(),
                 bms.as_mut_ptr(),
             ))
         }
@@ -724,8 +724,6 @@ impl Bitmap {
     pub fn get_serialized_size_in_bytes(&self) -> usize {
         unsafe {
             ffi::roaring_bitmap_portable_size_in_bytes(&self.bitmap)
-                .try_into()
-                .unwrap()
         }
     }
 
@@ -785,7 +783,7 @@ impl Bitmap {
         unsafe {
             let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
                 buffer.as_ptr() as *const ::libc::c_char,
-                buffer.len().try_into().unwrap(),
+                buffer.len()
             );
 
             if !bitmap.is_null() {
@@ -831,7 +829,7 @@ impl Bitmap {
     pub fn of(elements: &[u32]) -> Self {
         unsafe {
             Self::take_heap(ffi::roaring_bitmap_of_ptr(
-                elements.len().try_into().unwrap(),
+                elements.len(),
                 elements.as_ptr(),
             ))
         }

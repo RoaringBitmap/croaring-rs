@@ -11,35 +11,35 @@ use proptest::prelude::*;
 fn smoke1() {
     let mut bitmap = Bitmap::create();
     assert_eq!(bitmap.cardinality(), 0);
-    assert_eq!(bitmap.is_empty(), true);
+    assert!(bitmap.is_empty());
     bitmap.remove(0);
     assert_eq!(bitmap.cardinality(), 0);
-    assert_eq!(bitmap.is_empty(), true);
+    assert!(bitmap.is_empty());
     bitmap.add(1);
-    assert_eq!(bitmap.contains(1), true);
+    assert!(bitmap.contains(1));
     assert_eq!(bitmap.cardinality(), 1);
-    assert_eq!(bitmap.is_empty(), false);
+    assert!(!bitmap.is_empty());
     bitmap.add(u32::MAX - 2);
-    assert_eq!(bitmap.contains(u32::MAX - 2), true);
+    assert!(bitmap.contains(u32::MAX - 2));
     assert_eq!(bitmap.cardinality(), 2);
     bitmap.add(u32::MAX);
-    assert_eq!(bitmap.contains(u32::MAX), true);
+    assert!(bitmap.contains(u32::MAX));
     assert_eq!(bitmap.cardinality(), 3);
     bitmap.add(2);
-    assert_eq!(bitmap.contains(2), true);
+    assert!(bitmap.contains(2));
     assert_eq!(bitmap.cardinality(), 4);
     bitmap.remove(2);
-    assert_eq!(bitmap.contains(2), false);
+    assert!(!bitmap.contains(2));
     assert_eq!(bitmap.cardinality(), 3);
-    assert_eq!(bitmap.contains(0), false);
-    assert_eq!(bitmap.contains(1), true);
-    assert_eq!(bitmap.contains(100), false);
-    assert_eq!(bitmap.contains(u32::MAX - 2), true);
-    assert_eq!(bitmap.contains(u32::MAX - 1), false);
-    assert_eq!(bitmap.contains(u32::MAX), true);
+    assert!(!bitmap.contains(0));
+    assert!(bitmap.contains(1));
+    assert!(!bitmap.contains(100));
+    assert!(bitmap.contains(u32::MAX - 2));
+    assert!(!bitmap.contains(u32::MAX - 1));
+    assert!(bitmap.contains(u32::MAX));
     bitmap.clear();
     assert_eq!(bitmap.cardinality(), 0);
-    assert_eq!(bitmap.is_empty(), true);
+    assert!(bitmap.is_empty());
 }
 
 // borrowed and adapted from https://github.com/Bitmap/gocroaring/blob/4a2fc02f79b1c36b904301e7d052f7f0017b6973/gocroaring_test.go#L24-L64
@@ -116,7 +116,7 @@ fn test_treemap_deserialize_cpp() {
             assert!(treemap.contains(std::u32::MAX as u64));
             assert!(treemap.contains(std::u64::MAX));
         }
-        Err(err) => assert!(false, "Cannot read test file {}", err),
+        Err(err) => panic!("Cannot read test file {}", err),
     }
 }
 
@@ -135,7 +135,7 @@ fn test_treemap_deserialize_jvm() {
             assert!(treemap.contains(std::u32::MAX as u64));
             assert!(treemap.contains(std::u64::MAX));
         }
-        Err(err) => assert!(false, "Cannot read test file {}", err),
+        Err(err) => panic!("Cannot read test file {}", err),
     }
 }
 
@@ -174,8 +174,8 @@ proptest! {
         indices in prop::collection::vec(proptest::num::u32::ANY, 1..3000)
     ) {
         let original = Bitmap::of(&indices);
-        let mut a = indices.clone();
-        a.sort();
+        let mut a = indices;
+        a.sort_unstable();
         a.dedup();
         prop_assert_eq!(a.len(), original.cardinality() as usize);
     }
@@ -185,8 +185,8 @@ proptest! {
         indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
     ) {
         let original = Treemap::of(&indices);
-        let mut a = indices.clone();
-        a.sort();
+        let mut a = indices;
+        a.sort_unstable();
         a.dedup();
         prop_assert_eq!(a.len(), original.cardinality() as usize);
     }

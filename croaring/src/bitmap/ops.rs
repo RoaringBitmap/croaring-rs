@@ -62,7 +62,7 @@ impl Clone for Bitmap {
 }
 
 impl Drop for Bitmap {
-    fn drop(&mut self) {
+    #[allow(clippy::assertions_on_constants)] fn drop(&mut self) {
         // This depends somewhat heavily on the implementation of croaring,
         // Ensure this is still valid every time we update the version of croaring.
         const _: () = assert!(
