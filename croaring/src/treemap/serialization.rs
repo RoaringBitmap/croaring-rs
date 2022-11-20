@@ -1,9 +1,9 @@
 use crate::Bitmap;
 use crate::Treemap;
 
+use byteorder::{BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Cursor, Result, Seek, SeekFrom};
 use std::mem::size_of;
-use byteorder::{NativeEndian, BigEndian, ReadBytesExt, WriteBytesExt};
 
 pub trait Serializer {}
 
@@ -42,12 +42,10 @@ impl NativeSerializer for Treemap {
 
         for _ in 0..bitmap_count {
             let index = cursor.read_u32::<NativeEndian>()?;
-            let bitmap = Bitmap::deserialize(
-                &buffer[cursor.position() as usize..]
-            );
-            cursor.seek(
-                SeekFrom::Current(bitmap.get_serialized_size_in_bytes() as i64)
-            )?;
+            let bitmap = Bitmap::deserialize(&buffer[cursor.position() as usize..]);
+            cursor.seek(SeekFrom::Current(
+                bitmap.get_serialized_size_in_bytes() as i64
+            ))?;
             treemap.map.insert(index, bitmap);
         }
 
@@ -77,7 +75,7 @@ impl NativeSerializer for Treemap {
     fn get_serialized_size_in_bytes(&self) -> usize {
         self.map.iter().fold(
             size_of::<u64>() + self.map.len() * size_of::<u32>(),
-            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes()
+            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes(),
         )
     }
 }
@@ -119,12 +117,10 @@ impl JvmSerializer for Treemap {
 
         for _ in 0..bitmap_count {
             let index = cursor.read_u32::<BigEndian>()?;
-            let bitmap = Bitmap::deserialize(
-                &buffer[cursor.position() as usize..]
-            );
-            cursor.seek(
-                SeekFrom::Current(bitmap.get_serialized_size_in_bytes() as i64)
-            )?;
+            let bitmap = Bitmap::deserialize(&buffer[cursor.position() as usize..]);
+            cursor.seek(SeekFrom::Current(
+                bitmap.get_serialized_size_in_bytes() as i64
+            ))?;
             treemap.map.insert(index, bitmap);
         }
 
@@ -154,7 +150,7 @@ impl JvmSerializer for Treemap {
     fn get_serialized_size_in_bytes(&self) -> usize {
         self.map.iter().fold(
             size_of::<u8>() + size_of::<u32>() + self.map.len() * size_of::<u32>(),
-            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes()
+            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes(),
         )
     }
 }

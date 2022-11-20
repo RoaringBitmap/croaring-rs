@@ -7,9 +7,7 @@ use test::Bencher;
 
 #[bench]
 fn bench_create(b: &mut Bencher) {
-    b.iter(|| {
-        Bitmap::create()
-    });
+    b.iter(|| Bitmap::create());
 }
 
 #[bench]

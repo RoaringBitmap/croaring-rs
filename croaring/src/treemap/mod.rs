@@ -25,8 +25,8 @@ use std::collections::BTreeMap;
 
 mod imp;
 mod iter;
-mod serialization;
 mod ops;
+mod serialization;
 mod util;
 
 #[derive(Clone, PartialEq)]
