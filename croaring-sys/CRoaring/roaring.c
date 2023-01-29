@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2022-11-19T11:49:40Z
+// Created by amalgamation.sh on 2023-01-29T22:02:20Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -104,7 +104,11 @@
 #endif // __clang__
 #endif // _MSC_VER
 
-#if !(defined(_POSIX_C_SOURCE)) || (_POSIX_C_SOURCE < 200809L)
+#if defined(_POSIX_C_SOURCE) && (_POSIX_C_SOURCE < 200809L)
+#undef _POSIX_C_SOURCE
+#endif
+
+#ifndef _POSIX_C_SOURCE
 #define _POSIX_C_SOURCE 200809L
 #endif // !(defined(_POSIX_C_SOURCE)) || (_POSIX_C_SOURCE < 200809L)
 #if !(defined(_XOPEN_SOURCE)) || (_XOPEN_SOURCE < 700)
@@ -291,6 +295,10 @@ inline int __builtin_clzll(unsigned long long input_num) {
 
 #define IS_BIG_ENDIAN (*(uint16_t *)"\0\xff" < 0x100)
 
+#ifdef USENEON
+// we can always compute the popcount fast.
+#elif (defined(_M_ARM) || defined(_M_ARM64)) && ((defined(_WIN64) || defined(_WIN32)) && defined(CROARING_REGULAR_VISUAL_STUDIO) && CROARING_REGULAR_VISUAL_STUDIO)
+// we will need this function:
 static inline int hammingbackup(uint64_t x) {
   uint64_t c1 = UINT64_C(0x5555555555555555);
   uint64_t c2 = UINT64_C(0x3333333333333333);
@@ -300,10 +308,14 @@ static inline int hammingbackup(uint64_t x) {
   x *= UINT64_C(0x0101010101010101);
   return x >> 56;
 }
+#endif
+
 
 static inline int hamming(uint64_t x) {
 #if defined(_WIN64) && defined(CROARING_REGULAR_VISUAL_STUDIO) && CROARING_REGULAR_VISUAL_STUDIO
-#ifdef _M_ARM64
+#ifdef USENEON
+   return vaddv_u8(vcnt_u8(vcreate_u8(input_num)));
+#elif defined(_M_ARM64)
   return hammingbackup(x);
   // (int) _CountOneBits64(x); is unavailable
 #else  // _M_ARM64
@@ -391,6 +403,12 @@ static inline int hamming(uint64_t x) {
 #define CROARING_UNTARGET_REGION
 #endif
 
+// Allow unaligned memory access
+#if defined(__GNUC__) || defined(__clang__)
+#define ALLOW_UNALIGNED __attribute__((no_sanitize("alignment")))
+#else
+#define ALLOW_UNALIGNED
+#endif
 
 // We need portability.h to be included first,
 // but we also always want isadetection.h to be
@@ -478,23 +496,23 @@ enum croaring_instruction_set {
 
 #if defined(__PPC64__)
 
-static inline uint32_t dynamic_croaring_detect_supported_architectures() {
-  return CROARING_ALTIVEC;
-}
+//static inline uint32_t dynamic_croaring_detect_supported_architectures() {
+//  return CROARING_ALTIVEC;
+//}
 
 #elif defined(__arm__) || defined(__aarch64__) // incl. armel, armhf, arm64
 
 #if defined(__ARM_NEON)
 
-static inline uint32_t dynamic_croaring_detect_supported_architectures() {
-  return CROARING_NEON;
-}
+//static inline uint32_t dynamic_croaring_detect_supported_architectures() {
+//  return CROARING_NEON;
+//}
 
 #else // ARM without NEON
 
-static inline uint32_t dynamic_croaring_detect_supported_architectures() {
-  return CROARING_DEFAULT;
-}
+//static inline uint32_t dynamic_croaring_detect_supported_architectures() {
+//  return CROARING_DEFAULT;
+//}
 
 #endif
 
@@ -567,9 +585,9 @@ static inline uint32_t dynamic_croaring_detect_supported_architectures() {
 #else // fallback
 
 
-static inline uint32_t dynamic_croaring_detect_supported_architectures() {
-  return CROARING_DEFAULT;
-}
+//static inline uint32_t dynamic_croaring_detect_supported_architectures() {
+//  return CROARING_DEFAULT;
+//}
 
 
 #endif // end SIMD extension detection code
@@ -622,14 +640,14 @@ static inline bool croaring_avx2() {
 
 #else // defined(__x86_64__) || defined(_M_AMD64) // x64
 
-static inline bool croaring_avx2() {
-  return false;
-}
+//static inline bool croaring_avx2() {
+//  return false;
+//}
 
-static inline uint32_t croaring_detect_supported_architectures() {
-    // no runtime dispatch
-    return dynamic_croaring_detect_supported_architectures();
-}
+//static inline uint32_t croaring_detect_supported_architectures() {
+//    // no runtime dispatch
+//    return dynamic_croaring_detect_supported_architectures();
+//}
 #endif // defined(__x86_64__) || defined(_M_AMD64) // x64
 
 #endif // ROARING_ISADETECTION_H
@@ -1761,6 +1779,7 @@ void array_container_free(array_container_t *array);
 array_container_t *array_container_clone(const array_container_t *src);
 
 /* Get the cardinality of `array'. */
+ALLOW_UNALIGNED
 static inline int array_container_cardinality(const array_container_t *array) {
     return array->cardinality;
 }
@@ -1779,10 +1798,6 @@ void array_container_copy(const array_container_t *src, array_container_t *dst);
 void array_container_add_from_range(array_container_t *arr, uint32_t min,
                                     uint32_t max, uint16_t step);
 
-/* Set the cardinality to zero (does not release memory). */
-static inline void array_container_clear(array_container_t *array) {
-    array->cardinality = 0;
-}
 
 static inline bool array_container_empty(const array_container_t *array) {
     return array->cardinality == 0;
@@ -1911,6 +1926,7 @@ static inline int32_t array_container_size_in_bytes(
 /**
  * Return true if the two arrays have the same content.
  */
+ALLOW_UNALIGNED
 static inline bool array_container_equals(
     const array_container_t *container1,
     const array_container_t *container2) {
@@ -2141,14 +2157,15 @@ static inline void array_container_add_range_nvals(array_container_t *array,
 }
 
 /**
- * Adds all values in range [min,max].
+ * Adds all values in range [min,max]. This function is currently unused
+ * and left as a documentation.
  */
-static inline void array_container_add_range(array_container_t *array,
+/*static inline void array_container_add_range(array_container_t *array,
                                              uint32_t min, uint32_t max) {
     int32_t nvals_greater = count_greater(array->array, array->cardinality, max);
     int32_t nvals_less = count_less(array->array, array->cardinality - nvals_greater, min);
     array_container_add_range_nvals(array, min, max, nvals_less, nvals_greater);
-}
+}*/
 
 /*
  * Removes all elements array[pos] .. array[pos+count-1]
@@ -2244,8 +2261,8 @@ static inline void bitset_container_set(bitset_container_t *bitset,
     bitset->words[offset] = load;
 }
 
-/* Unset the ith bit.  */
-static inline void bitset_container_unset(bitset_container_t *bitset,
+/* Unset the ith bit. Currently unused. Could be used for optimization. */
+/*static inline void bitset_container_unset(bitset_container_t *bitset,
                                           uint16_t pos) {
     uint64_t shift = 6;
     uint64_t offset;
@@ -2254,7 +2271,7 @@ static inline void bitset_container_unset(bitset_container_t *bitset,
     uint64_t load = bitset->words[offset];
     ASM_CLEAR_BIT_DEC_WAS_SET(load, p, bitset->cardinality);
     bitset->words[offset] = load;
-}
+}*/
 
 /* Add `pos' to `bitset'. Returns true if `pos' was not present. Might be slower
  * than bitset_container_set.  */
@@ -2309,15 +2326,15 @@ static inline void bitset_container_set(bitset_container_t *bitset,
     bitset->words[pos >> 6] = new_word;
 }
 
-/* Unset the ith bit.  */
-static inline void bitset_container_unset(bitset_container_t *bitset,
+/* Unset the ith bit. Currently unused.  */
+/*static inline void bitset_container_unset(bitset_container_t *bitset,
                                           uint16_t pos) {
     const uint64_t old_word = bitset->words[pos >> 6];
     const int index = pos & 63;
     const uint64_t new_word = old_word & (~(UINT64_C(1) << index));
     bitset->cardinality -= (uint32_t)((old_word ^ new_word) >> index);
     bitset->words[pos >> 6] = new_word;
-}
+}*/
 
 /* Add `pos' to `bitset'. Returns true if `pos' was not present. Might be slower
  * than bitset_container_set.  */
@@ -2399,6 +2416,7 @@ static inline bool bitset_container_contains_range(const bitset_container_t *bit
 }
 
 /* Get the number of bits set */
+ALLOW_UNALIGNED
 static inline int bitset_container_cardinality(
     const bitset_container_t *bitset) {
     return bitset->cardinality;
@@ -2421,19 +2439,7 @@ void bitset_container_add_from_range(bitset_container_t *bitset, uint32_t min,
  * bitset->cardinality =  bitset_container_compute_cardinality(bitset).*/
 int bitset_container_compute_cardinality(const bitset_container_t *bitset);
 
-/* Get whether there is at least one bit set  (see bitset_container_empty for the reverse),
-   when the cardinality is unknown, it is computed and stored in the struct */
-static inline bool bitset_container_nonzero_cardinality(
-    bitset_container_t *bitset) {
-    // account for laziness
-    if (bitset->cardinality == BITSET_UNKNOWN_CARDINALITY) {
-        // could bail early instead with a nonzero result
-        bitset->cardinality = bitset_container_compute_cardinality(bitset);
-    }
-    return bitset->cardinality > 0;
-}
-
-/* Check whether this bitset is empty (see bitset_container_nonzero_cardinality for the reverse),
+/* Check whether this bitset is empty,
  *  it never modifies the bitset struct. */
 static inline bool bitset_container_empty(
     const bitset_container_t *bitset) {
@@ -2972,11 +2978,6 @@ static inline bool run_container_empty(
 /* Copy one container into another. We assume that they are distinct. */
 void run_container_copy(const run_container_t *src, run_container_t *dst);
 
-/* Set the cardinality to zero (does not release memory). */
-static inline void run_container_clear(run_container_t *run) {
-    run->n_runs = 0;
-}
-
 /**
  * Append run described by vl to the run container, possibly merging.
  * It is assumed that the run would be inserted at the end of the container, no
@@ -3153,6 +3154,7 @@ static inline int32_t run_container_size_in_bytes(
 /**
  * Return true if the two containers have the same content.
  */
+ALLOW_UNALIGNED
 static inline bool run_container_equals(const run_container_t *container1,
                           const run_container_t *container2) {
     if (container1->n_runs != container2->n_runs) {
@@ -3277,14 +3279,15 @@ static inline void run_container_add_range_nruns(run_container_t* run,
 }
 
 /**
- * Add all values in range [min, max]
+ * Add all values in range [min, max]. This function is currently unused
+ * and left as documentation.
  */
-static inline void run_container_add_range(run_container_t* run,
+/*static inline void run_container_add_range(run_container_t* run,
                                            uint32_t min, uint32_t max) {
     int32_t nruns_greater = rle16_count_greater(run->runs, run->n_runs, max);
     int32_t nruns_less = rle16_count_less(run->runs, run->n_runs - nruns_greater, min);
     run_container_add_range_nruns(run, min, max, nruns_less, nruns_greater);
-}
+}*/
 
 /**
  * Shifts last $count elements either left (distance < 0) or right (distance > 0)
@@ -4394,7 +4397,7 @@ static inline bitset_container_t *container_to_bitset(
  * Get the container name from the typecode
  * (unused at time of writing)
  */
-static inline const char *get_container_name(uint8_t typecode) {
+/*static inline const char *get_container_name(uint8_t typecode) {
     switch (typecode) {
         case BITSET_CONTAINER_TYPE:
             return container_names[0];
@@ -4409,7 +4412,7 @@ static inline const char *get_container_name(uint8_t typecode) {
             __builtin_unreachable();
             return "unknown";
     }
-}
+}*/
 
 static inline const char *get_full_container_name(
     const container_t *c, uint8_t typecode
@@ -7006,218 +7009,6 @@ void ra_shift_tail(roaring_array_t *ra, int32_t count, int32_t distance);
 
 #endif
 /* end file include/roaring/roaring_array.h */
-/* begin file include/roaring/misc/configreport.h */
-/*
- * configreport.h
- *
- */
-
-#ifndef INCLUDE_MISC_CONFIGREPORT_H_
-#define INCLUDE_MISC_CONFIGREPORT_H_
-
-#include <stddef.h>  // for size_t
-#include <stdint.h>
-#include <stdio.h>
-
-
-#ifdef __cplusplus
-extern "C" { namespace roaring { namespace misc {
-#endif
-
-#ifdef CROARING_IS_X64
-// useful for basic info (0)
-static inline void native_cpuid(unsigned int *eax, unsigned int *ebx,
-                                unsigned int *ecx, unsigned int *edx) {
-#ifdef CROARING_INLINE_ASM
-    __asm volatile("cpuid"
-                   : "=a"(*eax), "=b"(*ebx), "=c"(*ecx), "=d"(*edx)
-                   : "0"(*eax), "2"(*ecx));
-#endif /* not sure what to do when inline assembly is unavailable*/
-}
-
-// CPUID instruction takes no parameters as CPUID implicitly uses the EAX
-// register.
-// The EAX register should be loaded with a value specifying what information to
-// return
-static inline void cpuinfo(int code, int *eax, int *ebx, int *ecx, int *edx) {
-#ifdef CROARING_INLINE_ASM
-    __asm__ volatile("cpuid;"  //  call cpuid instruction
-                     : "=a"(*eax), "=b"(*ebx), "=c"(*ecx),
-                       "=d"(*edx)  // output equal to "movl  %%eax %1"
-                     : "a"(code)   // input equal to "movl %1, %%eax"
-                     //:"%eax","%ebx","%ecx","%edx"// clobbered register
-                     );
-#endif /* not sure what to do when inline assembly is unavailable*/
-}
-
-static inline int computecacheline() {
-    int eax = 0, ebx = 0, ecx = 0, edx = 0;
-    cpuinfo((int)0x80000006, &eax, &ebx, &ecx, &edx);
-    return ecx & 0xFF;
-}
-
-// this is quite imperfect, but can be handy
-static inline const char *guessprocessor() {
-    unsigned eax = 1, ebx = 0, ecx = 0, edx = 0;
-    native_cpuid(&eax, &ebx, &ecx, &edx);
-    const char *codename;
-    switch (eax >> 4) {
-        case 0x506E:
-            codename = "Skylake";
-            break;
-        case 0x406C:
-            codename = "CherryTrail";
-            break;
-        case 0x306D:
-            codename = "Broadwell";
-            break;
-        case 0x306C:
-            codename = "Haswell";
-            break;
-        case 0x306A:
-            codename = "IvyBridge";
-            break;
-        case 0x206A:
-        case 0x206D:
-            codename = "SandyBridge";
-            break;
-        case 0x2065:
-        case 0x206C:
-        case 0x206F:
-            codename = "Westmere";
-            break;
-        case 0x106E:
-        case 0x106A:
-        case 0x206E:
-            codename = "Nehalem";
-            break;
-        case 0x1067:
-        case 0x106D:
-            codename = "Penryn";
-            break;
-        case 0x006F:
-        case 0x1066:
-            codename = "Merom";
-            break;
-        case 0x0066:
-            codename = "Presler";
-            break;
-        case 0x0063:
-        case 0x0064:
-            codename = "Prescott";
-            break;
-        case 0x006D:
-            codename = "Dothan";
-            break;
-        case 0x0366:
-            codename = "Cedarview";
-            break;
-        case 0x0266:
-            codename = "Lincroft";
-            break;
-        case 0x016C:
-            codename = "Pineview";
-            break;
-        default:
-            codename = "UNKNOWN";
-            break;
-    }
-    return codename;
-}
-
-static inline void tellmeall() {
-    printf("x64 processor:  %s\t", guessprocessor());
-
-#ifdef __VERSION__
-    printf(" compiler version: %s\t", __VERSION__);
-#endif
-    uint32_t config =  croaring_detect_supported_architectures();
-    if((config & CROARING_NEON) == CROARING_NEON) {
-        printf(" NEON detected\t");
-    }
- #ifdef __AVX2__
-    printf(" Building for AVX2\t");
- #endif
-    if(croaring_avx2()) {
-        printf( "AVX2 usable\t");
-    }
-    if((config & CROARING_AVX2) == CROARING_AVX2) {
-        printf( "AVX2 detected\t");
-       if(!croaring_avx2()) {
-         printf( "AVX2 not used\t");
-       }
-     }
-    if((config & CROARING_SSE42) == CROARING_SSE42) {
-        printf(" SSE4.2 detected\t");
-    }
-    if((config & CROARING_BMI1) == CROARING_BMI1) {
-        printf(" BMI1 detected\t");
-    }
-    if((config & CROARING_BMI2) == CROARING_BMI2) {
-        printf(" BMI2 detected\t");
-    }
-    printf("\n");
-    if ((sizeof(int) != 4) || (sizeof(long) != 8)) {
-        printf("number of bytes: int = %lu long = %lu \n",
-               (long unsigned int)sizeof(size_t),
-               (long unsigned int)sizeof(int));
-    }
-#if __LITTLE_ENDIAN__
-// This is what we expect!
-// printf("you have little endian machine");
-#endif
-#if __BIG_ENDIAN__
-    printf("you have a big endian machine");
-#endif
-#if __CHAR_BIT__
-    if (__CHAR_BIT__ != 8) printf("on your machine, chars don't have 8bits???");
-#endif
-    if (computecacheline() != 64)
-        printf("cache line: %d bytes\n", computecacheline());
-}
-#else
-
-static inline void tellmeall() {
-    printf("Non-X64  processor\n");
-#ifdef __arm__
-    printf("ARM processor detected\n");
-#endif
-#ifdef __VERSION__
-    printf(" compiler version: %s\t", __VERSION__);
-#endif
-    uint32_t config =  croaring_detect_supported_architectures();
-    if((config & CROARING_NEON) == CROARING_NEON) {
-        printf(" NEON detected\t");
-    }
-    if((config & CROARING_ALTIVEC) == CROARING_ALTIVEC) {
-        printf("Altivec detected\n");
-    }
-
-    if ((sizeof(int) != 4) || (sizeof(long) != 8)) {
-        printf("number of bytes: int = %lu long = %lu \n",
-               (long unsigned int)sizeof(size_t),
-               (long unsigned int)sizeof(int));
-    }
-#if __LITTLE_ENDIAN__
-// This is what we expect!
-// printf("you have little endian machine");
-#endif
-#if __BIG_ENDIAN__
-    printf("you have a big endian machine");
-#endif
-#if __CHAR_BIT__
-    if (__CHAR_BIT__ != 8) printf("on your machine, chars don't have 8bits???");
-#endif
-}
-
-#endif
-
-#ifdef __cplusplus
-} } }  // extern "C" { namespace roaring { namespace misc {
-#endif
-
-#endif /* INCLUDE_MISC_CONFIGREPORT_H_ */
-/* end file include/roaring/misc/configreport.h */
 /* begin file src/array_util.c */
 #include <assert.h>
 #include <stdbool.h>
@@ -10207,7 +9998,6 @@ extern inline bool array_container_contains(const array_container_t *arr,
                                             uint16_t pos);
 extern inline int array_container_cardinality(const array_container_t *array);
 extern inline bool array_container_nonzero_cardinality(const array_container_t *array);
-extern inline void array_container_clear(array_container_t *array);
 extern inline int32_t array_container_serialized_size_in_bytes(int32_t card);
 extern inline bool array_container_empty(const array_container_t *array);
 extern inline bool array_container_full(const array_container_t *array);
@@ -10561,6 +10351,7 @@ void array_container_intersection_inplace(array_container_t *src_1,
     }
 }
 
+ALLOW_UNALIGNED
 int array_container_to_uint32_array(void *vout, const array_container_t *cont,
                                     uint32_t base) {
     int outpos = 0;
@@ -10694,9 +10485,9 @@ extern "C" { namespace roaring { namespace internal {
 #endif
 
 extern inline int bitset_container_cardinality(const bitset_container_t *bitset);
-extern inline bool bitset_container_nonzero_cardinality(bitset_container_t *bitset);
 extern inline void bitset_container_set(bitset_container_t *bitset, uint16_t pos);
-extern inline void bitset_container_unset(bitset_container_t *bitset, uint16_t pos);
+// unused at this time:
+//extern inline void bitset_container_unset(bitset_container_t *bitset, uint16_t pos);
 extern inline bool bitset_container_get(const bitset_container_t *bitset,
                                         uint16_t pos);
 extern inline int32_t bitset_container_serialized_size_in_bytes(void);
@@ -11359,6 +11150,7 @@ BITSET_CONTAINER_FN(andnot, &~, _mm256_andnot_si256, vbicq_u64)
 // clang-format On
 
 
+ALLOW_UNALIGNED
 int bitset_container_to_uint32_array(
     uint32_t *out,
     const bitset_container_t *bc,
@@ -11489,6 +11281,7 @@ bool bitset_container_iterate64(const bitset_container_t *cont, uint32_t base, r
 
 #ifdef CROARING_IS_X64
 CROARING_TARGET_AVX2
+ALLOW_UNALIGNED
 static inline bool _avx2_bitset_container_equals(const bitset_container_t *container1, const bitset_container_t *container2) {
     const __m256i *ptr1 = (const __m256i*)container1->words;
     const __m256i *ptr2 = (const __m256i*)container2->words;
@@ -11505,6 +11298,7 @@ static inline bool _avx2_bitset_container_equals(const bitset_container_t *conta
 CROARING_UNTARGET_REGION
 #endif // CROARING_IS_X64
 
+ALLOW_UNALIGNED
 bool bitset_container_equals(const bitset_container_t *container1, const bitset_container_t *container2) {
   if((container1->cardinality != BITSET_UNKNOWN_CARDINALITY) && (container2->cardinality != BITSET_UNKNOWN_CARDINALITY)) {
     if(container1->cardinality != container2->cardinality) {
@@ -12149,7 +11943,6 @@ container_t *convert_run_optimize(
 
         int long_ctr = 0;
         uint64_t cur_word = c_qua_bitset->words[0];
-        int run_count = 0;
         while (true) {
             while (cur_word == UINT64_C(0) &&
                    long_ctr < BITSET_CONTAINER_SIZE_IN_WORDS - 1)
@@ -12180,7 +11973,6 @@ container_t *convert_run_optimize(
             int local_run_end = __builtin_ctzll(~cur_word_with_1s);
             run_end = local_run_end + long_ctr * 64;
             add_run(answer, run_start, run_end - 1);
-            run_count++;
             cur_word = cur_word_with_1s & (cur_word_with_1s + 1);
         }
         return answer;
@@ -14388,7 +14180,6 @@ extern inline bool run_container_contains(const run_container_t *run,
 extern inline int run_container_index_equalorlarger(const run_container_t *arr, uint16_t x);
 extern inline bool run_container_is_full(const run_container_t *run);
 extern inline bool run_container_nonzero_cardinality(const run_container_t *rc);
-extern inline void run_container_clear(run_container_t *run);
 extern inline int32_t run_container_serialized_size_in_bytes(int32_t num_runs);
 extern inline run_container_t *run_container_create_range(uint32_t start,
                                                    uint32_t stop);
@@ -14996,6 +14787,7 @@ void run_container_andnot(const run_container_t *src_1,
     }
 }
 
+ALLOW_UNALIGNED
 int run_container_to_uint32_array(void *vout, const run_container_t *cont,
                                   uint32_t base) {
     int outpos = 0;
@@ -15201,6 +14993,7 @@ int run_container_rank(const run_container_t *container, uint16_t x) {
 #ifdef CROARING_IS_X64
 
 CROARING_TARGET_AVX2
+ALLOW_UNALIGNED
 /* Get the cardinality of `run'. Requires an actual computation. */
 static inline int _avx2_run_container_cardinality(const run_container_t *run) {
     const int32_t n_runs = run->n_runs;
@@ -18536,6 +18329,161 @@ roaring_bitmap_frozen_view(const char *buf, size_t length) {
 
     return rb;
 }
+
+ALLOW_UNALIGNED
+roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
+    char *start_of_buf = (char *) buf;
+    uint32_t cookie;
+    int32_t num_containers;
+    uint16_t *descriptive_headers;
+    uint32_t *offset_headers = NULL;
+    const char *run_flag_bitset = NULL;
+    bool hasrun = false;
+
+    // deserialize cookie
+    memcpy(&cookie, buf, sizeof(uint32_t));
+    buf += sizeof(uint32_t);
+    if (cookie == SERIAL_COOKIE_NO_RUNCONTAINER) {
+        memcpy(&num_containers, buf, sizeof(int32_t));
+        buf += sizeof(int32_t);
+        descriptive_headers = (uint16_t *) buf;
+        buf += num_containers * 2 * sizeof(uint16_t);
+        offset_headers = (uint32_t *) buf;
+        buf += num_containers * sizeof(uint32_t);
+    } else if ((cookie & 0xFFFF) == SERIAL_COOKIE) {
+        num_containers = (cookie >> 16) + 1;
+        hasrun = true;
+        int32_t run_flag_bitset_size = (num_containers + 7) / 8;
+        run_flag_bitset = buf;
+        buf += run_flag_bitset_size;
+        descriptive_headers = (uint16_t *) buf;
+        buf += num_containers * 2 * sizeof(uint16_t);
+        if(num_containers >= NO_OFFSET_THRESHOLD) {
+            offset_headers = (uint32_t *) buf;
+            buf += num_containers * sizeof(uint32_t);
+        }
+    } else {
+        return NULL;
+    }
+
+    // calculate total size for allocation
+    int32_t num_bitset_containers = 0;
+    int32_t num_run_containers = 0;
+    int32_t num_array_containers = 0;
+
+    for (int32_t i = 0; i < num_containers; i++) {
+        uint16_t tmp;
+        memcpy(&tmp, descriptive_headers + 2*i+1, sizeof(tmp));
+        uint32_t cardinality = tmp + 1;
+        bool isbitmap = (cardinality > DEFAULT_MAX_SIZE);
+        bool isrun = false;
+        if(hasrun) {
+          if((run_flag_bitset[i / 8] & (1 << (i % 8))) != 0) {
+            isbitmap = false;
+            isrun = true;
+          }
+        }
+
+        if (isbitmap) {
+            num_bitset_containers++;
+        } else if (isrun) {
+            num_run_containers++;
+        } else {
+            num_array_containers++;
+        }
+    }
+
+    size_t alloc_size = 0;
+    alloc_size += sizeof(roaring_bitmap_t);
+    alloc_size += num_containers * sizeof(container_t*);
+    alloc_size += num_bitset_containers * sizeof(bitset_container_t);
+    alloc_size += num_run_containers * sizeof(run_container_t);
+    alloc_size += num_array_containers * sizeof(array_container_t);
+    alloc_size += num_containers * sizeof(uint16_t); // keys
+    alloc_size += num_containers * sizeof(uint8_t); // typecodes
+
+    // allocate bitmap and construct containers
+    char *arena = (char *)roaring_malloc(alloc_size);
+    if (arena == NULL) {
+        return NULL;
+    }
+
+    roaring_bitmap_t *rb = (roaring_bitmap_t *)
+            arena_alloc(&arena, sizeof(roaring_bitmap_t));
+    rb->high_low_container.flags = ROARING_FLAG_FROZEN;
+    rb->high_low_container.allocation_size = num_containers;
+    rb->high_low_container.size = num_containers;
+    rb->high_low_container.containers =
+        (container_t **)arena_alloc(&arena,
+                                    sizeof(container_t*) * num_containers);
+
+    uint16_t *keys = arena_alloc(&arena, num_containers * sizeof(uint16_t));
+    uint8_t *typecodes = arena_alloc(&arena, num_containers * sizeof(uint8_t));
+
+    rb->high_low_container.keys = keys;
+    rb->high_low_container.typecodes = typecodes;
+
+    for (int32_t i = 0; i < num_containers; i++) {
+        uint16_t tmp;
+        memcpy(&tmp, descriptive_headers + 2*i+1, sizeof(tmp));
+        int32_t cardinality = tmp + 1;
+        bool isbitmap = (cardinality > DEFAULT_MAX_SIZE);
+        bool isrun = false;
+        if(hasrun) {
+          if((run_flag_bitset[i / 8] & (1 << (i % 8))) != 0) {
+            isbitmap = false;
+            isrun = true;
+          }
+        }
+
+        keys[i] = descriptive_headers[2*i];
+
+        if (isbitmap) {
+            typecodes[i] = BITSET_CONTAINER_TYPE;
+            bitset_container_t *c = arena_alloc(&arena, sizeof(bitset_container_t));
+            c->cardinality = cardinality;
+            if(offset_headers != NULL) {
+                c->words = (uint64_t *) (start_of_buf + offset_headers[i]);
+            } else {
+                c->words = (uint64_t *) buf;
+                buf += BITSET_CONTAINER_SIZE_IN_WORDS * sizeof(uint64_t);
+            }
+            rb->high_low_container.containers[i] = c;
+        } else if (isrun) {
+            typecodes[i] = RUN_CONTAINER_TYPE;
+            run_container_t *c = arena_alloc(&arena, sizeof(run_container_t));
+            c->capacity = cardinality;
+            uint16_t n_runs;
+            if(offset_headers != NULL) {
+                memcpy(&n_runs, start_of_buf + offset_headers[i], sizeof(uint16_t));
+                c->n_runs = n_runs;
+                c->runs = (rle16_t *) (start_of_buf + offset_headers[i] + sizeof(uint16_t));
+            } else {
+                memcpy(&n_runs, buf, sizeof(uint16_t));
+                c->n_runs = n_runs;
+                buf += sizeof(uint16_t);
+                c->runs = (rle16_t *) buf;
+                buf += c->n_runs * sizeof(rle16_t);
+            }
+            rb->high_low_container.containers[i] = c;
+        } else {
+            typecodes[i] = ARRAY_CONTAINER_TYPE;
+            array_container_t *c = arena_alloc(&arena, sizeof(array_container_t));
+            c->cardinality = cardinality;
+            c->capacity = cardinality;
+            if(offset_headers != NULL) {
+                c->array = (uint16_t *) (start_of_buf + offset_headers[i]);
+            } else {
+                c->array = (uint16_t *) buf;
+                buf += cardinality * sizeof(uint16_t);
+            }
+            rb->high_low_container.containers[i] = c;
+        }
+    }
+
+    return rb;
+}
+
 
 #ifdef __cplusplus
 } } }  // extern "C" { namespace roaring {
