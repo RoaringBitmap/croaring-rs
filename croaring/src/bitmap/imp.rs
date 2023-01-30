@@ -710,6 +710,12 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_portable_size_in_bytes(&self.bitmap) }
     }
 
+    /// Computes the serialized size in bytes of the Bitmap for the frozen format.
+    #[inline]
+    pub fn get_frozen_serialized_size_in_bytes(&self) -> usize {
+        unsafe { ffi::roaring_bitmap_frozen_size_in_bytes(&self.bitmap) }
+    }
+
     /// Serializes a bitmap to a slice of bytes.
     ///
     /// # Examples
@@ -741,8 +747,42 @@ impl Bitmap {
         dst
     }
 
+    /// Serialize into the "frozen" format
+    ///
+    /// This has an odd API because it always returns a slice which is aligned to 32 bytes:
+    /// This means the returned slice may not start exactly at the beginning of the passed Vec
+    pub fn serialize_frozen_into<'a>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
+        const REQUIRED_ALIGNMENT: usize = 32;
+        let len = self.get_frozen_serialized_size_in_bytes();
+
+        let offset = dst.len();
+        // Need to be able to add up to 31 extra bytes to align to 32 bytes
+        dst.reserve(len.checked_add(REQUIRED_ALIGNMENT - 1).unwrap());
+
+        let extra_offset = match (dst.as_ptr() as usize) % REQUIRED_ALIGNMENT {
+            0 => 0,
+            r => REQUIRED_ALIGNMENT - r,
+        };
+        let offset = offset.checked_add(extra_offset).unwrap();
+        let total_len = offset.checked_add(len).unwrap();
+        debug_assert!(dst.capacity() >= total_len);
+
+        // we must initialize up to offset
+        dst.resize(offset, 0);
+
+        unsafe {
+            ffi::roaring_bitmap_frozen_serialize(
+                &self.bitmap,
+                dst.as_mut_ptr().add(offset).cast::<::libc::c_char>(),
+            );
+            dst.set_len(total_len);
+        }
+
+        &dst[offset..total_len]
+    }
+
     /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
-    /// See example of #serialize function.
+    /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns None.
     ///
@@ -778,7 +818,7 @@ impl Bitmap {
     }
 
     /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
-    /// See example of #serialize function.
+    /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns empty bitmap.
     #[inline]

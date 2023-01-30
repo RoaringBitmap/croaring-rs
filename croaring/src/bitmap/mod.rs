@@ -53,6 +53,9 @@
 //! println!("{:?}", rb4);
 //! ```
 
+// Must be repr(transparent) and match FrozenBitmap, to allow safe transmute between
+// &FrozenBitmap and &Bitmap
+#[repr(transparent)]
 pub struct Bitmap {
     bitmap: ffi::roaring_bitmap_t,
 }
@@ -66,6 +69,8 @@ mod imp;
 mod iter;
 mod lazy;
 mod ops;
+mod view;
 
-pub use crate::bitmap::iter::BitmapIterator;
-pub use crate::bitmap::lazy::LazyBitmap;
+pub use self::iter::BitmapIterator;
+pub use self::lazy::LazyBitmap;
+pub use self::view::BitmapView;

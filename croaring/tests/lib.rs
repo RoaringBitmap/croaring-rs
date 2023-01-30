@@ -1,9 +1,7 @@
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::io::{Read, Result};
-use std::u32;
+use std::{fs, iter, u32};
 
-use croaring::{Bitmap, Treemap};
+use croaring::{Bitmap, BitmapView, Treemap};
 use proptest::prelude::*;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
@@ -92,18 +90,42 @@ fn smoke2() {
     println!("{:?}", rb4);
 }
 
-fn read_file(path: &str) -> Result<Vec<u8>> {
-    let mut bitmap_file = File::open(path)?;
-    let file_metadata = bitmap_file.metadata()?;
-    let mut buffer = Vec::with_capacity(file_metadata.len() as usize);
-    bitmap_file.read_to_end(&mut buffer)?;
+fn expected_serialized_bitmap() -> Bitmap {
+    let mut bitmap = Bitmap::create();
+    bitmap.add_range(0x0_0000..0x0_9000);
+    bitmap.add_range(0x0_A000..0x1_0000);
+    bitmap.add(0x2_0000);
+    bitmap.add(0x2_0005);
+    for i in (0x8_0000..0x9_0000).step_by(2) {
+        bitmap.add(i);
+    }
+    bitmap
+}
 
-    Ok(buffer)
+#[test]
+fn test_portable_view() {
+    let buffer = fs::read("tests/data/portable_bitmap.bin").unwrap();
+    let bitmap = unsafe { BitmapView::deserialize(&buffer) }.unwrap();
+    let expected = expected_serialized_bitmap();
+    assert_eq!(bitmap, expected);
+    assert!(bitmap.iter().eq(expected.iter()))
+}
+
+#[test]
+fn test_frozen_view() {
+    let mut buffer = fs::read("tests/data/frozen_bitmap.bin").unwrap();
+    let offset = 32 - (buffer.as_ptr() as usize) % 32;
+    buffer.splice(..0, iter::repeat(0).take(offset));
+
+    let bitmap = unsafe { BitmapView::deserialize_frozen(&buffer[offset..]) }.unwrap();
+    let expected = expected_serialized_bitmap();
+    assert_eq!(bitmap, expected);
+    assert!(bitmap.iter().eq(expected.iter()))
 }
 
 #[test]
 fn test_treemap_deserialize_cpp() {
-    match read_file("tests/data/testcpp.bin") {
+    match fs::read("tests/data/testcpp.bin") {
         Ok(buffer) => {
             use croaring::treemap::NativeSerializer;
 
@@ -122,7 +144,7 @@ fn test_treemap_deserialize_cpp() {
 
 #[test]
 fn test_treemap_deserialize_jvm() {
-    match read_file("tests/data/testjvm.bin") {
+    match fs::read("tests/data/testjvm.bin") {
         Ok(buffer) => {
             use croaring::treemap::JvmSerializer;
 
@@ -241,5 +263,34 @@ proptest! {
         let deserialized = Treemap::deserialize(&buffer).unwrap();
 
         prop_assert_eq!(original , deserialized);
+    }
+}
+
+proptest! {
+    #[test]
+    fn frozen_bitmap_portable_roundtrip(
+        indices in prop::collection::vec(proptest::num::u32::ANY, 0..3000)
+    ) {
+        use croaring::BitmapView;
+
+        let original = Bitmap::of(&indices);
+        let serialized = original.serialize();
+        let deserialized = unsafe { BitmapView::deserialize(&serialized) }.unwrap();
+        assert_eq!(&original, &*deserialized);
+        assert!(original.iter().eq(deserialized.iter()));
+    }
+
+    #[test]
+    fn frozen_bitmap_roundtrip(
+        indices in prop::collection::vec(proptest::num::u32::ANY, 0..3000)
+    ) {
+        use croaring::BitmapView;
+
+        let original = Bitmap::of(&indices);
+        let mut buf = Vec::new();
+        let serialized: &[u8] = original.serialize_frozen_into(&mut buf);
+        let deserialized = unsafe { BitmapView::deserialize_frozen(serialized) }.unwrap();
+        assert_eq!(&original, &*deserialized);
+        assert!(original.iter().eq(deserialized.iter()));
     }
 }
