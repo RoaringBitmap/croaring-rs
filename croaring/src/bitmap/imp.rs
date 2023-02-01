@@ -1,5 +1,6 @@
 use ffi::roaring_bitmap_t;
 use std::convert::TryInto;
+use std::ffi::c_char;
 use std::mem;
 use std::ops::{Bound, RangeBounds};
 
@@ -737,10 +738,7 @@ impl Bitmap {
         let mut dst = Vec::with_capacity(capacity);
 
         unsafe {
-            ffi::roaring_bitmap_portable_serialize(
-                &self.bitmap,
-                dst.as_mut_ptr() as *mut ::libc::c_char,
-            );
+            ffi::roaring_bitmap_portable_serialize(&self.bitmap, dst.as_mut_ptr() as *mut c_char);
             dst.set_len(capacity);
         }
 
@@ -773,7 +771,7 @@ impl Bitmap {
         unsafe {
             ffi::roaring_bitmap_frozen_serialize(
                 &self.bitmap,
-                dst.as_mut_ptr().add(offset).cast::<::libc::c_char>(),
+                dst.as_mut_ptr().add(offset).cast::<c_char>(),
             );
             dst.set_len(total_len);
         }
@@ -805,7 +803,7 @@ impl Bitmap {
     pub fn try_deserialize(buffer: &[u8]) -> Option<Self> {
         unsafe {
             let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
-                buffer.as_ptr() as *const ::libc::c_char,
+                buffer.as_ptr() as *const c_char,
                 buffer.len(),
             );
 

@@ -18,7 +18,6 @@ buildtime_bindgen = ["bindgen"]
 doctest = false
 
 [dependencies]
-libc = "0.2"
 
 [build-dependencies]
 cc = "1"
