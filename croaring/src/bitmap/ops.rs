@@ -1,3 +1,4 @@
+use crate::BitmapView;
 use std::fmt;
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
@@ -26,6 +27,20 @@ impl Default for Bitmap {
 }
 
 impl PartialEq for Bitmap {
+    #[inline]
+    fn eq(&self, other: &Bitmap) -> bool {
+        unsafe { ffi::roaring_bitmap_equals(&self.bitmap, &other.bitmap) }
+    }
+}
+
+impl PartialEq<BitmapView<'_>> for Bitmap {
+    #[inline]
+    fn eq(&self, other: &BitmapView) -> bool {
+        unsafe { ffi::roaring_bitmap_equals(&self.bitmap, &other.bitmap) }
+    }
+}
+
+impl PartialEq<Bitmap> for BitmapView<'_> {
     #[inline]
     fn eq(&self, other: &Bitmap) -> bool {
         unsafe { ffi::roaring_bitmap_equals(&self.bitmap, &other.bitmap) }
@@ -82,516 +97,373 @@ impl Drop for Bitmap {
     }
 }
 
-impl BitAnd for Bitmap {
-    type Output = Bitmap;
+macro_rules! impl_binop {
+    (
+        impl $trait_name:ident {
+            $(type $type_name:ident = $type_value:ty;)*
 
-    /// Syntactic sugar for `.and`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(1);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(1);
-    /// bitmap2.add(2);
-    ///
-    /// let bitmap3 = bitmap1 & bitmap2;
-    ///
-    /// assert!(bitmap3.contains(1));
-    /// assert!(!bitmap3.contains(2));
-    /// ```
-    #[inline]
-    fn bitand(self, other: Bitmap) -> Bitmap {
-        self.and(&other)
+            $(#[$($attr:tt)*])*
+            fn $fn_name:ident -> $ret_ty:ty as $alias:ident
+        }
+    ) => {
+        impl_binop!{
+            impl $trait_name {
+                $(type $type_name = $type_value;)*
+
+                $(#[$($attr)*])*
+                fn $fn_name(self, other) -> $ret_ty {
+                    self.$alias(&other)
+                }
+            }
+        }
+    };
+    (
+        impl $trait_name:ident {
+            $(type $type_name:ident = $type_value:ty;)*
+
+            $(#[$($attr:tt)*])*
+            fn $fn_name:ident($self_ident:ident, $other_ident:ident) -> $ret_ty:ty
+            $body:block
+        }
+    ) => {
+        impl $trait_name for Bitmap {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: Bitmap) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<&Bitmap> for Bitmap {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: &Bitmap) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<Bitmap> for &Bitmap {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: Bitmap) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<&Bitmap> for &Bitmap {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: &Bitmap) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name for BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: BitmapView<'_>) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<&BitmapView<'_>> for BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: &BitmapView<'_>) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<BitmapView<'_>> for &BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: BitmapView<'_>) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<&BitmapView<'_>> for &BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: &BitmapView<'_>) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<Bitmap> for BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: Bitmap) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<&Bitmap> for BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: &Bitmap) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<&Bitmap> for &BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: &Bitmap) -> $ret_ty
+            $body
+        }
+
+        impl $trait_name<Bitmap> for &BitmapView<'_> {
+            $(type $type_name = $type_value;)*
+
+            $(#[$($attr)*])*
+            fn $fn_name($self_ident, $other_ident: Bitmap) -> $ret_ty
+            $body
+        }
+    };
+}
+
+macro_rules! impl_binop_assign {
+    (
+        impl $trait_name:ident {
+            $(#[$($attr:tt)*])*
+            fn $fn_name:ident as $alias:ident
+        }
+    ) => {
+        impl $trait_name for Bitmap {
+            $(#[$($attr)*])*
+            fn $fn_name(&mut self, other: Bitmap) {
+                self.$alias(&other)
+            }
+        }
+
+        impl $trait_name<&'_ Bitmap> for Bitmap {
+            $(#[$($attr)*])*
+            fn $fn_name(&mut self, other: &Bitmap) {
+                self.$alias(other)
+            }
+        }
+
+        impl $trait_name<BitmapView<'_>> for Bitmap {
+            $(#[$($attr)*])*
+            fn $fn_name(&mut self, other: BitmapView<'_>) {
+                self.$alias(&other)
+            }
+        }
+
+        impl $trait_name<&BitmapView<'_>> for Bitmap {
+            $(#[$($attr)*])*
+            fn $fn_name(&mut self, other: &BitmapView<'_>) {
+                self.$alias(other)
+            }
+        }
+    };
+}
+
+impl_binop! {
+    impl BitAnd {
+        type Output = Bitmap;
+
+        /// Syntactic sugar for `.and`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let mut bitmap1 = Bitmap::create();
+        /// bitmap1.add(1);
+        ///
+        /// let mut bitmap2 = Bitmap::create();
+        /// bitmap2.add(1);
+        /// bitmap2.add(2);
+        ///
+        /// let bitmap3 = bitmap1 & bitmap2;
+        ///
+        /// assert!(bitmap3.contains(1));
+        /// assert!(!bitmap3.contains(2));
+        /// ```
+        #[inline]
+        fn bitand -> Bitmap as and
     }
 }
 
-impl<'a> BitAnd<&'a Bitmap> for Bitmap {
-    type Output = Bitmap;
+impl_binop! {
+    impl BitOr {
+        type Output = Bitmap;
 
-    /// Syntactic sugar for `.and`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[1]);
-    /// let bitmap2 = Bitmap::of(&[1, 2]);
-    ///
-    /// let bitmap3 = bitmap1 & &bitmap2;
-    ///
-    /// assert!(bitmap3.contains(1));
-    /// assert!(!bitmap3.contains(2));
-    /// ```
-    #[inline]
-    fn bitand(self, other: &'a Bitmap) -> Bitmap {
-        self.and(other)
+        /// Syntatic sugar for `.or`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let bitmap1 = Bitmap::of(&[15]);
+        /// let bitmap2 = Bitmap::of(&[25]);
+        ///
+        /// let bitmap3 = bitmap1 | bitmap2;
+        ///
+        /// assert!(bitmap3.cardinality() == 2);
+        /// assert!(bitmap3.contains(15));
+        /// assert!(bitmap3.contains(25));
+        /// ```
+        #[inline]
+        fn bitor -> Bitmap as or
     }
 }
 
-impl<'a, 'b> BitAnd<&'a Bitmap> for &'b Bitmap {
-    type Output = Bitmap;
+impl_binop! {
+    impl BitXor {
+        type Output = Bitmap;
 
-    /// Syntactic sugar for `.and`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[1]);
-    /// let bitmap2 = Bitmap::of(&[1, 2]);
-    ///
-    /// let bitmap3 = &bitmap1 & &bitmap2;
-    ///
-    /// assert!(bitmap3.contains(1));
-    /// assert!(!bitmap3.contains(2));
-    /// ```
-    #[inline]
-    fn bitand(self, other: &'a Bitmap) -> Bitmap {
-        self.and(other)
+        /// Syntatic sugar for `.xor`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let bitmap1 = Bitmap::of(&[15, 25]);
+        /// let bitmap2 = Bitmap::of(&[25, 35]);
+        ///
+        /// let bitmap3 = bitmap1 ^ bitmap2;
+        ///
+        /// assert!(bitmap3.cardinality() == 2);
+        /// assert!(bitmap3.contains(15));
+        /// assert!(!bitmap3.contains(25));
+        /// assert!(bitmap3.contains(35));
+        /// ```
+        #[inline]
+        fn bitxor -> Bitmap as xor
     }
 }
 
-impl BitAndAssign for Bitmap {
-    /// Syntactic sugar for `.and_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15]);
-    /// let bitmap2 = Bitmap::of(&[25]);
-    /// let mut bitmap3 = Bitmap::of(&[15]);
-    /// let bitmap4 = Bitmap::of(&[15, 25]);
-    ///
-    /// bitmap1 &= bitmap2;
-    ///
-    /// assert!(bitmap1.cardinality() == 0);
-    /// assert!(!bitmap1.contains(15));
-    /// assert!(!bitmap1.contains(25));
-    ///
-    /// bitmap3 &= bitmap4;
-    ///
-    /// assert!(bitmap3.cardinality() == 1);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// ```
-    #[inline]
-    fn bitand_assign(&mut self, other: Bitmap) {
-        self.and_inplace(&other);
+impl_binop! {
+    impl Sub {
+        type Output = Bitmap;
+
+        /// Syntatic sugar for `.andnot`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let bitmap1 = Bitmap::of(&[15, 25]);
+        /// let bitmap2 = Bitmap::of(&[25, 35]);
+        ///
+        /// let bitmap3 = bitmap1 - bitmap2;
+        ///
+        /// assert_eq!(bitmap3.cardinality(), 1);
+        /// assert!(bitmap3.contains(15));
+        /// assert!(!bitmap3.contains(25));
+        /// assert!(!bitmap3.contains(35));
+        /// ```
+        #[inline]
+        fn sub -> Bitmap as andnot
     }
 }
 
-impl BitAndAssign<&Bitmap> for Bitmap {
-    /// Syntactic sugar for `.and_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15]);
-    /// let bitmap2 = Bitmap::of(&[25]);
-    /// let mut bitmap3 = Bitmap::of(&[15]);
-    /// let bitmap4 = Bitmap::of(&[15, 25]);
-    ///
-    /// bitmap1 &= &bitmap2;
-    ///
-    /// assert!(bitmap1.cardinality() == 0);
-    /// assert!(!bitmap1.contains(15));
-    /// assert!(!bitmap1.contains(25));
-    ///
-    /// bitmap3 &= &bitmap4;
-    ///
-    /// assert!(bitmap3.cardinality() == 1);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// ```
-    #[inline]
-    fn bitand_assign(&mut self, other: &Bitmap) {
-        self.and_inplace(other);
+impl_binop_assign! {
+    impl BitAndAssign {
+        /// Syntactic sugar for `.and_inplace`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let mut bitmap1 = Bitmap::of(&[15]);
+        /// let bitmap2 = Bitmap::of(&[25]);
+        /// let mut bitmap3 = Bitmap::of(&[15]);
+        /// let bitmap4 = Bitmap::of(&[15, 25]);
+        ///
+        /// bitmap1 &= bitmap2;
+        ///
+        /// assert!(bitmap1.cardinality() == 0);
+        /// assert!(!bitmap1.contains(15));
+        /// assert!(!bitmap1.contains(25));
+        ///
+        /// bitmap3 &= bitmap4;
+        ///
+        /// assert!(bitmap3.cardinality() == 1);
+        /// assert!(bitmap3.contains(15));
+        /// assert!(!bitmap3.contains(25));
+        /// ```
+        #[inline]
+        fn bitand_assign as and_inplace
     }
 }
 
-impl BitOr for Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.or`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15]);
-    /// let bitmap2 = Bitmap::of(&[25]);
-    ///
-    /// let bitmap3 = bitmap1 | bitmap2;
-    ///
-    /// assert!(bitmap3.cardinality() == 2);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(bitmap3.contains(25));
-    /// ```
-    #[inline]
-    fn bitor(self, other: Bitmap) -> Bitmap {
-        self.or(&other)
+impl_binop_assign! {
+    impl BitOrAssign {
+        /// Syntatic sugar for `.or_inplace`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let mut bitmap1 = Bitmap::of(&[15]);
+        /// let bitmap2 = Bitmap::of(&[25]);
+        ///
+        /// bitmap1 |= bitmap2;
+        ///
+        /// assert!(bitmap1.cardinality() == 2);
+        /// assert!(bitmap1.contains(15));
+        /// assert!(bitmap1.contains(25));
+        /// ```
+        #[inline]
+        fn bitor_assign as or_inplace
     }
 }
 
-impl<'a> BitOr<&'a Bitmap> for Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.or`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15]);
-    /// let bitmap2 = Bitmap::of(&[25]);
-    ///
-    /// let bitmap3 = bitmap1 | &bitmap2;
-    ///
-    /// assert!(bitmap3.cardinality() == 2);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(bitmap3.contains(25));
-    /// ```
-    #[inline]
-    fn bitor(self, other: &'a Bitmap) -> Bitmap {
-        self.or(other)
+impl_binop_assign! {
+    impl BitXorAssign {
+        /// Syntatic sugar for `.xor_inplace`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let mut bitmap1 = Bitmap::of(&[15, 25]);
+        /// let bitmap2 = Bitmap::of(&[25, 35]);
+        ///
+        /// bitmap1 ^= bitmap2;
+        ///
+        /// assert!(bitmap1.cardinality() == 2);
+        /// assert!(bitmap1.contains(15));
+        /// assert!(!bitmap1.contains(25));
+        /// assert!(bitmap1.contains(35));
+        /// ```
+        #[inline]
+        fn bitxor_assign as xor_inplace
     }
 }
 
-impl<'a, 'b> BitOr<&'a Bitmap> for &'b Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.or`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::create();
-    /// bitmap1.add(15);
-    ///
-    /// let mut bitmap2 = Bitmap::create();
-    /// bitmap2.add(25);
-    ///
-    /// let bitmap3 = &bitmap1 | &bitmap2;
-    ///
-    /// assert!(bitmap3.cardinality() == 2);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(bitmap3.contains(25));
-    /// ```
-    #[inline]
-    fn bitor(self, other: &'a Bitmap) -> Bitmap {
-        self.or(other)
-    }
-}
-
-impl BitOrAssign for Bitmap {
-    /// Syntatic sugar for `.or_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15]);
-    /// let bitmap2 = Bitmap::of(&[25]);
-    ///
-    /// bitmap1 |= bitmap2;
-    ///
-    /// assert!(bitmap1.cardinality() == 2);
-    /// assert!(bitmap1.contains(15));
-    /// assert!(bitmap1.contains(25));
-    /// ```
-    #[inline]
-    fn bitor_assign(&mut self, other: Bitmap) {
-        self.or_inplace(&other)
-    }
-}
-
-impl BitOrAssign<&Bitmap> for Bitmap {
-    /// Syntatic sugar for `.or_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15]);
-    /// let bitmap2 = Bitmap::of(&[25]);
-    ///
-    /// bitmap1 |= &bitmap2;
-    ///
-    /// assert!(bitmap1.cardinality() == 2);
-    /// assert!(bitmap1.contains(15));
-    /// assert!(bitmap1.contains(25));
-    /// ```
-    #[inline]
-    fn bitor_assign(&mut self, other: &Bitmap) {
-        self.or_inplace(other);
-    }
-}
-
-impl BitXor for Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.xor`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// let bitmap3 = bitmap1 ^ bitmap2;
-    ///
-    /// assert!(bitmap3.cardinality() == 2);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// assert!(bitmap3.contains(35));
-    /// ```
-    #[inline]
-    fn bitxor(self, other: Bitmap) -> Bitmap {
-        self.xor(&other)
-    }
-}
-
-impl<'a> BitXor<&'a Bitmap> for Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.xor`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// let bitmap3 = bitmap1 ^ &bitmap2;
-    ///
-    /// assert!(bitmap3.cardinality() == 2);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// assert!(bitmap3.contains(35));
-    /// ```
-    #[inline]
-    fn bitxor(self, other: &'a Bitmap) -> Bitmap {
-        self.xor(other)
-    }
-}
-
-impl<'a, 'b> BitXor<&'a Bitmap> for &'b Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.xor`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// let bitmap3 = &bitmap1 ^ &bitmap2;
-    ///
-    /// assert!(bitmap3.cardinality() == 2);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// assert!(bitmap3.contains(35));
-    /// ```
-    #[inline]
-    fn bitxor(self, other: &'a Bitmap) -> Bitmap {
-        self.xor(other)
-    }
-}
-
-impl BitXorAssign for Bitmap {
-    /// Syntatic sugar for `.xor_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// bitmap1 ^= bitmap2;
-    ///
-    /// assert!(bitmap1.cardinality() == 2);
-    /// assert!(bitmap1.contains(15));
-    /// assert!(!bitmap1.contains(25));
-    /// assert!(bitmap1.contains(35));
-    /// ```
-    #[inline]
-    fn bitxor_assign(&mut self, other: Bitmap) {
-        self.xor_inplace(&other)
-    }
-}
-
-impl BitXorAssign<&Bitmap> for Bitmap {
-    /// Syntatic sugar for `.xor_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// bitmap1 ^= &bitmap2;
-    ///
-    /// assert!(bitmap1.cardinality() == 2);
-    /// assert!(bitmap1.contains(15));
-    /// assert!(!bitmap1.contains(25));
-    /// assert!(bitmap1.contains(35));
-    /// ```
-    #[inline]
-    fn bitxor_assign(&mut self, other: &Bitmap) {
-        self.xor_inplace(other)
-    }
-}
-
-impl Sub for Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.andnot`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// let bitmap3 = bitmap1 - bitmap2;
-    ///
-    /// assert_eq!(bitmap3.cardinality(), 1);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// assert!(!bitmap3.contains(35));
-    /// ```
-    #[inline]
-    fn sub(self, other: Bitmap) -> Bitmap {
-        self.andnot(&other)
-    }
-}
-
-impl<'a> Sub<&'a Bitmap> for Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.andnot`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// let bitmap3 = bitmap1 - &bitmap2;
-    ///
-    /// assert_eq!(bitmap3.cardinality(), 1);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// assert!(!bitmap3.contains(35));
-    /// ```
-    #[inline]
-    fn sub(self, other: &'a Bitmap) -> Bitmap {
-        self.andnot(other)
-    }
-}
-
-impl<'a, 'b> Sub<&'a Bitmap> for &'b Bitmap {
-    type Output = Bitmap;
-
-    /// Syntatic sugar for `.andnot`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// let bitmap3 = &bitmap1 - &bitmap2;
-    ///
-    /// assert_eq!(bitmap3.cardinality(), 1);
-    /// assert!(bitmap3.contains(15));
-    /// assert!(!bitmap3.contains(25));
-    /// assert!(!bitmap3.contains(35));
-    /// ```
-    #[inline]
-    fn sub(self, other: &'a Bitmap) -> Bitmap {
-        self.andnot(other)
-    }
-}
-
-impl SubAssign for Bitmap {
-    /// Syntatic sugar for `.andnot_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// bitmap1 -= bitmap2;
-    ///
-    /// assert_eq!(bitmap1.cardinality(), 1);
-    /// assert!(bitmap1.contains(15));
-    /// assert!(!bitmap1.contains(25));
-    /// assert!(!bitmap1.contains(35));
-    /// ```
-    #[inline]
-    fn sub_assign(&mut self, other: Bitmap) {
-        self.andnot_inplace(&other)
-    }
-}
-
-impl SubAssign<&Bitmap> for Bitmap {
-    /// Syntatic sugar for `.andnot_inplace`
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap;
-    ///
-    /// let mut bitmap1 = Bitmap::of(&[15, 25]);
-    /// let bitmap2 = Bitmap::of(&[25, 35]);
-    ///
-    /// bitmap1 -= &bitmap2;
-    ///
-    /// assert_eq!(bitmap1.cardinality(), 1);
-    /// assert!(bitmap1.contains(15));
-    /// assert!(!bitmap1.contains(25));
-    /// assert!(!bitmap1.contains(35));
-    /// ```
-    #[inline]
-    fn sub_assign(&mut self, other: &Bitmap) {
-        self.andnot_inplace(other)
+impl_binop_assign! {
+    impl SubAssign {
+        /// Syntatic sugar for `.andnot_inplace`
+        ///
+        /// # Examples
+        ///
+        /// ```
+        /// use croaring::Bitmap;
+        ///
+        /// let mut bitmap1 = Bitmap::of(&[15, 25]);
+        /// let bitmap2 = Bitmap::of(&[25, 35]);
+        ///
+        /// bitmap1 -= bitmap2;
+        ///
+        /// assert_eq!(bitmap1.cardinality(), 1);
+        /// assert!(bitmap1.contains(15));
+        /// assert!(!bitmap1.contains(25));
+        /// assert!(!bitmap1.contains(35));
+        /// ```
+        #[inline]
+        fn sub_assign as andnot_inplace
     }
 }

@@ -1,22 +1,10 @@
-use super::Bitmap;
+use super::{Bitmap, BitmapView};
 use ffi::roaring_bitmap_t;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::{fmt, mem};
 
-/// A frozen view of a bitmap, backed by a byte slice
-///
-/// All read-only methods for [`Bitmap`] are also usable on a [`BitmapView`]
-#[repr(transparent)]
-pub struct BitmapView<'a> {
-    bitmap: roaring_bitmap_t,
-    // Rust lifetime rules will ensure we don't outlive our data, or modify it behind the scenes
-    phantom: PhantomData<&'a [u8]>,
-}
-
-unsafe impl<'a> Sync for BitmapView<'a> {}
-unsafe impl<'a> Send for BitmapView<'a> {}
-
+#[inline]
 const fn original_bitmap_ptr(bitmap: &roaring_bitmap_t) -> *const roaring_bitmap_t {
     // The implementation must put the containers array immediately after the bitmap pointer:
     // We will use this in the Drop implementation to re-create this pointer to pass to roaring_bitmap_free
@@ -109,9 +97,10 @@ impl<'a> BitmapView<'a> {
     /// assert!(frozen_view.contains_range(1..=4));
     /// ```
     pub unsafe fn deserialize(data: &'a [u8]) -> Option<Self> {
+        // portable_deserialize_size does some amount of checks, and returns zero if data cannot be valid
         debug_assert_ne!(
             ffi::roaring_bitmap_portable_deserialize_size(data.as_ptr().cast(), data.len()),
-            0
+            0,
         );
         let roaring = ffi::roaring_bitmap_portable_deserialize_frozen(data.as_ptr().cast());
         if roaring.is_null() {
@@ -119,6 +108,24 @@ impl<'a> BitmapView<'a> {
         } else {
             Some(Self::take_heap(roaring))
         }
+    }
+
+    /// Create an owned, mutable bitmap from this view
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Bitmap, BitmapView};
+    /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
+    /// let data: Vec<u8> = orig_bitmap.serialize();
+    /// let frozen_view = unsafe { BitmapView::deserialize(&data) }.unwrap();
+    /// assert_eq!(frozen_view, orig_bitmap);
+    /// let mut mutable_bitmap: Bitmap = frozen_view.to_bitmap();
+    /// mutable_bitmap.add(10);
+    /// assert!(!frozen_view.contains(10));
+    /// ```
+    pub fn to_bitmap(&self) -> Bitmap {
+        (**self).clone()
     }
 }
 
@@ -147,13 +154,6 @@ impl<'a> Drop for BitmapView<'a> {
         unsafe {
             ffi::roaring_bitmap_free(original_bitmap_ptr(&self.bitmap));
         }
-    }
-}
-
-// TODO: Combinatorics
-impl<'a> PartialEq<Bitmap> for BitmapView<'a> {
-    fn eq(&self, other: &Bitmap) -> bool {
-        (**self).eq(other)
     }
 }
 

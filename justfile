@@ -13,7 +13,7 @@ test:
 
 # regenerate bindgen bindings
 bindgen:
-  cd croaring-sys/CRoaring && \
+  cd {{croaring_source}} && \
     bindgen --generate-inline-functions \
       --allowlist-function 'roaring.*' \
       --allowlist-type 'roaring.*' \
