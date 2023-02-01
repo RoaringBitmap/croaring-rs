@@ -31,7 +31,7 @@ impl<'a> BitmapView<'a> {
         const _: () = assert!(
             ffi::ROARING_VERSION_MAJOR == 0
                 && ffi::ROARING_VERSION_MINOR == 9
-                && ffi::ROARING_VERSION_REVISION == 0
+                && ffi::ROARING_VERSION_REVISION == 1
         );
 
         assert!(!p.is_null());

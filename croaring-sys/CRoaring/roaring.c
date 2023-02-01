@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2023-01-29T22:02:20Z
+// Created by amalgamation.sh on 2023-01-31T23:54:49Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -408,6 +408,37 @@ static inline int hamming(uint64_t x) {
 #define ALLOW_UNALIGNED __attribute__((no_sanitize("alignment")))
 #else
 #define ALLOW_UNALIGNED
+#endif
+
+#if defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__)
+ #define CROARING_IS_BIG_ENDIAN (__BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+ #elif defined(_WIN32)
+ #define CROARING_IS_BIG_ENDIAN 0
+ #else
+ #if defined(__APPLE__) || defined(__FreeBSD__) // defined __BYTE_ORDER__ && defined __ORDER_BIG_ENDIAN__
+ #include <machine/endian.h>
+ #elif defined(sun) || defined(__sun) // defined(__APPLE__) || defined(__FreeBSD__)
+ #include <sys/byteorder.h>
+ #else  // defined(__APPLE__) || defined(__FreeBSD__)
+
+ #ifdef __has_include
+ #if __has_include(<endian.h>)
+ #include <endian.h>
+ #endif //__has_include(<endian.h>)
+ #endif //__has_include
+
+ #endif // defined(__APPLE__) || defined(__FreeBSD__)
+
+
+ #ifndef !defined(__BYTE_ORDER__) || !defined(__ORDER_LITTLE_ENDIAN__)
+ #define CROARING_IS_BIG_ENDIAN 0
+ #endif
+
+ #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+ #define CROARING_IS_BIG_ENDIAN 0
+ #else // __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+ #define CROARING_IS_BIG_ENDIAN 1
+ #endif // __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #endif
 
 // We need portability.h to be included first,
@@ -14837,7 +14868,8 @@ void run_container_printf_as_uint32_array(const run_container_t *cont,
 }
 
 int32_t run_container_write(const run_container_t *container, char *buf) {
-    memcpy(buf, &container->n_runs, sizeof(uint16_t));
+    uint16_t cast_16 = container->n_runs;
+    memcpy(buf, &cast_16, sizeof(uint16_t));
     memcpy(buf + sizeof(uint16_t), container->runs,
            container->n_runs * sizeof(rle16_t));
     return run_container_size_in_bytes(container);
@@ -14846,7 +14878,9 @@ int32_t run_container_write(const run_container_t *container, char *buf) {
 int32_t run_container_read(int32_t cardinality, run_container_t *container,
                            const char *buf) {
     (void)cardinality;
-    memcpy(&container->n_runs, buf, sizeof(uint16_t));
+    uint16_t cast_16;
+    memcpy(&cast_16, buf, sizeof(uint16_t));
+    container->n_runs = cast_16;
     if (container->n_runs > container->capacity)
         run_container_grow(container, container->n_runs, false);
     if(container->n_runs > 0) {
@@ -18417,8 +18451,8 @@ roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
         (container_t **)arena_alloc(&arena,
                                     sizeof(container_t*) * num_containers);
 
-    uint16_t *keys = arena_alloc(&arena, num_containers * sizeof(uint16_t));
-    uint8_t *typecodes = arena_alloc(&arena, num_containers * sizeof(uint8_t));
+    uint16_t *keys = (uint16_t *)arena_alloc(&arena, num_containers * sizeof(uint16_t));
+    uint8_t *typecodes = (uint8_t *)arena_alloc(&arena, num_containers * sizeof(uint8_t));
 
     rb->high_low_container.keys = keys;
     rb->high_low_container.typecodes = typecodes;
@@ -18440,7 +18474,7 @@ roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
 
         if (isbitmap) {
             typecodes[i] = BITSET_CONTAINER_TYPE;
-            bitset_container_t *c = arena_alloc(&arena, sizeof(bitset_container_t));
+            bitset_container_t *c = (bitset_container_t *)arena_alloc(&arena, sizeof(bitset_container_t));
             c->cardinality = cardinality;
             if(offset_headers != NULL) {
                 c->words = (uint64_t *) (start_of_buf + offset_headers[i]);
@@ -18451,7 +18485,7 @@ roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
             rb->high_low_container.containers[i] = c;
         } else if (isrun) {
             typecodes[i] = RUN_CONTAINER_TYPE;
-            run_container_t *c = arena_alloc(&arena, sizeof(run_container_t));
+            run_container_t *c = (run_container_t *)arena_alloc(&arena, sizeof(run_container_t));
             c->capacity = cardinality;
             uint16_t n_runs;
             if(offset_headers != NULL) {
@@ -18468,7 +18502,7 @@ roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
             rb->high_low_container.containers[i] = c;
         } else {
             typecodes[i] = ARRAY_CONTAINER_TYPE;
-            array_container_t *c = arena_alloc(&arena, sizeof(array_container_t));
+            array_container_t *c = (array_container_t *)arena_alloc(&arena, sizeof(array_container_t));
             c->cardinality = cardinality;
             c->capacity = cardinality;
             if(offset_headers != NULL) {
@@ -19030,6 +19064,7 @@ size_t ra_portable_size_in_bytes(const roaring_array_t *ra) {
     return count;
 }
 
+// This function is endian-sensitive.
 size_t ra_portable_serialize(const roaring_array_t *ra, char *buf) {
     char *initbuf = buf;
     uint32_t startOffset = 0;
@@ -19178,10 +19213,11 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
     return bytestotal;
 }
 
-
 // this function populates answer from the content of buf (reading up to maxbytes bytes).
 // The function returns false if a properly serialized bitmap cannot be found.
 // if it returns true, readbytes is populated by how many bytes were read, we have that *readbytes <= maxbytes.
+//
+// This function is endian-sensitive.
 bool ra_portable_deserialize(roaring_array_t *answer, const char *buf, const size_t maxbytes, size_t * readbytes) {
     *readbytes = sizeof(int32_t);// for cookie
     if(*readbytes > maxbytes) {
