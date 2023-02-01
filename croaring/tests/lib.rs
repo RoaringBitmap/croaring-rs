@@ -105,7 +105,7 @@ fn expected_serialized_bitmap() -> Bitmap {
 #[test]
 fn test_portable_view() {
     let buffer = fs::read("tests/data/portable_bitmap.bin").unwrap();
-    let bitmap = unsafe { BitmapView::deserialize(&buffer) }.unwrap();
+    let bitmap = unsafe { BitmapView::deserialize(&buffer) };
     let expected = expected_serialized_bitmap();
     assert_eq!(bitmap, expected);
     assert!(bitmap.iter().eq(expected.iter()))
@@ -117,7 +117,7 @@ fn test_frozen_view() {
     let offset = 32 - (buffer.as_ptr() as usize) % 32;
     buffer.splice(..0, iter::repeat(0).take(offset));
 
-    let bitmap = unsafe { BitmapView::deserialize_frozen(&buffer[offset..]) }.unwrap();
+    let bitmap = unsafe { BitmapView::deserialize_frozen(&buffer[offset..]) };
     let expected = expected_serialized_bitmap();
     assert_eq!(bitmap, expected);
     assert!(bitmap.iter().eq(expected.iter()))
@@ -275,7 +275,7 @@ proptest! {
 
         let original = Bitmap::of(&indices);
         let serialized = original.serialize();
-        let deserialized = unsafe { BitmapView::deserialize(&serialized) }.unwrap();
+        let deserialized = unsafe { BitmapView::deserialize(&serialized) };
         assert_eq!(&original, &*deserialized);
         assert!(original.iter().eq(deserialized.iter()));
     }
@@ -289,7 +289,7 @@ proptest! {
         let original = Bitmap::of(&indices);
         let mut buf = Vec::new();
         let serialized: &[u8] = original.serialize_frozen_into(&mut buf);
-        let deserialized = unsafe { BitmapView::deserialize_frozen(serialized) }.unwrap();
+        let deserialized = unsafe { BitmapView::deserialize_frozen(serialized) };
         assert_eq!(&original, &*deserialized);
         assert!(original.iter().eq(deserialized.iter()));
     }

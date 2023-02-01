@@ -6,9 +6,7 @@ use std::{fmt, mem};
 
 #[inline]
 const fn original_bitmap_ptr(bitmap: &roaring_bitmap_t) -> *const roaring_bitmap_t {
-    // The implementation must put the containers array immediately after the bitmap pointer:
-    // We will use this in the Drop implementation to re-create this pointer to pass to roaring_bitmap_free
-    // If this fails, we would pass junk to roaring_bitmap_free in Drop
+    // The implementation must put the containers array immediately after the bitmap pointer
     bitmap
         .high_low_container
         .containers
@@ -35,6 +33,9 @@ impl<'a> BitmapView<'a> {
         );
 
         assert!(!p.is_null());
+
+        // We will use this in the Drop implementation to re-create this pointer to pass to roaring_bitmap_free
+        // If this fails, we would pass junk to roaring_bitmap_free in Drop.
         assert_eq!(p, original_bitmap_ptr(&*p));
 
         Self {
@@ -45,12 +46,10 @@ impl<'a> BitmapView<'a> {
 
     /// Create a frozen bitmap view using the passed data
     ///
-    /// Returns None on a best-effort attempt to validate input
-    ///
     /// # Safety
     /// * `data` must be the result of serializing a roaring bitmap in frozen mode
     ///   (in c with `roaring_bitmap_frozen_serialize`, or via [`Bitmap::serialize_frozen_into`]).
-    /// * Its beginning must also be aligned by 32 bytes.
+    /// * Its beginning must be aligned by 32 bytes.
     /// * data.len() must be equal exactly to the size of the frozen bitmap.
     ///
     /// # Examples
@@ -60,26 +59,21 @@ impl<'a> BitmapView<'a> {
     /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
     /// let mut buf = Vec::new();
     /// let data: &[u8] = orig_bitmap.serialize_frozen_into(&mut buf);
-    /// let view = unsafe { BitmapView::deserialize_frozen(&data) }.unwrap();
+    /// let view = unsafe { BitmapView::deserialize_frozen(&data) };
     /// assert!(view.contains_range(1..=4));
+    /// assert_eq!(orig_bitmap, view);
     /// ```
-    pub unsafe fn deserialize_frozen(data: &'a [u8]) -> Option<Self> {
+    pub unsafe fn deserialize_frozen(data: &'a [u8]) -> Self {
         const REQUIRED_ALIGNMENT: usize = 32;
         assert_eq!(data.as_ptr() as usize % REQUIRED_ALIGNMENT, 0);
 
         let roaring = ffi::roaring_bitmap_frozen_view(data.as_ptr().cast(), data.len());
-        if roaring.is_null() {
-            None
-        } else {
-            Some(Self::take_heap(roaring))
-        }
+        Self::take_heap(roaring)
     }
 
     /// Read bitmap from a serialized buffer
     ///
     /// This is meant to be compatible with the Java and Go versions
-    ///
-    /// Returns None on a best-effort attempt to validate input
     ///
     /// # Safety
     /// * `data` must be the result of serializing a roaring bitmap in portable mode
@@ -93,21 +87,18 @@ impl<'a> BitmapView<'a> {
     /// use croaring::{Bitmap, BitmapView};
     /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
     /// let data: Vec<u8> = orig_bitmap.serialize();
-    /// let frozen_view = unsafe { BitmapView::deserialize(&data) }.unwrap();
-    /// assert!(frozen_view.contains_range(1..=4));
+    /// let view = unsafe { BitmapView::deserialize(&data) };
+    /// assert!(view.contains_range(1..=4));
+    /// assert_eq!(orig_bitmap, view);
     /// ```
-    pub unsafe fn deserialize(data: &'a [u8]) -> Option<Self> {
+    pub unsafe fn deserialize(data: &'a [u8]) -> Self {
         // portable_deserialize_size does some amount of checks, and returns zero if data cannot be valid
         debug_assert_ne!(
             ffi::roaring_bitmap_portable_deserialize_size(data.as_ptr().cast(), data.len()),
             0,
         );
         let roaring = ffi::roaring_bitmap_portable_deserialize_frozen(data.as_ptr().cast());
-        if roaring.is_null() {
-            None
-        } else {
-            Some(Self::take_heap(roaring))
-        }
+        Self::take_heap(roaring)
     }
 
     /// Create an owned, mutable bitmap from this view
@@ -116,13 +107,16 @@ impl<'a> BitmapView<'a> {
     ///
     /// ```
     /// use croaring::{Bitmap, BitmapView};
+    ///
     /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
-    /// let data: Vec<u8> = orig_bitmap.serialize();
-    /// let frozen_view = unsafe { BitmapView::deserialize(&data) }.unwrap();
-    /// assert_eq!(frozen_view, orig_bitmap);
-    /// let mut mutable_bitmap: Bitmap = frozen_view.to_bitmap();
+    /// let data = orig_bitmap.serialize();
+    /// let view: BitmapView = unsafe { BitmapView::deserialize(&data) };
+    /// # assert_eq!(view, orig_bitmap);
+    /// let mut mutable_bitmap: Bitmap = view.to_bitmap();
+    /// assert_eq!(view, mutable_bitmap);
     /// mutable_bitmap.add(10);
-    /// assert!(!frozen_view.contains(10));
+    /// assert!(!view.contains(10));
+    /// assert!(mutable_bitmap.contains(10));
     /// ```
     pub fn to_bitmap(&self) -> Bitmap {
         (**self).clone()
