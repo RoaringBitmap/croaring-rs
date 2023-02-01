@@ -3,7 +3,7 @@
 croaring_source := justfile_directory() / "croaring-sys/CRoaring"
 
 release:
-  cargo build --release    
+  cargo build --release
 
 lint:
   cargo clippy
