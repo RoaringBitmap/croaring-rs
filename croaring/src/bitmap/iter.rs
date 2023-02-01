@@ -46,7 +46,7 @@ impl<'a> BitmapIterator<'a> {
     /// Attempt to read many values from the iterator into `dst`
     ///
     /// Returns the number of items read from the iterator, may be `< dst.len()` iff
-    /// the iterator is exhausted.
+    /// the iterator is exhausted or `dst.len() > u32::MAX`.
     ///
     /// This can be much more efficient than repeated iteration.
     ///
