@@ -114,6 +114,8 @@ fn test_portable_view() {
 #[test]
 fn test_frozen_view() {
     let mut buffer = fs::read("tests/data/frozen_bitmap.bin").unwrap();
+    // Ensure inserting zeros won't move the data
+    buffer.reserve(32);
     let offset = 32 - (buffer.as_ptr() as usize) % 32;
     buffer.splice(..0, iter::repeat(0).take(offset));
 
