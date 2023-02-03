@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2023-01-31T23:54:49Z
+// Created by amalgamation.sh on 2023-02-03T04:20:39Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -7425,7 +7425,7 @@ int32_t intersect_vector16(const uint16_t *__restrict__ A, size_t s_a,
                 v_b, vectorlength, v_a, vectorlength,
                 _SIDD_UWORD_OPS | _SIDD_CMP_EQUAL_ANY | _SIDD_BIT_MASK);
             const int r = _mm_extract_epi32(res_v, 0);
-            __m128i sm16 = _mm_load_si128((const __m128i *)shuffle_mask16 + r);
+            __m128i sm16 = _mm_loadu_si128((const __m128i *)shuffle_mask16 + r);
             __m128i p = _mm_shuffle_epi8(v_a, sm16);
             _mm_storeu_si128((__m128i *)&C[count], p);  // can overflow
             count += _mm_popcnt_u32(r);
@@ -7449,7 +7449,7 @@ int32_t intersect_vector16(const uint16_t *__restrict__ A, size_t s_a,
                     _SIDD_UWORD_OPS | _SIDD_CMP_EQUAL_ANY | _SIDD_BIT_MASK);
                 const int r = _mm_extract_epi32(res_v, 0);
                 __m128i sm16 =
-                    _mm_load_si128((const __m128i *)shuffle_mask16 + r);
+                    _mm_loadu_si128((const __m128i *)shuffle_mask16 + r);
                 __m128i p = _mm_shuffle_epi8(v_a, sm16);
                 _mm_storeu_si128((__m128i *)&C[count], p);  // can overflow
                 count += _mm_popcnt_u32(r);
@@ -7626,7 +7626,7 @@ int32_t difference_vector16(const uint16_t *__restrict__ A, size_t s_a,
                 const int bitmask_belongs_to_difference =
                     _mm_extract_epi32(runningmask_a_found_in_b, 0) ^ 0xFF;
                 /*** next few lines are probably expensive *****/
-                __m128i sm16 = _mm_load_si128((const __m128i *)shuffle_mask16 +
+                __m128i sm16 = _mm_loadu_si128((const __m128i *)shuffle_mask16 +
                                               bitmask_belongs_to_difference);
                 __m128i p = _mm_shuffle_epi8(v_a, sm16);
                 _mm_storeu_si128((__m128i *)&C[count], p);  // can overflow
@@ -7661,7 +7661,7 @@ int32_t difference_vector16(const uint16_t *__restrict__ A, size_t s_a,
                 _mm_or_si128(runningmask_a_found_in_b, a_found_in_b);
             const int bitmask_belongs_to_difference =
                 _mm_extract_epi32(runningmask_a_found_in_b, 0) ^ 0xFF;
-            __m128i sm16 = _mm_load_si128((const __m128i *)shuffle_mask16 +
+            __m128i sm16 = _mm_loadu_si128((const __m128i *)shuffle_mask16 +
                                           bitmask_belongs_to_difference);
             __m128i p = _mm_shuffle_epi8(v_a, sm16);
             _mm_storeu_si128((__m128i *)&C[count], p);  // can overflow
@@ -9569,9 +9569,9 @@ size_t bitset_extract_setbits_avx2(const uint64_t *words, size_t length,
                 uint8_t byteB = (uint8_t)(w >> 8);
                 w >>= 16;
                 __m256i vecA =
-                    _mm256_load_si256((const __m256i *)vecDecodeTable[byteA]);
+                    _mm256_loadu_si256((const __m256i *)vecDecodeTable[byteA]);
                 __m256i vecB =
-                    _mm256_load_si256((const __m256i *)vecDecodeTable[byteB]);
+                    _mm256_loadu_si256((const __m256i *)vecDecodeTable[byteB]);
                 uint8_t advanceA = lengthTable[byteA];
                 uint8_t advanceB = lengthTable[byteB];
                 vecA = _mm256_add_epi32(baseVec, vecA);
@@ -9674,9 +9674,9 @@ size_t bitset_extract_setbits_sse_uint16(const uint64_t *words, size_t length,
                 uint8_t byteA = (uint8_t)w;
                 uint8_t byteB = (uint8_t)(w >> 8);
                 w >>= 16;
-                __m128i vecA = _mm_load_si128(
+                __m128i vecA = _mm_loadu_si128(
                     (const __m128i *)vecDecodeTable_uint16[byteA]);
-                __m128i vecB = _mm_load_si128(
+                __m128i vecB = _mm_loadu_si128(
                     (const __m128i *)vecDecodeTable_uint16[byteB]);
                 uint8_t advanceA = lengthTable[byteA];
                 uint8_t advanceB = lengthTable[byteB];
@@ -11317,8 +11317,8 @@ static inline bool _avx2_bitset_container_equals(const bitset_container_t *conta
     const __m256i *ptr1 = (const __m256i*)container1->words;
     const __m256i *ptr2 = (const __m256i*)container2->words;
     for (size_t i = 0; i < BITSET_CONTAINER_SIZE_IN_WORDS*sizeof(uint64_t)/32; i++) {
-      __m256i r1 = _mm256_load_si256(ptr1+i);
-      __m256i r2 = _mm256_load_si256(ptr2+i);
+      __m256i r1 = _mm256_loadu_si256(ptr1+i);
+      __m256i r2 = _mm256_loadu_si256(ptr2+i);
       int mask = _mm256_movemask_epi8(_mm256_cmpeq_epi8(r1, r2));
       if ((uint32_t)mask != UINT32_MAX) {
           return false;

@@ -84,7 +84,7 @@ impl Drop for Bitmap {
         const _: () = assert!(
             ffi::ROARING_VERSION_MAJOR == 0
                 && ffi::ROARING_VERSION_MINOR == 9
-                && ffi::ROARING_VERSION_REVISION == 1
+                && ffi::ROARING_VERSION_REVISION == 2
         );
 
         // Per https://github.com/RoaringBitmap/CRoaring/blob/4f8dbdb0cc884626b20ef0cc9e891f701fe157cf/cpp/roaring.hh#L182
