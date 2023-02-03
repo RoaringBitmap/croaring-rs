@@ -734,12 +734,44 @@ impl Bitmap {
     /// ```
     #[inline]
     pub fn serialize(&self) -> Vec<u8> {
-        let capacity = self.get_serialized_size_in_bytes();
-        let mut dst = Vec::with_capacity(capacity);
+        let mut dst = Vec::new();
+        self.serialize_into(&mut dst);
+        dst
+    }
+
+    /// Serializes a bitmap to a slice of bytes, re-using existing capacity
+    ///
+    /// `dst` is not cleared, data is added after any existing data. Returns the added slice of `dst`.
+    /// If `dst` is empty, it is guaranteed to hold only the serialized data after this call
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let original_bitmap_1: Bitmap = (1..5).collect();
+    /// let original_bitmap_2: Bitmap = (1..10).collect();
+    ///
+    /// let mut data = Vec::new();
+    /// for bitmap in [original_bitmap_1, original_bitmap_2] {
+    ///     data.clear();
+    ///     bitmap.serialize_into(&mut data);
+    ///     // do something with data
+    /// }
+    /// ```
+    #[inline]
+    pub fn serialize_into<'a>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
+        let len = self.get_serialized_size_in_bytes();
+
+        dst.reserve(len);
+        let total_len = dst.len().checked_add(len).unwrap();
 
         unsafe {
-            ffi::roaring_bitmap_portable_serialize(&self.bitmap, dst.as_mut_ptr() as *mut c_char);
-            dst.set_len(capacity);
+            ffi::roaring_bitmap_portable_serialize(
+                &self.bitmap,
+                dst.spare_capacity_mut().as_mut_ptr().cast::<c_char>(),
+            );
+            dst.set_len(total_len);
         }
 
         dst
