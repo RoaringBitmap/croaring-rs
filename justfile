@@ -37,3 +37,12 @@ test_serialization_files:
   cd croaring/tests/data/ && \
     cc create_serialization.c {{croaring_source / 'roaring.c'}} -I {{croaring_source}} -Wall -o create_serialization && \
     ./create_serialization
+
+_get_cargo_fuzz:
+  command -v cargo-fuzz >/dev/null 2>&1 || cargo install cargo-fuzz
+
+fuzz: _get_cargo_fuzz
+  cd fuzz && \
+    ASAN_OPTIONS="detect_leaks=1 detect_stack_use_after_return=1" \
+      CC=clang CFLAGS=-fsanitize=address \
+      cargo fuzz run fuzz_ops -s address -- -max_len=10000 -rss_limit_mb=4096

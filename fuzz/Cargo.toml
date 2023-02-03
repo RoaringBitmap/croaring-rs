@@ -1,0 +1,27 @@
+[package]
+name = "croaring-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = { version = "0.4", features = ["arbitrary-derive"] }
+
+croaring = { path = "../croaring" }
+
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]
+
+[profile.release]
+debug = 1
+
+[[bin]]
+name = "fuzz_ops"
+path = "fuzz_targets/fuzz_ops.rs"
+test = false
+doc = false
