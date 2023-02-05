@@ -11,19 +11,16 @@ lint:
 test:
   cargo test
 
-# Fetch the tagged version from CRoaring, and update the c source amalgamation
-update_croaring version:
-  #!/usr/bin/env bash
-  set -euxo pipefail
 
-  tmpdir=$(mktemp -d)
-  trap "rm -rf '$tmpdir'" EXIT
-  cd $tmpdir || exit 1
+croaring_release_url_base := "https://github.com/RoaringBitmap/CRoaring/releases/download"
 
-  git clone --depth=1 --branch 'v{{version}}' "https://github.com/RoaringBitmap/CRoaring.git" .
-  ./amalgamation.sh
-  cp roaring.{h,hh,c} '{{croaring_source}}'
-
+# Fetch the c source amalgamation from a tagged CRoaring release (like `just update_croaring 0.9.3`)
+update_croaring version: && bindgen
+  rm -f '{{croaring_source}}/roaring.c' '{{croaring_source}}/roaring.h' '{{croaring_source}}/roaring.hh'
+  wget -P '{{croaring_source}}' \
+    '{{croaring_release_url_base}}/v{{version}}/roaring.c' \
+    '{{croaring_release_url_base}}/v{{version}}/roaring.h' \
+    '{{croaring_release_url_base}}/v{{version}}/roaring.hh'
 
 # Regenerate bindgen bindings
 bindgen:
