@@ -53,6 +53,11 @@
 //! println!("{:?}", rb4);
 //! ```
 
+use std::marker::PhantomData;
+
+// Must be repr(transparent) and match FrozenBitmap, to allow safe transmute between
+// &FrozenBitmap and &Bitmap
+#[repr(transparent)]
 pub struct Bitmap {
     bitmap: ffi::roaring_bitmap_t,
 }
@@ -60,12 +65,26 @@ pub struct Bitmap {
 unsafe impl Sync for Bitmap {}
 unsafe impl Send for Bitmap {}
 
+/// A frozen view of a bitmap, backed by a byte slice
+///
+/// All read-only methods for [`Bitmap`] are also usable on a [`BitmapView`]
+#[repr(transparent)]
+pub struct BitmapView<'a> {
+    bitmap: ffi::roaring_bitmap_t,
+    // Rust lifetime rules will ensure we don't outlive our data, or modify it behind the scenes
+    phantom: PhantomData<&'a [u8]>,
+}
+
+unsafe impl<'a> Sync for BitmapView<'a> {}
+unsafe impl<'a> Send for BitmapView<'a> {}
+
 pub type Statistics = ffi::roaring_statistics_s;
 
 mod imp;
 mod iter;
 mod lazy;
 mod ops;
+mod view;
 
-pub use crate::bitmap::iter::BitmapIterator;
-pub use crate::bitmap::lazy::LazyBitmap;
+pub use self::iter::BitmapIterator;
+pub use self::lazy::LazyBitmap;

@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2022-11-19T11:49:40Z
+// Created by amalgamation.sh on 2023-02-07T15:42:05Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -114,10 +114,17 @@ public:
     }
 
     /**
-     * Construct a bitmap from a list of integer values.
+     * Construct a bitmap from a list of 32-bit integer values.
      */
     Roaring(size_t n, const uint32_t *data) : Roaring() {
         api::roaring_bitmap_add_many(&roaring, n, data);
+    }
+
+    /**
+     * Construct a bitmap from an initializer list.
+     */
+    Roaring(std::initializer_list<uint32_t> l) : Roaring() {
+        addMany(l.size(), l.begin());
     }
 
     /**
@@ -133,8 +140,8 @@ public:
     }
 
     /**
-     * Move constructor. The moved object remains valid, i.e.
-     * all methods can still be called on it.
+     * Move constructor. The moved-from object remains valid but empty, i.e.
+     * it behaves as though it was just freshly constructed.
      */
     Roaring(Roaring &&r) noexcept : roaring(r.roaring) {
         //
@@ -319,9 +326,21 @@ public:
     }
 
     /**
+     * Assignment from an initializer list.
+     */
+    Roaring &operator=(std::initializer_list<uint32_t> l) {
+        // Delegate to move assignment operator
+        *this = Roaring(l);
+        return *this;
+    }
+
+    /**
      * Compute the intersection between the current bitmap and the provided
      * bitmap, writing the result in the current bitmap. The provided bitmap
      * is not modified.
+     *
+     * Performance hint: if you are computing the intersection between several
+     * bitmaps, two-by-two, it is best to start with the smallest bitmap.
      */
     Roaring &operator&=(const Roaring &r) {
         api::roaring_bitmap_and_inplace(&roaring, &r.roaring);
@@ -654,6 +673,11 @@ public:
     /**
      * Computes the intersection between two bitmaps and returns new bitmap.
      * The current bitmap and the provided bitmap are unchanged.
+     *
+     * Performance hint: if you are computing the intersection between several
+     * bitmaps, two-by-two, it is best to start with the smallest bitmap.
+     * Consider also using the operator &= to avoid needlessly creating
+     * many temporary bitmaps.
      */
     Roaring operator&(const Roaring &o) const {
         roaring_bitmap_t *r = api::roaring_bitmap_and(&roaring, &o.roaring);
@@ -949,6 +973,13 @@ public:
     Roaring64Map(size_t n, const uint64_t *data) { addMany(n, data); }
 
     /**
+     * Construct a bitmap from an initializer list.
+     */
+    Roaring64Map(std::initializer_list<uint64_t> l) {
+        addMany(l.size(), l.begin());
+    }
+
+    /**
      * Construct a 64-bit map from a 32-bit one
      */
     explicit Roaring64Map(const Roaring &r) { emplaceOrInsert(0, r); }
@@ -979,7 +1010,16 @@ public:
     /**
      * Move assignment operator.
      */
-     Roaring64Map &operator=(Roaring64Map &&r) noexcept = default;
+    Roaring64Map &operator=(Roaring64Map &&r) noexcept = default;
+
+    /**
+     * Assignment from an initializer list.
+     */
+    Roaring64Map &operator=(std::initializer_list<uint64_t> l) {
+        // Delegate to move assignment operator
+        *this = Roaring64Map(l);
+        return *this;
+    }
 
     /**
      * Construct a bitmap from a list of uint64_t values.
@@ -1371,6 +1411,9 @@ public:
      * Compute the intersection of the current bitmap and the provided bitmap,
      * writing the result in the current bitmap. The provided bitmap is not
      * modified.
+     *
+     * Performance hint: if you are computing the intersection between several
+     * bitmaps, two-by-two, it is best to start with the smallest bitmap.
      */
     Roaring64Map &operator&=(const Roaring64Map &other) {
         if (this == &other) {
@@ -2183,6 +2226,11 @@ public:
     /**
      * Computes the intersection between two bitmaps and returns new bitmap.
      * The current bitmap and the provided bitmap are unchanged.
+     *
+     * Performance hint: if you are computing the intersection between several
+     * bitmaps, two-by-two, it is best to start with the smallest bitmap.
+     * Consider also using the operator &= to avoid needlessly creating
+     * many temporary bitmaps.
      */
     Roaring64Map operator&(const Roaring64Map &o) const {
         return Roaring64Map(*this) &= o;
