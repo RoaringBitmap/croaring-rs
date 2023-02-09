@@ -32,7 +32,9 @@ fuzz_target!(|input: FuzzInput| {
         let data = side.serialize();
         let data2 = side.serialize_frozen_into(&mut v);
         let view1 = unsafe { BitmapView::deserialize(&data) };
+        assert_eq!(view1, side);
         let view2 = unsafe { BitmapView::deserialize_frozen(data2) };
+        assert_eq!(view2, side);
         for op in &input.view_ops {
             op.do_it(&view1);
             op.do_it(&view2);
