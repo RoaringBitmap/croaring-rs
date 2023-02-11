@@ -982,8 +982,7 @@ impl Bitmap {
     /// assert_eq!(more_saved_bytes, 0);
     #[inline]
     pub fn shrink_to_fit(&mut self) -> usize {
-        let result = unsafe { ffi::roaring_bitmap_shrink_to_fit(&mut self.bitmap) };
-        result as usize
+        unsafe { ffi::roaring_bitmap_shrink_to_fit(&mut self.bitmap) }
     }
 
     /// Compresses of the bitmap. Returns true if the bitmap was modified.
