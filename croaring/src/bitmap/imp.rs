@@ -22,7 +22,7 @@ impl Bitmap {
         const _: () = assert!(
             ffi::ROARING_VERSION_MAJOR == 0
                 && ffi::ROARING_VERSION_MINOR == 9
-                && ffi::ROARING_VERSION_REVISION == 4
+                && ffi::ROARING_VERSION_REVISION == 5
         );
         ffi::roaring_free(p as *mut _);
         result

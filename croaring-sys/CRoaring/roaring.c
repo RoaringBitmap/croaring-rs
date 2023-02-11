@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2023-02-07T15:42:05Z
+// Created by amalgamation.sh on 2023-02-09T21:36:47Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -6676,7 +6676,7 @@ static inline container_t *container_remove_range(
 
             if (result_cardinality == 0) {
                 return NULL;
-            } else if (result_cardinality < DEFAULT_MAX_SIZE) {
+            } else if (result_cardinality <= DEFAULT_MAX_SIZE) {
                 *result_type = ARRAY_CONTAINER_TYPE;
                 bitset_reset_range(bitset->words, min, max+1);
                 bitset->cardinality = result_cardinality;
