@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2023-02-09T21:36:47Z
+// Created by amalgamation.sh on 2023-02-11T22:19:22Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -6715,15 +6715,7 @@ static inline container_t *container_remove_range(
             }
 
             run_container_remove_range(run, min, max);
-
-            if (run_container_serialized_size_in_bytes(run->n_runs) <=
-                    bitset_container_serialized_size_in_bytes()) {
-                *result_type = RUN_CONTAINER_TYPE;
-                return run;
-            } else {
-                *result_type = BITSET_CONTAINER_TYPE;
-                return bitset_container_from_run(run);
-            }
+            return convert_run_to_efficient_container(run, result_type);
         }
         default:
             __builtin_unreachable();
