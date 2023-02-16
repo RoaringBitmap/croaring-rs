@@ -1,6 +1,7 @@
 #![no_main]
 
-use croaring::{Bitmap, BitmapView};
+use bitvec::prelude::*;
+use croaring::Bitmap;
 use libfuzzer_sys::arbitrary;
 use libfuzzer_sys::arbitrary::{Arbitrary, Unstructured};
 use libfuzzer_sys::fuzz_target;
@@ -11,21 +12,31 @@ fuzz_target!(|input: FuzzInput| {
     let mut lhs = Bitmap::create();
     let mut rhs = Bitmap::create();
 
+    let mut lhs_check = bitvec![0; 4 * 0x1_0000];
+    let mut rhs_check = bitvec![0; 4 * 0x1_0000];
+
     for op in input.lhs_ops {
-        op.do_it(&mut lhs);
+        op.on_roaring(&mut lhs);
+        op.on_bitvec(&mut lhs_check);
+        check_equal(&lhs, &lhs_check);
     }
     for op in input.rhs_ops {
-        op.do_it(&mut rhs);
+        op.on_roaring(&mut rhs);
+        op.on_bitvec(&mut rhs_check);
+        check_equal(&rhs, &rhs_check);
     }
 
     for op in &input.comp_ops {
-        op.do_it(&mut rhs, &lhs);
+        op.on_roaring(&mut lhs, &rhs);
+        op.on_bitvec(&mut lhs_check, &rhs);
+        check_equal(&lhs, &lhs_check);
     }
 
     for op in &input.view_ops {
-        op.do_it(&rhs);
-        op.do_it(&lhs);
+        op.on_roaring(&rhs, &rhs_check);
+        op.on_roaring(&lhs, &lhs_check);
     }
+    /*
     let mut v = Vec::new();
     for side in [lhs.clone(), rhs] {
         v.clear();
@@ -36,14 +47,15 @@ fuzz_target!(|input: FuzzInput| {
         let view2 = unsafe { BitmapView::deserialize_frozen(data2) };
         assert_eq!(view2, side);
         for op in &input.view_ops {
-            op.do_it(&view1);
-            op.do_it(&view2);
+            op.on_roaring(&view1);
+            op.on_roaring(&view2);
         }
         for op in &input.comp_ops {
-            op.do_it(&mut lhs, &view1);
-            op.do_it(&mut lhs, &view2);
+            op.on_roaring(&mut lhs, &view1);
+            op.on_roaring(&mut lhs, &view2);
         }
     }
+     */
 });
 
 #[derive(Arbitrary, Debug)]
@@ -58,9 +70,11 @@ struct FuzzInput {
 #[repr(transparent)]
 struct Num(u32);
 
+const MAX_NUM: u32 = 0x1_0000 * 4;
+
 impl<'a> Arbitrary<'a> for Num {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
-        Ok(Self(u.int_in_range(0..=(0x1_0000 * 4 - 1))?))
+        Ok(Self(u.int_in_range(0..=(MAX_NUM - 1))?))
     }
 }
 
@@ -129,25 +143,32 @@ enum IterOperation {
 }
 
 impl ReadBitmapOp {
-    fn do_it(&self, b: &Bitmap) {
+    fn on_roaring(&self, b: &Bitmap, v: &BitSlice) {
         match *self {
             ReadBitmapOp::ContainsRange(ref r) => {
-                b.contains_range(r.start().0..=r.end().0);
+                assert_eq!(
+                    v[r.start().0 as usize..=r.end().0 as usize].all(),
+                    b.contains_range(r.start().0..=r.end().0)
+                );
             }
             ReadBitmapOp::Contains(i) => {
-                b.contains(i.0);
+                assert_eq!(v[i.0 as usize], b.contains(i.0));
             }
             ReadBitmapOp::RangeCardinality(ref r) => {
-                b.range_cardinality(r.start().0..=r.end().0);
+                assert_eq!(
+                    v[r.start().0 as usize..=r.end().0 as usize].count_ones() as u64,
+                    b.range_cardinality(r.start().0..=r.end().0)
+                );
             }
             ReadBitmapOp::Cardinality => {
-                b.cardinality();
+                assert_eq!(v.count_ones() as u64, b.cardinality());
             }
             ReadBitmapOp::Flip(ref r) => {
                 b.flip(r.start().0..=r.end().0);
             }
             ReadBitmapOp::ToVec => {
-                b.to_vec();
+                let vec_iter = b.to_vec();
+                assert!(vec_iter.into_iter().eq(v.iter_ones().map(|i| i as u32)));
             }
             ReadBitmapOp::GetSerializedSizeInBytes => {
                 b.get_serialized_size_in_bytes();
@@ -163,22 +184,31 @@ impl ReadBitmapOp {
                 b.serialize_frozen_into(&mut v);
             }
             ReadBitmapOp::IsEmpty => {
-                b.is_empty();
+                assert_eq!(v.not_any(), b.is_empty());
             }
             ReadBitmapOp::IntersectWithRange(ref r) => {
-                b.intersect_with_range(r.start().0..=r.end().0);
+                assert_eq!(
+                    v[r.start().0 as usize..=r.end().0 as usize].any(),
+                    b.intersect_with_range(r.start().0..=r.end().0)
+                );
             }
             ReadBitmapOp::Minimum => {
-                b.minimum();
+                assert_eq!(v.first_one().map(|i| i as u32), b.minimum());
             }
             ReadBitmapOp::Maximum => {
-                b.maximum();
+                assert_eq!(v.last_one().map(|i| i as u32), b.maximum());
             }
             ReadBitmapOp::Rank(i) => {
-                b.rank(i.0);
+                assert_eq!(
+                    v.iter_ones().take_while(|&n| n <= i.0 as usize).count() as u64,
+                    b.rank(i.0),
+                );
             }
             ReadBitmapOp::Select(i) => {
-                b.select(i.0);
+                assert_eq!(
+                    v.iter_ones().nth(i.0 as usize).map(|n| n as u32),
+                    b.select(i.0),
+                );
             }
             ReadBitmapOp::Statistics => {
                 b.statistics();
@@ -215,22 +245,22 @@ impl ReadBitmapOp {
 }
 
 impl MutableBitmapOperation {
-    fn do_it(self, b: &mut Bitmap) {
-        match self {
+    fn on_roaring(&self, b: &mut Bitmap) {
+        match *self {
             MutableBitmapOperation::Add(i) => {
                 b.add(i.0);
             }
             MutableBitmapOperation::AddChecked(i) => {
                 b.add_checked(i.0);
             }
-            MutableBitmapOperation::AddMany(items) => {
+            MutableBitmapOperation::AddMany(ref items) => {
                 let items: &[u32] = unsafe { mem::transmute(&items[..]) };
                 b.add_many(&items);
             }
-            MutableBitmapOperation::AddRange(r) => {
+            MutableBitmapOperation::AddRange(ref r) => {
                 b.add_range(r.start().0..=r.end().0);
             }
-            MutableBitmapOperation::RemoveRange(r) => {
+            MutableBitmapOperation::RemoveRange(ref r) => {
                 b.remove_range(r.start().0..=r.end().0);
             }
             MutableBitmapOperation::Clear => {
@@ -242,7 +272,7 @@ impl MutableBitmapOperation {
             MutableBitmapOperation::RemoveChecked(i) => {
                 b.remove_checked(i.0);
             }
-            MutableBitmapOperation::FlipInplace(r) => {
+            MutableBitmapOperation::FlipInplace(ref r) => {
                 b.flip_inplace(r.start().0..=r.end().0);
             }
             MutableBitmapOperation::ShrinkToFit => {
@@ -269,11 +299,61 @@ impl MutableBitmapOperation {
                 b.add_range(start..=end)
             }
         }
+        b.remove_range(MAX_NUM..);
+    }
+
+    fn on_bitvec(&self, b: &mut BitSlice) {
+        match *self {
+            MutableBitmapOperation::Add(i) | MutableBitmapOperation::AddChecked(i) => {
+                b.set(i.0 as usize, true);
+            }
+            MutableBitmapOperation::AddMany(ref items) => {
+                for i in items {
+                    b.set(i.0 as usize, true);
+                }
+            }
+            MutableBitmapOperation::AddRange(ref r) => {
+                b[r.start().0 as usize..=r.end().0 as usize].fill(true);
+            }
+            MutableBitmapOperation::RemoveRange(ref r) => {
+                b[r.start().0 as usize..=r.end().0 as usize].fill(false);
+            }
+            MutableBitmapOperation::Clear => {
+                b.fill(false);
+            }
+            MutableBitmapOperation::Remove(i) | MutableBitmapOperation::RemoveChecked(i) => {
+                b.set(i.0 as usize, false);
+            }
+            MutableBitmapOperation::FlipInplace(ref r) => {
+                let _ = !&mut b[r.start().0 as usize..=r.end().0 as usize];
+            }
+            MutableBitmapOperation::ShrinkToFit
+            | MutableBitmapOperation::RunOptimize
+            | MutableBitmapOperation::RemoveRunCompression => {}
+            MutableBitmapOperation::MakeBitmap { key } => {
+                if key < (MAX_NUM / 0x1_0000) as u16 {
+                    let key = usize::from(key);
+                    let start = key * 0x1_0000;
+                    let end = start + 9 * 1024;
+                    for i in (start..end).step_by(2) {
+                        b.set(i, true);
+                    }
+                }
+            }
+            MutableBitmapOperation::MakeRange { key } => {
+                if key < (MAX_NUM / 0x1_0000) as u16 {
+                    let key = usize::from(key);
+                    let start = key * 0x1_0000;
+                    let end = start + 0x0_FFFF;
+                    b[start..=end].fill(true);
+                }
+            }
+        }
     }
 }
 
 impl BitmapCompOperation {
-    fn do_it(&self, lhs: &mut Bitmap, rhs: &Bitmap) {
+    fn on_roaring(&self, lhs: &mut Bitmap, rhs: &Bitmap) {
         match *self {
             BitmapCompOperation::Eq => {
                 drop(lhs == rhs);
@@ -335,4 +415,65 @@ impl BitmapCompOperation {
             }
         }
     }
+
+    fn on_bitvec(&self, lhs: &mut BitSlice, rhs: &Bitmap) {
+        match *self {
+            BitmapCompOperation::Eq
+            | BitmapCompOperation::IsSubset
+            | BitmapCompOperation::IsStrictSubset
+            | BitmapCompOperation::Intersect
+            | BitmapCompOperation::JacardIndex => {}
+            BitmapCompOperation::And => {
+                let tmp = to_bitvec(rhs, lhs.len());
+                *lhs &= &tmp;
+            }
+            BitmapCompOperation::Or => {
+                for i in rhs.iter() {
+                    let i = i as usize;
+                    if i >= lhs.len() {
+                        break;
+                    }
+                    lhs.set(i, true);
+                }
+            }
+            BitmapCompOperation::Xor => {
+                for i in rhs.iter() {
+                    let i = i as usize;
+                    if i >= lhs.len() {
+                        break;
+                    }
+                    let old_val = *lhs.get(i).unwrap();
+                    lhs.set(i, !old_val);
+                }
+            }
+            BitmapCompOperation::AndNot => {
+                for i in rhs.iter() {
+                    let i = i as usize;
+                    if i >= lhs.len() {
+                        break;
+                    }
+                    lhs.set(i, false);
+                }
+            }
+        }
+    }
+}
+
+fn to_bitvec(b: &Bitmap, max: usize) -> BitVec {
+    let mut res = bitvec![0; max];
+    for i in b.iter() {
+        let i = i as usize;
+        if i >= max {
+            break;
+        }
+        res.set(i, true);
+    }
+    res
+}
+
+fn check_equal(b: &Bitmap, v: &BitSlice) {
+    let lhs = b.iter().take_while(|&i| i < v.len() as u32);
+    let rhs = v.iter_ones().map(|i| i as u32);
+
+    assert!(lhs.eq(rhs), "{b:?}")
 }
