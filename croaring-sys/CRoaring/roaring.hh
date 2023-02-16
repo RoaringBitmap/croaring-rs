@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2023-02-11T22:19:22Z
+// Created by amalgamation.sh on 2023-02-16T13:58:11Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -929,8 +929,8 @@ inline RoaringSetBitForwardIterator &Roaring::end() const {
 #ifndef INCLUDE_ROARING_64_MAP_HH_
 #define INCLUDE_ROARING_64_MAP_HH_
 
-#include <inttypes.h>
 #include <algorithm>
+#include <cinttypes> // PRIu64 macro
 #include <cstdarg>  // for va_list handling in bitmapOf()
 #include <cstdio>  // for std::printf() in the printf() method
 #include <cstring>  // for std::memcpy()
