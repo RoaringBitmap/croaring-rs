@@ -79,8 +79,8 @@ enum MutableBitmapOperation {
     RunOptimize,
     RemoveRunCompression,
     // Probably turn it into a bitmap
-    SetEveryOther { key: u16 },
-    FlipAll,
+    MakeBitmap { key: u16 },
+    MakeRange { key: u16 },
 }
 
 #[derive(Arbitrary, Debug)]
@@ -254,14 +254,19 @@ impl MutableBitmapOperation {
             MutableBitmapOperation::RemoveRunCompression => {
                 b.remove_run_compression();
             }
-            MutableBitmapOperation::SetEveryOther { key } => {
-                let key = u64::from(key);
-                for i in (key * 0x1_0000..=(key + 1) * 0x1_0000).step_by(2) {
-                    b.add(i as u32);
+            MutableBitmapOperation::MakeBitmap { key } => {
+                let key = u32::from(key);
+                let start = key * 0x1_0000;
+                let end = start + 9 * 1024;
+                for i in (start..end).step_by(2) {
+                    b.add(i);
                 }
             }
-            MutableBitmapOperation::FlipAll => {
-                b.flip_inplace(..);
+            MutableBitmapOperation::MakeRange { key } => {
+                let key = u32::from(key);
+                let start = key * 0x1_0000;
+                let end = start + 0x0_FFFF;
+                b.add_range(start..=end)
             }
         }
     }
