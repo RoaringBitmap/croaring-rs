@@ -60,7 +60,7 @@ struct Num(u32);
 
 impl<'a> Arbitrary<'a> for Num {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
-        Ok(Self(u.arbitrary::<u32>()? % (0x1_0000 * 4)))
+        Ok(Self(u.int_in_range(0..=(0x1_0000 * 4 - 1))?))
     }
 }
 
