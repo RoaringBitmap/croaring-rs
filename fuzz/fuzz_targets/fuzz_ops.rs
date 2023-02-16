@@ -80,6 +80,7 @@ enum MutableBitmapOperation {
     RemoveRunCompression,
     // Probably turn it into a bitmap
     SetEveryOther { key: u16 },
+    FlipAll,
 }
 
 #[derive(Arbitrary, Debug)]
@@ -258,6 +259,9 @@ impl MutableBitmapOperation {
                 for i in (key * 0x1_0000..=(key + 1) * 0x1_0000).step_by(2) {
                     b.add(i as u32);
                 }
+            }
+            MutableBitmapOperation::FlipAll => {
+                b.flip_inplace(..);
             }
         }
     }
