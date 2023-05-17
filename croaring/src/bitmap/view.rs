@@ -27,9 +27,9 @@ impl<'a> BitmapView<'a> {
         // Ensure this is still valid every time we update
         // the version of croaring.
         const _: () = assert!(
-            ffi::ROARING_VERSION_MAJOR == 0
-                && ffi::ROARING_VERSION_MINOR == 9
-                && ffi::ROARING_VERSION_REVISION == 8
+            ffi::ROARING_VERSION_MAJOR == 1
+                && ffi::ROARING_VERSION_MINOR == 2
+                && ffi::ROARING_VERSION_REVISION == 0
         );
 
         assert!(!p.is_null());

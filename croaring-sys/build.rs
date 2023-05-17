@@ -23,6 +23,7 @@ fn main() {
             .header("CRoaring/roaring.h")
             .generate_inline_functions(true)
             .allowlist_function("roaring.*")
+            .allowlist_function("bitset.*")
             .allowlist_type("roaring.*")
             .allowlist_var("roaring.*")
             .allowlist_var("ROARING.*")
