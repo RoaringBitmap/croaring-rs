@@ -28,6 +28,7 @@ impl Default for Bitmap {
 
 impl PartialEq for Bitmap {
     #[inline]
+    #[doc(alias = "roaring_bitmap_equals")]
     fn eq(&self, other: &Bitmap) -> bool {
         unsafe { ffi::roaring_bitmap_equals(&self.bitmap, &other.bitmap) }
     }
@@ -68,6 +69,7 @@ impl Clone for Bitmap {
         result
     }
 
+    #[doc(alias = "roaring_bitmap_overwrite")]
     fn clone_from(&mut self, source: &Self) {
         unsafe {
             let success = ffi::roaring_bitmap_overwrite(&mut self.bitmap, &source.bitmap);
@@ -78,6 +80,7 @@ impl Clone for Bitmap {
 
 impl Drop for Bitmap {
     #[allow(clippy::assertions_on_constants)]
+    #[doc(alias = "roaring_bitmap_clear")]
     fn drop(&mut self) {
         // This depends somewhat heavily on the implementation of croaring,
         // Ensure this is still valid every time we update the version of croaring.
@@ -285,6 +288,7 @@ impl_binop! {
         /// assert!(!bitmap3.contains(2));
         /// ```
         #[inline]
+        #[doc(alias = "roaring_bitmap_and")]
         fn bitand -> Bitmap as and
     }
 }
@@ -310,6 +314,7 @@ impl_binop! {
         /// assert!(bitmap3.contains(25));
         /// ```
         #[inline]
+        #[doc(alias = "roaring_bitmap_or")]
         fn bitor -> Bitmap as or
     }
 }
@@ -336,6 +341,7 @@ impl_binop! {
         /// assert!(bitmap3.contains(35));
         /// ```
         #[inline]
+        #[doc(alias = "roaring_bitmap_xor")]
         fn bitxor -> Bitmap as xor
     }
 }
@@ -362,6 +368,8 @@ impl_binop! {
         /// assert!(!bitmap3.contains(35));
         /// ```
         #[inline]
+        #[doc(alias = "andnot")]
+        #[doc(alias = "roaring_bitmap_andnot")]
         fn sub -> Bitmap as andnot
     }
 }
@@ -393,6 +401,7 @@ impl_binop_assign! {
         /// assert!(!bitmap3.contains(25));
         /// ```
         #[inline]
+        #[doc(alias = "roaring_bitmap_and_inplace")]
         fn bitand_assign as and_inplace
     }
 }
@@ -416,6 +425,7 @@ impl_binop_assign! {
         /// assert!(bitmap1.contains(25));
         /// ```
         #[inline]
+        #[doc(alias = "roaring_bitmap_or_inplace")]
         fn bitor_assign as or_inplace
     }
 }
@@ -440,6 +450,7 @@ impl_binop_assign! {
         /// assert!(bitmap1.contains(35));
         /// ```
         #[inline]
+        #[doc(alias = "roaring_bitmap_xor_inplace")]
         fn bitxor_assign as xor_inplace
     }
 }
@@ -464,6 +475,8 @@ impl_binop_assign! {
         /// assert!(!bitmap1.contains(35));
         /// ```
         #[inline]
+        #[doc(alias = "andnot_inplace")]
+        #[doc(alias = "roaring_bitmap_andnot_inplace")]
         fn sub_assign as andnot_inplace
     }
 }

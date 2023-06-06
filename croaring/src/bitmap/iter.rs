@@ -94,6 +94,7 @@ impl<'a> BitmapIterator<'a> {
     /// # print_by_chunks(&Bitmap::of(&[1, 2, 8, 20, 1000]));
     /// ```
     #[inline]
+    #[doc(alias = "roaring_read_uint32_iterator")]
     pub fn next_many(&mut self, dst: &mut [u32]) -> usize {
         let count: u32 = u32::try_from(dst.len()).unwrap_or(u32::MAX);
         let result = unsafe {
@@ -127,6 +128,7 @@ impl<'a> BitmapIterator<'a> {
     /// assert_eq!(iter.next(), None);
     /// ```
     #[inline]
+    #[doc(alias = "roaring_move_uint32_iterator_equalorlarger")]
     pub fn reset_at_or_after(&mut self, val: u32) {
         unsafe { ffi::roaring_move_uint32_iterator_equalorlarger(&mut self.iterator, val) };
     }
@@ -167,6 +169,8 @@ impl Bitmap {
     /// assert_eq!(iterator.next(), Some(4));
     /// assert_eq!(iterator.next(), None);
     /// ```
+    #[inline]
+    #[doc(alias = "roaring_init_iterator")]
     pub fn iter(&self) -> BitmapIterator {
         BitmapIterator::new(self)
     }
