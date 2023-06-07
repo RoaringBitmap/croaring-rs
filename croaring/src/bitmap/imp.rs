@@ -1329,6 +1329,8 @@ impl Bitmap {
 
     /// Rank returns the number of values smaller or equal to x.
     ///
+    /// For a similar function which also checks if x is in the set, see [position][Self::position].
+    ///
     /// # Examples
     ///
     /// ```
@@ -1349,10 +1351,61 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_rank(&self.bitmap, x) }
     }
 
-    /// Select returns the element having the designated rank, if it exists
-    /// If the size of the roaring bitmap is strictly greater than rank,
+    /// Returns the index of x in the given roaring bitmap.
+    ///
+    /// If the roaring bitmap doesn't contain x, this function will return None.
+    /// The difference with the [rank][Self::rank] function is that this function
+    /// will return None when x is not the element of roaring bitmap, but the rank
+    /// function will return the the number of items less than x, and would require
+    /// a call to [contains][Self::contains] to check if x is in the roaring bitmap.
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap: Bitmap = Bitmap::from_range(5..10);
+    /// assert_eq!(bitmap.position(4), None);
+    /// assert_eq!(bitmap.position(5), Some(0));
+    /// assert_eq!(bitmap.position(9), Some(4));
+    /// assert_eq!(bitmap.position(10), None);
+    /// assert_eq!(bitmap.position(9999), None);
+    ///
+    /// // rank returns the number of values smaller or equal to x, so it always returns a value, and
+    /// // returns `position + 1` when x is contained in the bitmap.
+    /// assert_eq!(bitmap.rank(4), 0);
+    /// assert_eq!(bitmap.rank(5), 1);
+    /// assert_eq!(bitmap.rank(9), 5);
+    /// assert_eq!(bitmap.rank(10), 5);
+    /// assert_eq!(bitmap.rank(9999), 5);
+    ///
+    /// let pos = bitmap.position(7).unwrap();
+    /// assert_eq!(bitmap.select(pos), Some(7));
+    /// ```
+    #[inline]
+    #[doc(alias = "index")]
+    #[doc(alias = "roaring_bitmap_get_index")]
+    pub fn position(&self, x: u32) -> Option<u32> {
+        let index = unsafe { ffi::roaring_bitmap_get_index(&self.bitmap, x) };
+        if index == -1 {
+            None
+        } else {
+            debug_assert!((0..=u32::MAX as i64).contains(&index));
+            Some(index as u32)
+        }
+    }
+
+    /// Select returns the element having the designated position, if it exists
+    ///
+    /// If the size of the roaring bitmap is strictly greater than pos,
     /// then this function returns element of given rank wrapped in Some.
     /// Otherwise, it returns None.
+    ///
+    /// To do the inverse operation (given an element, find its position), use the
+    /// [position][Self::position] function, or the [rank][Self::rank] function.
+    ///
+    /// Note that the [rank][Self::rank] function is inclusive: it returns the number of values
+    /// smaller or equal to x, when `x` is contained in the bitmap, it returns
+    /// `position + 1`.
     ///
     /// # Examples
     ///
@@ -1370,9 +1423,9 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_select")]
-    pub fn select(&self, rank: u32) -> Option<u32> {
+    pub fn select(&self, position: u32) -> Option<u32> {
         let mut element: u32 = 0;
-        let result = unsafe { ffi::roaring_bitmap_select(&self.bitmap, rank, &mut element) };
+        let result = unsafe { ffi::roaring_bitmap_select(&self.bitmap, position, &mut element) };
 
         if result {
             Some(element)

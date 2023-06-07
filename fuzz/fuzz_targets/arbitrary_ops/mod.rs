@@ -50,6 +50,7 @@ pub enum ReadBitmapOp {
     Minimum,
     Maximum,
     Rank(Num),
+    Index(Num),
     Select(Num),
     Statistics,
     Clone,

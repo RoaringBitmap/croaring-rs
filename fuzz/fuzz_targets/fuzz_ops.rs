@@ -104,6 +104,9 @@ impl ReadBitmapOp {
             ReadBitmapOp::Rank(i) => {
                 b.rank(i.0);
             }
+            ReadBitmapOp::Index(i) => {
+                b.position(i.0);
+            }
             ReadBitmapOp::Select(i) => {
                 b.select(i.0);
             }
