@@ -1,7 +1,6 @@
 use crate::Bitset;
 use ffi::roaring_bitmap_t;
 use std::convert::TryInto;
-use std::ffi::c_char;
 use std::mem;
 use std::ops::{Bound, RangeBounds};
 
@@ -10,7 +9,7 @@ use super::{Bitmap, Statistics};
 impl Bitmap {
     #[inline]
     #[allow(clippy::assertions_on_constants)]
-    unsafe fn take_heap(p: *mut roaring_bitmap_t) -> Self {
+    pub(crate) unsafe fn take_heap(p: *mut roaring_bitmap_t) -> Self {
         // Based heavily on the `roaring.hh` cpp header from croaring
 
         assert!(!p.is_null());
@@ -738,14 +737,14 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_portable_size_in_bytes")]
     pub fn get_serialized_size_in_bytes(&self) -> usize {
-        unsafe { ffi::roaring_bitmap_portable_size_in_bytes(&self.bitmap) }
+        super::PortableSerializer::get_serialized_size_in_bytes(&self)
     }
 
     /// Computes the serialized size in bytes of the Bitmap for the frozen format.
     #[inline]
     #[doc(alias = "roaring_bitmap_frozen_size_in_bytes")]
     pub fn get_frozen_serialized_size_in_bytes(&self) -> usize {
-        unsafe { ffi::roaring_bitmap_frozen_size_in_bytes(&self.bitmap) }
+        super::FrozenSerializer::get_serialized_size_in_bytes(&self)
     }
 
     /// Serializes a bitmap to a slice of bytes.
@@ -794,20 +793,7 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_portable_serialize")]
     pub fn serialize_into<'a>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        let len = self.get_serialized_size_in_bytes();
-
-        dst.reserve(len);
-        let total_len = dst.len().checked_add(len).unwrap();
-
-        unsafe {
-            ffi::roaring_bitmap_portable_serialize(
-                &self.bitmap,
-                dst.spare_capacity_mut().as_mut_ptr().cast::<c_char>(),
-            );
-            dst.set_len(total_len);
-        }
-
-        dst
+        super::PortableSerializer::serialize_into(self, dst)
     }
 
     /// Serialize into the "frozen" format
@@ -816,33 +802,7 @@ impl Bitmap {
     /// This means the returned slice may not start exactly at the beginning of the passed Vec
     #[doc(alias = "roaring_bitmap_frozen_serialize")]
     pub fn serialize_frozen_into<'a>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        const REQUIRED_ALIGNMENT: usize = 32;
-        let len = self.get_frozen_serialized_size_in_bytes();
-
-        let offset = dst.len();
-        // Need to be able to add up to 31 extra bytes to align to 32 bytes
-        dst.reserve(len.checked_add(REQUIRED_ALIGNMENT - 1).unwrap());
-
-        let extra_offset = match (dst.as_ptr() as usize) % REQUIRED_ALIGNMENT {
-            0 => 0,
-            r => REQUIRED_ALIGNMENT - r,
-        };
-        let offset = offset.checked_add(extra_offset).unwrap();
-        let total_len = offset.checked_add(len).unwrap();
-        debug_assert!(dst.capacity() >= total_len);
-
-        // we must initialize up to offset
-        dst.resize(offset, 0);
-
-        unsafe {
-            ffi::roaring_bitmap_frozen_serialize(
-                &self.bitmap,
-                dst.as_mut_ptr().add(offset).cast::<c_char>(),
-            );
-            dst.set_len(total_len);
-        }
-
-        &dst[offset..total_len]
+        super::FrozenSerializer::serialize_into(self, dst)
     }
 
     /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
@@ -868,18 +828,7 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_portable_deserialize_safe")]
     pub fn try_deserialize(buffer: &[u8]) -> Option<Self> {
-        unsafe {
-            let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
-                buffer.as_ptr() as *const c_char,
-                buffer.len(),
-            );
-
-            if !bitmap.is_null() {
-                Some(Self::take_heap(bitmap))
-            } else {
-                None
-            }
-        }
+        super::PortableSerializer::try_deserialize(buffer)
     }
 
     /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
