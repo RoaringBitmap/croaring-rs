@@ -11,6 +11,7 @@ impl<'a> LazyBitmap<'a> {
     /// * `other` - The other bitmap to union with.
     /// * `force_bitsets` - Whether to force conversions to bitsets when modifying containers
     #[inline]
+    #[doc(alias = "roaring_bitmap_lazy_or_inplace")]
     pub fn or_inplace(&mut self, other: &Bitmap, force_bitsets: bool) -> &mut Self {
         unsafe {
             // Because we have a mutable borrow of the bitmap, `other` cannot be == our bitmap,
@@ -26,6 +27,7 @@ impl<'a> LazyBitmap<'a> {
 
     /// Modifies the bitmap this lazy bitmap is associated with to be the xor of the two bitmaps.
     #[inline]
+    #[doc(alias = "roaring_bitmap_lazy_xor_inplace")]
     pub fn xor_inplace(&mut self, other: &Bitmap) -> &mut Self {
         unsafe {
             // Because we have a mutable borrow of the bitmap, `other` cannot be == our bitmap,
@@ -103,6 +105,7 @@ impl Bitmap {
     ///     total
     /// });
     /// assert_eq!(total_added, 7);
+    #[doc(alias = "roaring_bitmap_repair_after_lazy")]
     pub fn lazy_batch<F, O>(&mut self, f: F) -> O
     where
         F: FnOnce(&mut LazyBitmap<'_>) -> O,

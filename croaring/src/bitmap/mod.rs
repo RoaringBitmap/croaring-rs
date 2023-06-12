@@ -55,8 +55,8 @@
 
 use std::marker::PhantomData;
 
-// Must be repr(transparent) and match FrozenBitmap, to allow safe transmute between
-// &FrozenBitmap and &Bitmap
+// Must be repr(transparent) and match BitmapView, to allow safe transmute between
+// &BitmapView and &Bitmap
 #[repr(transparent)]
 pub struct Bitmap {
     bitmap: ffi::roaring_bitmap_t,

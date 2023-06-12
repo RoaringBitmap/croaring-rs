@@ -63,6 +63,7 @@ impl<'a> BitmapView<'a> {
     /// assert!(view.contains_range(1..=4));
     /// assert_eq!(orig_bitmap, view);
     /// ```
+    #[doc(alias = "roaring_bitmap_frozen_view")]
     pub unsafe fn deserialize_frozen(data: &'a [u8]) -> Self {
         const REQUIRED_ALIGNMENT: usize = 32;
         assert_eq!(data.as_ptr() as usize % REQUIRED_ALIGNMENT, 0);
@@ -91,6 +92,7 @@ impl<'a> BitmapView<'a> {
     /// assert!(view.contains_range(1..=4));
     /// assert_eq!(orig_bitmap, view);
     /// ```
+    #[doc(alias = "roaring_bitmap_portable_deserialize_frozen")]
     pub unsafe fn deserialize(data: &'a [u8]) -> Self {
         // portable_deserialize_size does some amount of checks, and returns zero if data cannot be valid
         debug_assert_ne!(
@@ -129,7 +131,7 @@ impl<'a> Deref for BitmapView<'a> {
     fn deref(&self) -> &Self::Target {
         const _: () = assert!(mem::size_of::<Bitmap>() == mem::size_of::<BitmapView>());
         // SAFETY:
-        //   Bitmap and FrozenBitmap are repr(transparent), and both only wrap a roaring_bitmap_t
+        //   Bitmap and BitmapView are repr(transparent), and both only wrap a roaring_bitmap_t
         //   Bitmap provides no features with a shared reference which modifies the underlying bitmap
         unsafe { mem::transmute::<&BitmapView, &Bitmap>(self) }
     }
