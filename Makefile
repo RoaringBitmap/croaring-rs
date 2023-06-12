@@ -28,9 +28,9 @@ download_croaring:
 bindgen:
 	cd '$(croaring_source)' && \
 		bindgen --generate-inline-functions \
-			--allowlist-function 'roaring.*' \
-			--allowlist-type 'roaring.*' \
-			--allowlist-var '(?i:roaring).*' \
+			--allowlist-function 'roaring.*|bitset.*' \
+			--allowlist-type 'roaring.*|bitset.*' \
+			--allowlist-var '(?i:roaring|bitset).*' \
 			-o bindgen_bundled_version.rs \
 			roaring.h
 
