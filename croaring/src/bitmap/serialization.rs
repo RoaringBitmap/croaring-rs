@@ -1,11 +1,24 @@
-use super::Bitmap;
+use super::{Bitmap, BitmapView};
 
 use std::ffi::{c_char, c_void};
 
-pub struct PortableSerializer {}
+pub trait Serializer {
+    fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8];
+    fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize;
+}
 
-impl PortableSerializer {
-    pub fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8] {
+pub trait Deserializer {
+    fn try_deserialize(buffer: &[u8]) -> Option<Bitmap>;
+}
+
+pub trait ViewDeserializer {
+    unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_>;
+}
+
+pub enum Portable {}
+
+impl Serializer for Portable {
+    fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8] {
         let len = Self::get_serialized_size_in_bytes(bitmap);
 
         dst.reserve(len);
@@ -22,11 +35,13 @@ impl PortableSerializer {
         dst
     }
 
-    pub fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
+    fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
         unsafe { ffi::roaring_bitmap_portable_size_in_bytes(&bitmap.bitmap) }
     }
+}
 
-    pub fn try_deserialize(buffer: &[u8]) -> Option<Bitmap> {
+impl Deserializer for Portable {
+    fn try_deserialize(buffer: &[u8]) -> Option<Bitmap> {
         unsafe {
             let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
                 buffer.as_ptr() as *const c_char,
@@ -42,10 +57,32 @@ impl PortableSerializer {
     }
 }
 
-pub struct NativeSerializer {}
+impl ViewDeserializer for Portable {
+    /// Read bitmap from a serialized buffer
+    ///
+    /// This is meant to be compatible with the Java and Go versions
+    ///
+    /// # Safety
+    /// * `data` must be the result of serializing a roaring bitmap in portable mode
+    ///   (following `https://github.com/RoaringBitmap/RoaringFormatSpec`), for example, with
+    ///   [`Bitmap::serialize`]
+    /// * Using this function (or the returned bitmap in any way) may execute unaligned memory accesses
+    ///
+    unsafe fn deserialize_view<'a>(data: &'a [u8]) -> BitmapView {
+        // portable_deserialize_size does some amount of checks, and returns zero if data cannot be valid
+        debug_assert_ne!(
+            ffi::roaring_bitmap_portable_deserialize_size(data.as_ptr().cast(), data.len()),
+            0,
+        );
+        let roaring = ffi::roaring_bitmap_portable_deserialize_frozen(data.as_ptr().cast());
+        BitmapView::take_heap(roaring)
+    }
+}
 
-impl NativeSerializer {
-    pub fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8] {
+pub enum Native {}
+
+impl Serializer for Native {
+    fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8] {
         let len = Self::get_serialized_size_in_bytes(bitmap);
 
         dst.reserve(len);
@@ -62,11 +99,13 @@ impl NativeSerializer {
         dst
     }
 
-    pub fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
+    fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
         unsafe { ffi::roaring_bitmap_size_in_bytes(&bitmap.bitmap) }
     }
+}
 
-    pub fn try_deserialize(buffer: &[u8]) -> Option<Bitmap> {
+impl Deserializer for Native {
+    fn try_deserialize(buffer: &[u8]) -> Option<Bitmap> {
         unsafe {
             let bitmap = ffi::roaring_bitmap_deserialize_safe(
                 buffer.as_ptr() as *const c_void,
@@ -82,10 +121,10 @@ impl NativeSerializer {
     }
 }
 
-pub struct FrozenSerializer {}
+pub enum Frozen {}
 
-impl FrozenSerializer {
-    pub fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8] {
+impl Serializer for Frozen {
+    fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8] {
         const REQUIRED_ALIGNMENT: usize = 32;
         let len = Self::get_serialized_size_in_bytes(bitmap);
 
@@ -115,7 +154,24 @@ impl FrozenSerializer {
         &dst[offset..total_len]
     }
 
-    pub fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
+    fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
         unsafe { ffi::roaring_bitmap_frozen_size_in_bytes(&bitmap.bitmap) }
+    }
+}
+
+impl ViewDeserializer for Frozen {
+    /// Create a frozen bitmap view using the passed data
+    ///
+    /// # Safety
+    /// * `data` must be the result of serializing a roaring bitmap in frozen mode
+    ///   (in c with `roaring_bitmap_frozen_serialize`, or via [`Bitmap::serialize_frozen_into`]).
+    /// * Its beginning must be aligned by 32 bytes.
+    /// * data.len() must be equal exactly to the size of the frozen bitmap.
+    unsafe fn deserialize_view<'a>(data: &'a [u8]) -> BitmapView {
+        const REQUIRED_ALIGNMENT: usize = 32;
+        assert_eq!(data.as_ptr() as usize % REQUIRED_ALIGNMENT, 0);
+
+        let roaring = ffi::roaring_bitmap_frozen_view(data.as_ptr().cast(), data.len());
+        BitmapView::take_heap(roaring)
     }
 }

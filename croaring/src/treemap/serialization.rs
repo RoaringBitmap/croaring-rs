@@ -1,5 +1,5 @@
-use crate::Bitmap;
 use crate::Treemap;
+use crate::{Bitmap, Portable};
 
 use byteorder::{BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Cursor, Result, Seek, SeekFrom};
@@ -28,7 +28,7 @@ impl NativeSerializer for Treemap {
 
         for (index, bitmap) in &self.map {
             buffer.write_u32::<NativeEndian>(*index)?;
-            let bitmap_buffer = bitmap.serialize();
+            let bitmap_buffer = bitmap.serialize::<Portable>();
             buffer.extend(bitmap_buffer);
         }
 
@@ -42,9 +42,9 @@ impl NativeSerializer for Treemap {
 
         for _ in 0..bitmap_count {
             let index = cursor.read_u32::<NativeEndian>()?;
-            let bitmap = Bitmap::deserialize(&buffer[cursor.position() as usize..]);
+            let bitmap = Bitmap::deserialize::<Portable>(&buffer[cursor.position() as usize..]);
             cursor.seek(SeekFrom::Current(
-                bitmap.get_serialized_size_in_bytes() as i64
+                bitmap.get_serialized_size_in_bytes::<Portable>() as i64,
             ))?;
             treemap.map.insert(index, bitmap);
         }
@@ -75,7 +75,7 @@ impl NativeSerializer for Treemap {
     fn get_serialized_size_in_bytes(&self) -> usize {
         self.map.iter().fold(
             size_of::<u64>() + self.map.len() * size_of::<u32>(),
-            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes(),
+            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes::<Portable>(),
         )
     }
 }
@@ -101,7 +101,7 @@ impl JvmSerializer for Treemap {
 
         for (index, bitmap) in &self.map {
             buffer.write_u32::<BigEndian>(*index)?;
-            let bitmap_buffer = bitmap.serialize();
+            let bitmap_buffer = bitmap.serialize::<Portable>();
             buffer.extend(bitmap_buffer);
         }
 
@@ -117,9 +117,9 @@ impl JvmSerializer for Treemap {
 
         for _ in 0..bitmap_count {
             let index = cursor.read_u32::<BigEndian>()?;
-            let bitmap = Bitmap::deserialize(&buffer[cursor.position() as usize..]);
+            let bitmap = Bitmap::deserialize::<Portable>(&buffer[cursor.position() as usize..]);
             cursor.seek(SeekFrom::Current(
-                bitmap.get_serialized_size_in_bytes() as i64
+                bitmap.get_serialized_size_in_bytes::<Portable>() as i64,
             ))?;
             treemap.map.insert(index, bitmap);
         }
@@ -150,7 +150,7 @@ impl JvmSerializer for Treemap {
     fn get_serialized_size_in_bytes(&self) -> usize {
         self.map.iter().fold(
             size_of::<u8>() + size_of::<u32>() + self.map.len() * size_of::<u32>(),
-            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes(),
+            |sum, (_, bitmap)| sum + bitmap.get_serialized_size_in_bytes::<Portable>(),
         )
     }
 }

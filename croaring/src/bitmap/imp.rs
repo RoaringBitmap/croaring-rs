@@ -4,6 +4,7 @@ use std::convert::TryInto;
 use std::mem;
 use std::ops::{Bound, RangeBounds};
 
+use super::serialization::{Deserializer, Serializer};
 use super::{Bitmap, Statistics};
 
 impl Bitmap {
@@ -736,15 +737,8 @@ impl Bitmap {
     /// Computes the serialized size in bytes of the Bitmap.
     #[inline]
     #[doc(alias = "roaring_bitmap_portable_size_in_bytes")]
-    pub fn get_serialized_size_in_bytes(&self) -> usize {
-        super::PortableSerializer::get_serialized_size_in_bytes(&self)
-    }
-
-    /// Computes the serialized size in bytes of the Bitmap for the frozen format.
-    #[inline]
-    #[doc(alias = "roaring_bitmap_frozen_size_in_bytes")]
-    pub fn get_frozen_serialized_size_in_bytes(&self) -> usize {
-        super::FrozenSerializer::get_serialized_size_in_bytes(&self)
+    pub fn get_serialized_size_in_bytes<S: Serializer>(&self) -> usize {
+        S::get_serialized_size_in_bytes(&self)
     }
 
     /// Serializes a bitmap to a slice of bytes.
@@ -764,9 +758,9 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_portable_serialize")]
-    pub fn serialize(&self) -> Vec<u8> {
+    pub fn serialize<S: Serializer>(&self) -> Vec<u8> {
         let mut dst = Vec::new();
-        self.serialize_into(&mut dst);
+        self.serialize_into::<S>(&mut dst);
         dst
     }
 
@@ -792,17 +786,8 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_portable_serialize")]
-    pub fn serialize_into<'a>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        super::PortableSerializer::serialize_into(self, dst)
-    }
-
-    /// Serialize into the "frozen" format
-    ///
-    /// This has an odd API because it always returns a slice which is aligned to 32 bytes:
-    /// This means the returned slice may not start exactly at the beginning of the passed Vec
-    #[doc(alias = "roaring_bitmap_frozen_serialize")]
-    pub fn serialize_frozen_into<'a>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        super::FrozenSerializer::serialize_into(self, dst)
+    pub fn serialize_into<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
+        S::serialize_into(self, dst)
     }
 
     /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
@@ -827,8 +812,8 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_portable_deserialize_safe")]
-    pub fn try_deserialize(buffer: &[u8]) -> Option<Self> {
-        super::PortableSerializer::try_deserialize(buffer)
+    pub fn try_deserialize<D: Deserializer>(buffer: &[u8]) -> Option<Self> {
+        D::try_deserialize(buffer)
     }
 
     /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
@@ -836,8 +821,8 @@ impl Bitmap {
     ///
     /// On invalid input returns empty bitmap.
     #[inline]
-    pub fn deserialize(buffer: &[u8]) -> Self {
-        Self::try_deserialize(buffer).unwrap_or_else(Bitmap::create)
+    pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
+        Self::try_deserialize::<D>(buffer).unwrap_or_else(Bitmap::create)
     }
 
     /// Creates a new bitmap from a slice of u32 integers

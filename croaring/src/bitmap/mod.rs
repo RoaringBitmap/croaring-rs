@@ -91,4 +91,4 @@ mod view;
 
 pub use self::iter::BitmapIterator;
 pub use self::lazy::LazyBitmap;
-pub use self::serialization::{FrozenSerializer, NativeSerializer, PortableSerializer};
+pub use self::serialization::{Frozen, Native, Portable};

@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::{fs, iter, u32};
 
-use croaring::{Bitmap, BitmapView, Treemap};
+use croaring::{Bitmap, BitmapView, Frozen, Portable, Treemap};
 use proptest::prelude::*;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
@@ -105,7 +105,7 @@ fn expected_serialized_bitmap() -> Bitmap {
 #[test]
 fn test_portable_view() {
     let buffer = fs::read("tests/data/portable_bitmap.bin").unwrap();
-    let bitmap = unsafe { BitmapView::deserialize(&buffer) };
+    let bitmap = unsafe { BitmapView::deserialize::<Portable>(&buffer) };
     let expected = expected_serialized_bitmap();
     assert_eq!(bitmap, expected);
     assert!(bitmap.iter().eq(expected.iter()))
@@ -119,7 +119,7 @@ fn test_frozen_view() {
     let offset = 32 - (buffer.as_ptr() as usize) % 32;
     buffer.splice(..0, iter::repeat(0).take(offset));
 
-    let bitmap = unsafe { BitmapView::deserialize_frozen(&buffer[offset..]) };
+    let bitmap = unsafe { BitmapView::deserialize::<Frozen>(&buffer[offset..]) };
     let expected = expected_serialized_bitmap();
     assert_eq!(bitmap, expected);
     assert!(bitmap.iter().eq(expected.iter()))
@@ -230,9 +230,9 @@ proptest! {
     ) {
         let original = Bitmap::of(&indices);
 
-        let buffer = original.serialize();
+        let buffer = original.serialize::<Portable>();
 
-        let deserialized = Bitmap::deserialize(&buffer);
+        let deserialized = Bitmap::deserialize::<Portable>(&buffer);
 
         prop_assert_eq!(original , deserialized);
     }
@@ -276,8 +276,8 @@ proptest! {
         use croaring::BitmapView;
 
         let original = Bitmap::of(&indices);
-        let serialized = original.serialize();
-        let deserialized = unsafe { BitmapView::deserialize(&serialized) };
+        let serialized = original.serialize::<Portable>();
+        let deserialized = unsafe { BitmapView::deserialize::<Portable>(&serialized) };
         assert_eq!(&original, &*deserialized);
         assert!(original.iter().eq(deserialized.iter()));
     }
@@ -290,8 +290,8 @@ proptest! {
 
         let original = Bitmap::of(&indices);
         let mut buf = Vec::new();
-        let serialized: &[u8] = original.serialize_frozen_into(&mut buf);
-        let deserialized = unsafe { BitmapView::deserialize_frozen(serialized) };
+        let serialized: &[u8] = original.serialize_into::<Frozen>(&mut buf);
+        let deserialized = unsafe { BitmapView::deserialize::<Frozen>(serialized) };
         assert_eq!(&original, &*deserialized);
         assert!(original.iter().eq(deserialized.iter()));
     }
