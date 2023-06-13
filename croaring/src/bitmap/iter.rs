@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 
 use super::Bitmap;
 
+/// Iterator over the values of a bitmap
 #[derive(Clone)]
 pub struct BitmapIterator<'a> {
     iterator: ffi::roaring_uint32_iterator_s,

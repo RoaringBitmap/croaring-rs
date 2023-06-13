@@ -55,6 +55,7 @@
 
 use std::marker::PhantomData;
 
+/// A compressed bitmap
 // Must be repr(transparent) and match BitmapView, to allow safe transmute between
 // &BitmapView and &Bitmap
 #[repr(transparent)]
@@ -78,6 +79,7 @@ pub struct BitmapView<'a> {
 unsafe impl<'a> Sync for BitmapView<'a> {}
 unsafe impl<'a> Send for BitmapView<'a> {}
 
+/// Detailed statistics on the composition of a bitmap
 pub type Statistics = ffi::roaring_statistics_s;
 
 mod imp;

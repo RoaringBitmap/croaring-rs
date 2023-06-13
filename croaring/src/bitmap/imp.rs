@@ -1,3 +1,4 @@
+use crate::Bitset;
 use ffi::roaring_bitmap_t;
 use std::convert::TryInto;
 use std::ffi::c_char;
@@ -1485,6 +1486,29 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_statistics(&self.bitmap, &mut statistics) };
 
         statistics
+    }
+
+    /// Store the bitmap to a bitset
+    ///
+    /// This can be useful for those who need the performance and simplicity of a standard bitset.
+    ///
+    /// # Errors
+    ///
+    /// This function will return None on allocation failure
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap;
+    /// let bitmap = Bitmap::from_range(0..100);
+    /// let bitset = bitmap.to_bitset().unwrap();
+    /// assert_eq!(bitset.count(), 100);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_bitmap_to_bitset")]
+    pub fn to_bitset(&self) -> Option<Bitset> {
+        let mut bitset = Bitset::new();
+        let success = unsafe { ffi::roaring_bitmap_to_bitset(&self.bitmap, bitset.as_raw_mut()) };
+        success.then_some(bitset)
     }
 }
 
