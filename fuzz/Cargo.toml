@@ -32,3 +32,9 @@ name = "against_bitvec"
 path = "fuzz_targets/against_bitvec.rs"
 test = false
 doc = false
+
+[[bin]]
+name = "deserialize"
+path = "fuzz_targets/deserialize.rs"
+test = false
+doc = false
