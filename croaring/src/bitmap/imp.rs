@@ -734,37 +734,35 @@ impl Bitmap {
         buffer
     }
 
-    /// Computes the serialized size in bytes of the Bitmap.
+    /// Computes the serialized size in bytes of the Bitmap in format `S`.
     #[inline]
-    #[doc(alias = "roaring_bitmap_portable_size_in_bytes")]
     pub fn get_serialized_size_in_bytes<S: Serializer>(&self) -> usize {
         S::get_serialized_size_in_bytes(&self)
     }
 
-    /// Serializes a bitmap to a slice of bytes.
+    /// Serializes a bitmap to a slice of bytes in format `S`.
     ///
     /// # Examples
     ///
     /// ```
-    /// use croaring::Bitmap;
+    /// use croaring::{Bitmap, Portable};
     ///
     /// let original_bitmap: Bitmap = (1..5).collect();
     ///
-    /// let serialized_buffer = original_bitmap.serialize();
+    /// let serialized_buffer = original_bitmap.serialize::<Portable>();
     ///
-    /// let deserialized_bitmap = Bitmap::deserialize(&serialized_buffer);
+    /// let deserialized_bitmap = Bitmap::deserialize::<Portable>(&serialized_buffer);
     ///
     /// assert_eq!(original_bitmap, deserialized_bitmap);
     /// ```
     #[inline]
-    #[doc(alias = "roaring_bitmap_portable_serialize")]
     pub fn serialize<S: Serializer>(&self) -> Vec<u8> {
         let mut dst = Vec::new();
         self.serialize_into::<S>(&mut dst);
         dst
     }
 
-    /// Serializes a bitmap to a slice of bytes, re-using existing capacity
+    /// Serializes a bitmap to a slice of bytes in format `S`, re-using existing capacity
     ///
     /// `dst` is not cleared, data is added after any existing data. Returns the added slice of `dst`.
     /// If `dst` is empty, it is guaranteed to hold only the serialized data after this call
@@ -772,7 +770,7 @@ impl Bitmap {
     /// # Examples
     ///
     /// ```
-    /// use croaring::Bitmap;
+    /// use croaring::{Bitmap, Portable};
     ///
     /// let original_bitmap_1: Bitmap = (1..5).collect();
     /// let original_bitmap_2: Bitmap = (1..10).collect();
@@ -780,7 +778,7 @@ impl Bitmap {
     /// let mut data = Vec::new();
     /// for bitmap in [original_bitmap_1, original_bitmap_2] {
     ///     data.clear();
-    ///     bitmap.serialize_into(&mut data);
+    ///     bitmap.serialize_into::<Portable>(&mut data);
     ///     // do something with data
     /// }
     /// ```
@@ -790,7 +788,7 @@ impl Bitmap {
         S::serialize_into(self, dst)
     }
 
-    /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
+    /// Given a serialized bitmap as slice of bytes in format `S`, returns a `Bitmap` instance.
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns None.
@@ -798,25 +796,24 @@ impl Bitmap {
     /// # Examples
     ///
     /// ```
-    /// use croaring::Bitmap;
+    /// use croaring::{Bitmap, Portable};
     ///
     /// let original_bitmap: Bitmap = (1..5).collect();
-    /// let serialized_buffer = original_bitmap.serialize();
+    /// let serialized_buffer = original_bitmap.serialize::<Portable>();
     ///
-    /// let deserialized_bitmap = Bitmap::try_deserialize(&serialized_buffer);
+    /// let deserialized_bitmap = Bitmap::try_deserialize::<Portable>(&serialized_buffer);
     /// assert_eq!(original_bitmap, deserialized_bitmap.unwrap());
     ///
     /// let invalid_buffer: Vec<u8> = vec![3];
-    /// let deserialized_bitmap = Bitmap::try_deserialize(&invalid_buffer);
+    /// let deserialized_bitmap = Bitmap::try_deserialize::<Portable>(&invalid_buffer);
     /// assert!(deserialized_bitmap.is_none());
     /// ```
     #[inline]
-    #[doc(alias = "roaring_bitmap_portable_deserialize_safe")]
     pub fn try_deserialize<D: Deserializer>(buffer: &[u8]) -> Option<Self> {
         D::try_deserialize(buffer)
     }
 
-    /// Given a serialized bitmap as slice of bytes returns a bitmap instance.
+    /// Given a serialized bitmap as slice of bytes in format `S `, returns a bitmap instance.
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns empty bitmap.
@@ -963,14 +960,14 @@ impl Bitmap {
     /// # Examples
     ///
     /// ```
-    /// use croaring::Bitmap;
+    /// use croaring::{Bitmap, Portable};
     ///
     /// let mut bitmap: Bitmap = (100..1000).collect();
     ///
     /// assert_eq!(bitmap.cardinality(), 900);
-    /// let old_size = bitmap.get_serialized_size_in_bytes();
+    /// let old_size = bitmap.get_serialized_size_in_bytes::<Portable>();
     /// assert!(bitmap.run_optimize());
-    /// let new_size = bitmap.get_serialized_size_in_bytes();
+    /// let new_size = bitmap.get_serialized_size_in_bytes::<Portable>();
     /// assert!(new_size < old_size);
     /// ```
     #[inline]

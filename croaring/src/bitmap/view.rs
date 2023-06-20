@@ -48,14 +48,13 @@ impl<'a> BitmapView<'a> {
     /// # Examples
     ///
     /// ```
-    /// use croaring::{Bitmap, BitmapView};
+    /// use croaring::{Bitmap, BitmapView, Portable};
     /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
-    /// let data: Vec<u8> = orig_bitmap.serialize();
-    /// let view = unsafe { BitmapView::deserialize(&data) };
+    /// let data: Vec<u8> = orig_bitmap.serialize::<Portable>();
+    /// let view = unsafe { BitmapView::deserialize::<Portable>(&data) };
     /// assert!(view.contains_range(1..=4));
     /// assert_eq!(orig_bitmap, view);
     /// ```
-    #[doc(alias = "roaring_bitmap_portable_deserialize_frozen")]
     pub unsafe fn deserialize<S: ViewDeserializer>(data: &'a [u8]) -> Self {
         S::deserialize_view(data)
     }
@@ -65,11 +64,11 @@ impl<'a> BitmapView<'a> {
     /// # Examples
     ///
     /// ```
-    /// use croaring::{Bitmap, BitmapView};
+    /// use croaring::{Bitmap, BitmapView, Portable};
     ///
     /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
-    /// let data = orig_bitmap.serialize();
-    /// let view: BitmapView = unsafe { BitmapView::deserialize(&data) };
+    /// let data = orig_bitmap.serialize::<Portable>();
+    /// let view: BitmapView = unsafe { BitmapView::deserialize::<Portable>(&data) };
     /// # assert_eq!(view, orig_bitmap);
     /// let mut mutable_bitmap: Bitmap = view.to_bitmap();
     /// assert_eq!(view, mutable_bitmap);
