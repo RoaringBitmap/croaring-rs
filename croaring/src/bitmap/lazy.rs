@@ -1,5 +1,6 @@
 use crate::Bitmap;
 
+/// A handle to lazily perform multiple bitwise operations on a bitmap
 pub struct LazyBitmap<'a> {
     bitmap: &'a mut Bitmap,
 }

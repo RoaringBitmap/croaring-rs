@@ -102,6 +102,15 @@ impl ReadBitmapOp {
                     b.rank(i.0),
                 );
             }
+            ReadBitmapOp::Index(Num(i)) => {
+                let actual = b.position(i);
+                if let Some(actual) = actual {
+                    assert!(v[i as usize]);
+                    assert_eq!(v[..i as usize].count_ones(), actual as usize);
+                } else {
+                    assert!(!v[i as usize]);
+                }
+            }
             ReadBitmapOp::Select(i) => {
                 assert_eq!(
                     v.iter_ones().nth(i.0 as usize).map(|n| n as u32),

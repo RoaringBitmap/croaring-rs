@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2023-05-17T14:18:17Z
+// Created by amalgamation.sh on 2023-06-12T11:56:51Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -99,7 +99,7 @@ enum {
   ROARING_SUPPORTS_AVX2 = 1,
   ROARING_SUPPORTS_AVX512 = 2,
 };
-int croaring_hardware_support();
+int croaring_hardware_support(void);
 #ifdef __cplusplus
 } } }  // extern "C" { namespace roaring { namespace internal {
 #endif
@@ -2104,6 +2104,12 @@ int bitset_container_union(const bitset_container_t *src_1,
 int bitset_container_union_justcard(const bitset_container_t *src_1,
                                     const bitset_container_t *src_2);
 
+/* Computes the union of bitsets `src_1' and `src_2' into `dst', but does
+ * not update the cardinality. Provided to optimize chained operations. */
+int bitset_container_union_nocard(const bitset_container_t *src_1,
+				  const bitset_container_t *src_2,
+				  bitset_container_t *dst);
+
 /* Computes the union of bitsets `src_1' and `src_2' into `dst', but does not
  * update the cardinality. Provided to optimize chained operations. */
 int bitset_container_or_nocard(const bitset_container_t *src_1,
@@ -2131,6 +2137,12 @@ int bitset_container_intersection(const bitset_container_t *src_1,
  * cardinality. Same as bitset_container_and_justcard. */
 int bitset_container_intersection_justcard(const bitset_container_t *src_1,
                                            const bitset_container_t *src_2);
+
+/* Computes the intersection of bitsets `src_1' and `src_2' into `dst', but does
+ * not update the cardinality. Provided to optimize chained operations. */
+int bitset_container_intersection_nocard(const bitset_container_t *src_1,
+					 const bitset_container_t *src_2,
+					 bitset_container_t *dst);
 
 /* Computes the intersection of bitsets `src_1' and `src_2' into `dst', but does
  * not update the cardinality. Provided to optimize chained operations. */
@@ -6508,6 +6520,8 @@ inline void ra_set_container_at_index(
     ra->typecodes[i] = typecode;
 }
 
+container_t *ra_get_container(roaring_array_t *ra, uint16_t x, uint8_t *typecode);
+
 /**
  * If needed, increase the capacity of the array so that it can fit k values
  * (at
@@ -8824,8 +8838,22 @@ CROARING_UNTARGET_AVX512
 extern "C" { namespace roaring { namespace internal {
 #endif
 
+extern inline void bitset_print(const bitset_t *b);
+extern inline bool bitset_for_each(const bitset_t *b, bitset_iterator iterator,
+                                   void *ptr);
+extern inline size_t bitset_next_set_bits(const bitset_t *bitset, size_t *buffer,
+                                 size_t capacity, size_t *startfrom);
+extern inline void bitset_set_to_value(bitset_t *bitset, size_t i, bool flag);
+extern inline bool bitset_next_set_bit(const bitset_t *bitset, size_t *i);
+extern inline void bitset_set(bitset_t *bitset, size_t i);
+extern inline bool bitset_get(const bitset_t *bitset, size_t i);
+extern inline size_t bitset_size_in_words(const bitset_t *bitset);
+extern inline size_t bitset_size_in_bits(const bitset_t *bitset);
+extern inline size_t bitset_size_in_bytes(const bitset_t *bitset);
+
+
 /* Create a new bitset. Return NULL in case of failure. */
-bitset_t *bitset_create() {
+bitset_t *bitset_create(void) {
     bitset_t *bitset = NULL;
     /* Allocate the bitset itself. */
     if ((bitset = (bitset_t *)roaring_malloc(sizeof(bitset_t))) == NULL) {
@@ -10442,7 +10470,7 @@ array_container_t *array_container_create_given_capacity(int32_t size) {
 }
 
 /* Create a new array. Return NULL in case of failure. */
-array_container_t *array_container_create() {
+array_container_t *array_container_create(void) {
     return array_container_create_given_capacity(ARRAY_DEFAULT_INIT_SIZE);
 }
 
@@ -16106,7 +16134,7 @@ static inline void cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx,
 }
 
 
-static inline uint64_t xgetbv() {
+static inline uint64_t xgetbv(void) {
 #if defined(_MSC_VER)
   return _xgetbv(0);
 #else
@@ -16121,7 +16149,7 @@ static inline uint64_t xgetbv() {
  * *once* per compilation units. Normally, the CRoaring library is built
  * as one compilation unit.
  */
-static inline uint32_t dynamic_croaring_detect_supported_architectures() {
+static inline uint32_t dynamic_croaring_detect_supported_architectures(void) {
   uint32_t eax, ebx, ecx, edx;
   uint32_t host_isa = 0x0;
   // Can be found on Intel ISA Reference for CPUID
@@ -16219,13 +16247,13 @@ static inline uint32_t dynamic_croaring_detect_supported_architectures() {
 #if defined(__x86_64__) || defined(_M_AMD64) // x64
 
 #if CROARING_ATOMIC_IMPL == CROARING_ATOMIC_IMPL_CPP
-static inline uint32_t croaring_detect_supported_architectures() {
+static inline uint32_t croaring_detect_supported_architectures(void) {
     // thread-safe as per the C++11 standard.
     static uint32_t buffer = dynamic_croaring_detect_supported_architectures();
     return buffer;
 }
 #elif CROARING_ATOMIC_IMPL == CROARING_ATOMIC_IMPL_C
-static uint32_t croaring_detect_supported_architectures() {
+static uint32_t croaring_detect_supported_architectures(void) {
     // we use an atomic for thread safety
     static _Atomic uint32_t buffer = CROARING_UNINITIALIZED;
     if (buffer == CROARING_UNINITIALIZED) {
@@ -16236,7 +16264,7 @@ static uint32_t croaring_detect_supported_architectures() {
 }
 #else
 // If we do not have atomics, we do the best we can.
-static inline uint32_t croaring_detect_supported_architectures() {
+static inline uint32_t croaring_detect_supported_architectures(void) {
     static uint32_t buffer = CROARING_UNINITIALIZED;
     if (buffer == CROARING_UNINITIALIZED) {
       buffer = dynamic_croaring_detect_supported_architectures();
@@ -16247,17 +16275,17 @@ static inline uint32_t croaring_detect_supported_architectures() {
 
 #ifdef ROARING_DISABLE_AVX
 
-int croaring_hardware_support() {
+int croaring_hardware_support(void) {
     return 0;
 }
 
 #elif defined(__AVX512F__) && defined(__AVX512DQ__) && defined(__AVX512BW__) && defined(__AVX512VBMI2__) && defined(__AVX512BITALG__) && defined(__AVX512VPOPCNTDQ__)
-int croaring_hardware_support() {
+int croaring_hardware_support(void) {
     return  ROARING_SUPPORTS_AVX2 | ROARING_SUPPORTS_AVX512;
 }
 #elif defined(__AVX2__)
 
-int croaring_hardware_support() {
+int croaring_hardware_support(void) {
   static int support = 0xFFFFFFF;
   if(support == 0xFFFFFFF) {
     bool avx512_support = false;
@@ -16271,7 +16299,7 @@ int croaring_hardware_support() {
 }
 #else
 
-int croaring_hardware_support() {
+int croaring_hardware_support(void) {
   static int support = 0xFFFFFFF;
   if(support == 0xFFFFFFF) {
     bool has_avx2 = (croaring_detect_supported_architectures() & CROARING_AVX2) == CROARING_AVX2;
@@ -16379,8 +16407,12 @@ extern "C" { namespace roaring { namespace api {
 #define CROARING_SERIALIZATION_ARRAY_UINT32 1
 #define CROARING_SERIALIZATION_CONTAINER 2
 
+extern inline void roaring_bitmap_init_cleared(roaring_bitmap_t *r);
 extern inline bool roaring_bitmap_get_copy_on_write(const roaring_bitmap_t* r);
 extern inline void roaring_bitmap_set_copy_on_write(roaring_bitmap_t* r, bool cow);
+extern inline roaring_bitmap_t *roaring_bitmap_create(void);
+extern inline void roaring_bitmap_add_range(roaring_bitmap_t *r, uint64_t min, uint64_t max);
+extern inline void roaring_bitmap_remove_range(roaring_bitmap_t *r, uint64_t min, uint64_t max);
 
 static inline bool is_cow(const roaring_bitmap_t *r) {
     return r->high_low_container.flags & ROARING_FLAG_COW;
@@ -16678,9 +16710,6 @@ void roaring_bitmap_remove_range_closed(roaring_bitmap_t *r, uint32_t min, uint3
         ra_shift_tail(ra, ra->size - src, dst - src);
     }
 }
-
-extern inline void roaring_bitmap_add_range(roaring_bitmap_t *r, uint64_t min, uint64_t max);
-extern inline void roaring_bitmap_remove_range(roaring_bitmap_t *r, uint64_t min, uint64_t max);
 
 void roaring_bitmap_printf(const roaring_bitmap_t *r) {
     const roaring_array_t *ra = &r->high_low_container;
@@ -17821,9 +17850,12 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf) {
     if (bufaschar[0] == CROARING_SERIALIZATION_ARRAY_UINT32) {
         /* This looks like a compressed set of uint32_t elements */
         uint32_t card;
+
         memcpy(&card, bufaschar + 1, sizeof(uint32_t));
+
         const uint32_t *elems =
             (const uint32_t *)(bufaschar + 1 + sizeof(uint32_t));
+        
         roaring_bitmap_t *bitmap = roaring_bitmap_create();
         if (bitmap == NULL) {
             return NULL;
@@ -17836,8 +17868,51 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf) {
             roaring_bitmap_add_bulk(bitmap, &context, elem);
         }
         return bitmap;
+
     } else if (bufaschar[0] == CROARING_SERIALIZATION_CONTAINER) {
         return roaring_bitmap_portable_deserialize(bufaschar + 1);
+    } else
+        return (NULL);
+}
+
+roaring_bitmap_t* roaring_bitmap_deserialize_safe(const void *buf, size_t maxbytes) {
+    if (maxbytes < 1) {
+        return NULL;
+    }
+
+    const char *bufaschar = (const char *)buf;
+    if (bufaschar[0] == CROARING_SERIALIZATION_ARRAY_UINT32) {
+        if (maxbytes < 1 + sizeof(uint32_t)) {
+            return NULL;
+        }
+
+        /* This looks like a compressed set of uint32_t elements */
+        uint32_t card;
+        memcpy(&card, bufaschar + 1, sizeof(uint32_t));
+
+        // Check the buffer is big enough to contain card uint32_t elements
+        if (maxbytes < 1 + sizeof(uint32_t) + card * sizeof(uint32_t)) {
+            return NULL;
+        }
+
+        const uint32_t *elems =
+            (const uint32_t *)(bufaschar + 1 + sizeof(uint32_t));
+        
+        roaring_bitmap_t *bitmap = roaring_bitmap_create();
+        if (bitmap == NULL) {
+            return NULL;
+        }
+        roaring_bulk_context_t context = {0};
+        for (uint32_t i = 0; i < card; i++) {
+            // elems may not be aligned, read with memcpy
+            uint32_t elem;
+            memcpy(&elem, elems + i, sizeof(elem));
+            roaring_bitmap_add_bulk(bitmap, &context, elem);
+        }
+        return bitmap;
+        
+    } else if (bufaschar[0] == CROARING_SERIALIZATION_CONTAINER) {
+        return roaring_bitmap_portable_deserialize_safe(bufaschar + 1, maxbytes - 1);
     } else
         return (NULL);
 }
