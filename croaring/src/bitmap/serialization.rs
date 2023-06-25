@@ -27,7 +27,8 @@ impl Serializer for Portable {
         let len = Self::get_serialized_size_in_bytes(bitmap);
 
         dst.reserve(len);
-        let total_len = dst.len().checked_add(len).unwrap();
+        let offset = dst.len();
+        let total_len = offset.checked_add(len).unwrap();
 
         unsafe {
             ffi::roaring_bitmap_portable_serialize(
@@ -37,7 +38,7 @@ impl Serializer for Portable {
             dst.set_len(total_len);
         }
 
-        dst
+        &dst[offset..]
     }
 
     /// Computes the serialized size in bytes of the Bitmap in portable format.
@@ -104,7 +105,8 @@ impl Serializer for Native {
         let len = Self::get_serialized_size_in_bytes(bitmap);
 
         dst.reserve(len);
-        let total_len = dst.len().checked_add(len).unwrap();
+        let offset = dst.len();
+        let total_len = offset.checked_add(len).unwrap();
 
         unsafe {
             ffi::roaring_bitmap_serialize(
@@ -114,7 +116,7 @@ impl Serializer for Native {
             dst.set_len(total_len);
         }
 
-        dst
+        &dst[offset..]
     }
 
     /// Computes the serialized size in bytes of the Bitmap in native format.
@@ -164,8 +166,7 @@ impl Serializer for Frozen {
         let offset = dst.len();
         // Need to be able to add up to 31 extra bytes to align to 32 bytes
         dst.reserve(len.checked_add(REQUIRED_ALIGNMENT - 1).unwrap());
-
-        let extra_offset = match (dst.as_ptr() as usize) % REQUIRED_ALIGNMENT {
+        let extra_offset = match (dst.as_ptr() as usize + offset) % REQUIRED_ALIGNMENT {
             0 => 0,
             r => REQUIRED_ALIGNMENT - r,
         };
