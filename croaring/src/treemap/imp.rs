@@ -4,6 +4,7 @@ use crate::Treemap;
 use super::util;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
+use std::ops::{Bound, RangeBounds};
 use std::u64;
 
 impl Treemap {
@@ -38,6 +39,82 @@ impl Treemap {
     pub fn add(&mut self, value: u64) {
         let (hi, lo) = util::split(value);
         self.map.entry(hi).or_insert_with(Bitmap::create).add(lo)
+    }
+
+    /// Add all values in range
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Treemap;
+    ///
+    /// let mut treemap1 = Treemap::create();
+    /// treemap1.add_range((1..3));
+    ///
+    /// assert!(!treemap1.is_empty());
+    /// assert!(treemap1.contains(1));
+    /// assert!(treemap1.contains(2));
+    /// assert!(!treemap1.contains(3));
+    ///
+    /// let mut treemap2 = Treemap::create();
+    /// treemap2.add_range((3..1));
+    /// assert!(treemap2.is_empty());
+    ///
+    /// let mut treemap3 = Treemap::create();
+    /// treemap3.add_range((3..3));
+    /// assert!(treemap3.is_empty());
+    ///
+    /// let mut treemap4 = Treemap::create();
+    /// treemap4.add_range(..=2);
+    /// treemap4.add_range(u64::MAX..=u64::MAX);
+    /// assert!(treemap4.contains(0));
+    /// assert!(treemap4.contains(1));
+    /// assert!(treemap4.contains(2));
+    /// assert!(treemap4.contains(u64::MAX));
+    /// assert_eq!(treemap4.cardinality(), 4);
+    /// ```
+    pub fn add_range<R: RangeBounds<u64>>(&mut self, range: R) {
+        let (start, end) = range_to_inclusive(range);
+        self.add_range_inclusive(start, end);
+    }
+
+    fn add_range_inclusive(&mut self, start: u64, end: u64) {
+        if start > end {
+            return;
+        }
+        let (start_high, start_low) = util::split(start);
+        let (end_high, end_low) = util::split(end);
+        if start_high == end_high {
+            self.map
+                .entry(start_high)
+                .or_default()
+                .add_range(start_low..=end_low);
+            return;
+        }
+
+        // Because start and end don't land on the same inner bitmap,
+        // we need to do this in multiple steps:
+        // 1. Partially fill the first bitmap with values from the closed
+        //    interval [start_low, uint32_max]
+        // 2. Fill intermediate bitmaps completely: [0, uint32_max]
+        // 3. Partially fill the last bitmap with values from the closed
+        //    interval [0, end_low]
+
+        // Step 1: Partially fill the first bitmap
+        {
+            let bitmap = self.map.entry(start_high).or_insert_with(Bitmap::create);
+            bitmap.add_range(start_low..=u32::MAX);
+        }
+        // Step 2: Fill intermediate bitmaps completely
+        for i in start_high + 1..end_high {
+            // This blows away the container, is it worth trying to save any existing alocations?
+            self.map.insert(i, Bitmap::from_range(0..=u32::MAX));
+        }
+        // Step 3: Partially fill the last bitmap
+        {
+            let bitmap = self.map.entry(end_high).or_insert_with(Bitmap::create);
+            bitmap.add_range(0..=end_low);
+        }
     }
 
     /// ```rust
@@ -706,4 +783,24 @@ impl Treemap {
     pub fn is_strict_subset(&self, other: &Self) -> bool {
         self.is_subset(other) && self.cardinality() != other.cardinality()
     }
+}
+
+fn range_to_inclusive<R: RangeBounds<u64>>(range: R) -> (u64, u64) {
+    let start = match range.start_bound() {
+        Bound::Included(&i) => i,
+        Bound::Excluded(&i) => match i.checked_add(1) {
+            Some(i) => i,
+            None => return (1, 0),
+        },
+        Bound::Unbounded => 0,
+    };
+    let end = match range.end_bound() {
+        Bound::Included(&i) => i,
+        Bound::Excluded(&i) => match i.checked_sub(1) {
+            Some(i) => i,
+            None => return (1, 0),
+        },
+        Bound::Unbounded => u64::MAX,
+    };
+    (start, end)
 }
