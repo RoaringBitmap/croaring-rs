@@ -2,7 +2,7 @@
 
 use crate::arbitrary_ops::*;
 use bitvec::prelude::*;
-use croaring::{Bitmap, Native, Portable};
+use croaring::{Bitmap, Frozen, Native, Portable};
 use libfuzzer_sys::arbitrary;
 use libfuzzer_sys::arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
