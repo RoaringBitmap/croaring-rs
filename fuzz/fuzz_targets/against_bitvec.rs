@@ -2,7 +2,7 @@
 
 use crate::arbitrary_ops::*;
 use bitvec::prelude::*;
-use croaring::Bitmap;
+use croaring::{Bitmap, Frozen, Native, Portable};
 use libfuzzer_sys::arbitrary;
 use libfuzzer_sys::arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
@@ -75,11 +75,14 @@ impl ReadBitmapOp {
                 let vec_iter = b.to_vec();
                 assert!(vec_iter.into_iter().eq(v.iter_ones().map(|i| i as u32)));
             }
-            ReadBitmapOp::GetSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes();
+            ReadBitmapOp::GetPortableSerializedSizeInBytes => {
+                b.get_serialized_size_in_bytes::<Portable>();
+            }
+            ReadBitmapOp::GetNativeSerializedSizeInBytes => {
+                b.get_serialized_size_in_bytes::<Native>();
             }
             ReadBitmapOp::GetFrozenSerializedSizeInBytes => {
-                b.get_frozen_serialized_size_in_bytes();
+                b.get_serialized_size_in_bytes::<Frozen>();
             }
             ReadBitmapOp::IsEmpty => {
                 assert_eq!(v.not_any(), b.is_empty());

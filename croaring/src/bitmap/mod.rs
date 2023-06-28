@@ -86,7 +86,9 @@ mod imp;
 mod iter;
 mod lazy;
 mod ops;
+mod serialization;
 mod view;
 
 pub use self::iter::BitmapIterator;
 pub use self::lazy::LazyBitmap;
+pub use self::serialization::{Frozen, Native, Portable};

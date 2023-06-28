@@ -2,7 +2,7 @@
 
 extern crate test;
 
-use croaring::Bitmap;
+use croaring::{Bitmap, Portable};
 use test::Bencher;
 
 #[bench]
@@ -314,7 +314,7 @@ fn bench_get_serialized_size_in_bytes(b: &mut Bencher) {
     bitmap.add(3);
 
     b.iter(|| {
-        bitmap.get_serialized_size_in_bytes();
+        bitmap.get_serialized_size_in_bytes::<Portable>();
     });
 }
 
@@ -348,7 +348,7 @@ fn bench_serialize_100000(b: &mut Bencher) {
     let bitmap: Bitmap = (1..100000).collect();
 
     b.iter(|| {
-        bitmap.serialize();
+        bitmap.serialize::<Portable>();
     });
 }
 
@@ -357,26 +357,26 @@ fn bench_serialize_1000000(b: &mut Bencher) {
     let bitmap: Bitmap = (1..1000000).collect();
 
     b.iter(|| {
-        bitmap.serialize();
+        bitmap.serialize::<Portable>();
     });
 }
 
 #[bench]
 fn bench_deserialize_100000(b: &mut Bencher) {
     let bitmap: Bitmap = (1..100000).collect();
-    let serialized_buffer = bitmap.serialize();
+    let serialized_buffer = bitmap.serialize::<Portable>();
 
     b.iter(|| {
-        Bitmap::deserialize(&serialized_buffer);
+        Bitmap::deserialize::<Portable>(&serialized_buffer);
     });
 }
 
 #[bench]
 fn bench_deserialize_1000000(b: &mut Bencher) {
     let bitmap: Bitmap = (1..1000000).collect();
-    let serialized_buffer = bitmap.serialize();
+    let serialized_buffer = bitmap.serialize::<Portable>();
 
     b.iter(|| {
-        Bitmap::deserialize(&serialized_buffer);
+        Bitmap::deserialize::<Portable>(&serialized_buffer);
     });
 }

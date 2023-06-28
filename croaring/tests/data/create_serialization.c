@@ -26,6 +26,14 @@ void write_portable(const roaring_bitmap_t *b) {
     roaring_free(data);
 }
 
+void write_native(const roaring_bitmap_t *b) {
+    size_t size = roaring_bitmap_size_in_bytes(b);
+    char *data = roaring_malloc(size);
+    roaring_bitmap_serialize(b, data);
+    write_file("native_bitmap.bin", data, size);
+    roaring_free(data);
+}
+
 int main(void) {
     int i;
 
@@ -45,6 +53,7 @@ int main(void) {
 
     write_frozen(b);
     write_portable(b);
+    write_native(b);
 
     roaring_bitmap_free(b);
 }

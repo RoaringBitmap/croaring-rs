@@ -1,7 +1,7 @@
 #![no_main]
 
 use crate::arbitrary_ops::*;
-use croaring::{Bitmap, BitmapView};
+use croaring::{Bitmap, BitmapView, Frozen, Native, Portable};
 use libfuzzer_sys::arbitrary;
 use libfuzzer_sys::arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
@@ -37,11 +37,11 @@ fuzz_target!(|input: FuzzInput| {
 fn check_serialized(lhs: &mut Bitmap, to_compare: &Bitmap, v: &mut Vec<u8>, input: &FuzzInput) {
     v.clear();
 
-    let data = to_compare.serialize();
-    let data2 = to_compare.serialize_frozen_into(v);
-    let view1 = unsafe { BitmapView::deserialize(&data) };
+    let data = to_compare.serialize::<Portable>();
+    let data2 = to_compare.serialize_into::<Frozen>(v);
+    let view1 = unsafe { BitmapView::deserialize::<Portable>(&data) };
     assert_eq!(view1, *to_compare);
-    let view2 = unsafe { BitmapView::deserialize_frozen(data2) };
+    let view2 = unsafe { BitmapView::deserialize::<Frozen>(data2) };
     assert_eq!(view2, *to_compare);
 
     for op in &input.view_ops {
@@ -83,11 +83,14 @@ impl ReadBitmapOp {
             ReadBitmapOp::ToVec => {
                 drop(b.to_vec());
             }
-            ReadBitmapOp::GetSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes();
+            ReadBitmapOp::GetPortableSerializedSizeInBytes => {
+                b.get_serialized_size_in_bytes::<Portable>();
+            }
+            ReadBitmapOp::GetNativeSerializedSizeInBytes => {
+                b.get_serialized_size_in_bytes::<Native>();
             }
             ReadBitmapOp::GetFrozenSerializedSizeInBytes => {
-                b.get_frozen_serialized_size_in_bytes();
+                b.get_serialized_size_in_bytes::<Frozen>();
             }
             ReadBitmapOp::IsEmpty => {
                 assert_eq!(b.is_empty(), b.cardinality() == 0);
