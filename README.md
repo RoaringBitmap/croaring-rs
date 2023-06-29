@@ -1,4 +1,4 @@
-# croaring-rs [![https://travis-ci.org/saulius/croaring-rs](https://travis-ci.org/saulius/croaring-rs.svg?branch=master)](https://travis-ci.org/saulius/croaring-rs)
+# croaring-rs [![https://travis-ci.org/RoaringBitmap/croaring-rs](https://travis-ci.org/RoaringBitmap/croaring-rs.svg?branch=master)](https://travis-ci.org/RoaringBitmap/croaring-rs)
 A [Rust](https://www.rust-lang.org) wrapper for CRoaring (a C/C++ implementation at https://github.com/RoaringBitmap/CRoaring)
 
 The original java version can be found at https://github.com/RoaringBitmap/RoaringBitmap
@@ -96,7 +96,7 @@ treemap2.add(std::u64::MAX);
 ### Building
 
 ```
-git clone --recursive https://github.com/saulius/croaring-rs/
+git clone --recursive https://github.com/RoaringBitmap/croaring-rs/
 cd croaring-rs
 cargo build
 ```
