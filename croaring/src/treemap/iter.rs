@@ -105,8 +105,20 @@ impl FromIterator<u64> for Treemap {
 
 impl Extend<u64> for Treemap {
     fn extend<T: IntoIterator<Item = u64>>(&mut self, iter: T) {
+        // Potentially reduce outer map lookups by optimistically
+        // assuming that adjacent values will belong to the same inner bitmap.
+        let mut last_bitmap: Option<(u32, &mut Bitmap)> = None;
         for item in iter {
-            self.add(item);
+            let (high, low) = util::split(item);
+            if let Some((last_high, ref mut last_bitmap)) = last_bitmap {
+                if last_high == high {
+                    last_bitmap.add(low);
+                    continue;
+                }
+            }
+            let bitmap = self.get_or_create(high);
+            bitmap.add(low);
+            last_bitmap = Some((high, bitmap));
         }
     }
 }

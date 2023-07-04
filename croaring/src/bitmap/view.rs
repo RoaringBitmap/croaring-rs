@@ -93,6 +93,14 @@ impl<'a> Deref for BitmapView<'a> {
     }
 }
 
+impl PartialEq for BitmapView<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        Bitmap::eq(self, other)
+    }
+}
+
+impl Eq for BitmapView<'_> {}
+
 impl<'a> Drop for BitmapView<'a> {
     fn drop(&mut self) {
         // Based heavily on the c++ wrapper included in CRoaring
