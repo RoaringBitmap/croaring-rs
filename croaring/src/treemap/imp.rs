@@ -652,4 +652,58 @@ impl Treemap {
             bitmap.remove_run_compression() || result
         })
     }
+
+    /// Return true if all the elements of Self are in &other.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Treemap;
+    ///
+    /// let bitmap1: Treemap = (5..10).collect();
+    /// let bitmap2: Treemap = (5..8).collect();
+    /// let bitmap3: Treemap = (5..10).collect();
+    /// let bitmap4: Treemap = (9..11).collect();
+    ///
+    /// assert!(bitmap2.is_subset(&bitmap1));
+    /// assert!(bitmap3.is_subset(&bitmap1));
+    /// assert!(!bitmap4.is_subset(&bitmap1));
+    /// ```
+    pub fn is_subset(&self, other: &Self) -> bool {
+        for (k, v) in self.map.iter() {
+            if v.is_empty() {
+                continue;
+            }
+            match other.map.get(k) {
+                None => return false,
+                Some(other_v) => {
+                    if !v.is_subset(other_v) {
+                        return false;
+                    }
+                }
+            }
+        }
+        true
+    }
+
+    /// Return true if all the elements of Self are in &other and &other is strictly greater
+    /// than Self.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Treemap;
+    ///
+    /// let bitmap1: Treemap = (5..9).collect();
+    /// let bitmap2: Treemap = (5..8).collect();
+    /// let bitmap3: Treemap = (5..10).collect();
+    /// let bitmap4: Treemap = (9..11).collect();
+    ///
+    /// assert!(bitmap2.is_subset(&bitmap1));
+    /// assert!(!bitmap3.is_subset(&bitmap1));
+    /// assert!(!bitmap4.is_subset(&bitmap1));
+    /// ```
+    pub fn is_strict_subset(&self, other: &Self) -> bool {
+        self.is_subset(other) && self.cardinality() != other.cardinality()
+    }
 }
