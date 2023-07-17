@@ -210,6 +210,34 @@ fn treemap_run_optimized() {
     );
 }
 
+#[test]
+fn serialize_into_existing_vec_frozen() {
+    let mut buffer = vec![0; 13];
+    let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+
+    let data = bitmap.serialize_into::<Frozen>(&mut buffer);
+    assert_eq!(unsafe { BitmapView::deserialize::<Frozen>(data) }, bitmap);
+    assert!(unsafe { data.as_ptr().offset_from(buffer.as_ptr()) } >= 13);
+}
+
+#[test]
+fn serialize_into_existing_vec_portable() {
+    let mut buffer = vec![0; 13];
+    let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+    let data = bitmap.serialize_into::<Portable>(&mut buffer);
+    assert_eq!(Bitmap::try_deserialize::<Portable>(data).unwrap(), bitmap);
+    assert!(unsafe { data.as_ptr().offset_from(buffer.as_ptr()) } >= 13);
+}
+
+#[test]
+fn serialize_into_existing_vec_native() {
+    let mut buffer = vec![0; 13];
+    let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+    let data = bitmap.serialize_into::<Native>(&mut buffer);
+    assert_eq!(Bitmap::try_deserialize::<Native>(data).unwrap(), bitmap);
+    assert!(unsafe { data.as_ptr().offset_from(buffer.as_ptr()) } >= 13);
+}
+
 proptest! {
     #[test]
     fn bitmap_cardinality_roundtrip(
