@@ -246,7 +246,7 @@ impl Treemap {
     /// let mut treemap = Treemap::create();
     /// treemap.add_range(1..5);
     /// treemap.flip(2..10);
-    /// assert_eq!(treemap.cardinality(), 4);
+    /// assert_eq!(treemap.cardinality(), 6);
     /// assert_eq!(treemap.iter().collect::<Vec<_>>(), vec![1, 5, 6, 7, 8, 9]);
     /// ```
     pub fn flip<R: RangeBounds<u64>>(&mut self, range: R) {
