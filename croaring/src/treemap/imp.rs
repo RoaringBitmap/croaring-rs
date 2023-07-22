@@ -575,7 +575,7 @@ impl Treemap {
     }
 
     /// Returns the smallest value in the set.
-    /// Returns std::u64::MAX if the set is empty.
+    /// Returns [`u64::MAX`] if the set is empty.
     ///
     /// # Examples
     ///
@@ -591,11 +591,11 @@ impl Treemap {
     /// assert_eq!(treemap.minimum(), Some(120));
     /// assert_eq!(empty_treemap.minimum(), None);
     /// ```
+    #[must_use]
     pub fn minimum(&self) -> Option<u64> {
         self.map
             .iter()
-            .filter_map(|(&k, bitmap)| bitmap.minimum().map(|low| util::join(k, low)))
-            .next()
+            .find_map(|(&k, bitmap)| bitmap.minimum().map(|low| util::join(k, low)))
     }
 
     /// Returns the greatest value in the set.
@@ -615,12 +615,12 @@ impl Treemap {
     /// assert_eq!(treemap.maximum(), Some(1000));
     /// assert_eq!(empty_treemap.maximum(), None);
     /// ```
+    #[must_use]
     pub fn maximum(&self) -> Option<u64> {
         self.map
             .iter()
             .rev()
-            .filter_map(|(&k, bitmap)| bitmap.maximum().map(|low| util::join(k, low)))
-            .next()
+            .find_map(|(&k, bitmap)| bitmap.maximum().map(|low| util::join(k, low)))
     }
 
     /// And computes the intersection between two treemaps and returns the
@@ -644,6 +644,7 @@ impl Treemap {
     /// assert!(treemap3.contains(u64::MAX));
     /// assert!(!treemap3.contains(2));
     /// ```
+    #[must_use]
     pub fn and(&self, other: &Self) -> Self {
         let mut treemap = Treemap::create();
 
@@ -739,6 +740,7 @@ impl Treemap {
     /// assert!(treemap3.contains(u64::MAX));
     /// assert!(treemap3.contains(25));
     /// ```
+    #[must_use]
     pub fn or(&self, other: &Self) -> Self {
         let mut treemap = self.clone();
 
@@ -826,6 +828,7 @@ impl Treemap {
     /// assert!(!treemap3.contains(25));
     /// assert!(treemap3.contains(35));
     /// ```
+    #[must_use]
     pub fn xor(&self, other: &Self) -> Self {
         let mut treemap = self.clone();
 
@@ -918,6 +921,7 @@ impl Treemap {
     /// assert!(!treemap3.contains(u64::MAX));
     /// assert!(!treemap3.contains(35));
     /// ```
+    #[must_use]
     pub fn andnot(&self, other: &Self) -> Self {
         let mut treemap = Treemap::create();
 
@@ -988,6 +992,7 @@ impl Treemap {
     ///
     /// assert_eq!(treemap.to_vec(), [15, 25, u64::MAX]);
     /// ```
+    #[must_use]
     pub fn to_vec(&self) -> Vec<u64> {
         let treemap_size: usize = self.cardinality().try_into().unwrap();
 
@@ -1001,7 +1006,7 @@ impl Treemap {
                 if n == 0 {
                     break;
                 }
-                result.extend(buffer[..n].iter().map(|&bit| util::join(key, bit)))
+                result.extend(buffer[..n].iter().map(|&bit| util::join(key, bit)));
             }
         }
 
@@ -1032,6 +1037,7 @@ impl Treemap {
     /// assert!(!treemap.contains(3));
     /// assert_eq!(treemap, treemap2);
     /// ```
+    #[must_use]
     pub fn of(elements: &[u64]) -> Self {
         let mut treemap = Treemap::create();
 

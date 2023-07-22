@@ -172,6 +172,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_init_iterator")]
+    #[must_use]
     pub fn iter(&self) -> BitmapIterator {
         BitmapIterator::new(self)
     }

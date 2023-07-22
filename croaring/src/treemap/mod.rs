@@ -1,8 +1,8 @@
 //! Treemap is a RoaringBitmap-based structure that supports 64bit unsigned
-//! integer values. Implemented as a BTreeMap.
+//! integer values. Implemented as a [`BTreeMap`].
 //!
-//! Java version can be found at https://github.com/RoaringBitmap/RoaringBitmap/blob/master/roaringbitmap/src/main/java/org/roaringbitmap/longlong/Roaring64NavigableMap.java
-//! C++ version - https://github.com/RoaringBitmap/CRoaring/blob/master/cpp/roaring64map.hh
+//! Java version can be found at <https://github.com/RoaringBitmap/RoaringBitmap/blob/master/roaringbitmap/src/main/java/org/roaringbitmap/longlong/Roaring64NavigableMap.java>
+//! C++ version - <https://github.com/RoaringBitmap/CRoaring/blob/master/cpp/roaring64map.hh>
 //!
 //! # Example
 //!

@@ -1,6 +1,6 @@
-//! Rust wrapper for CRoaring (a C/C++ implementation at https://github.com/RoaringBitmap/CRoaring)
+//! Rust wrapper for `CRoaring` (a C/C++ implementation at <https://github.com/RoaringBitmap/CRoaring>)
 //!
-//! The original Java version can be found at https://github.com/RoaringBitmap/RoaringBitmap
+//! The original Java version can be found at <https://github.com/RoaringBitmap/RoaringBitmap>
 //! # Example
 //!
 //! ```rust

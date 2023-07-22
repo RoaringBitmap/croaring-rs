@@ -16,7 +16,7 @@ pub trait ViewDeserializer {
 }
 
 /// The `Portable` format is meant to be compatible with other roaring bitmap libraries, such as Go or Java.
-/// It's defined here: https://github.com/RoaringBitmap/RoaringFormatSpec
+/// It's defined here: <https://github.com/RoaringBitmap/RoaringFormatSpec>
 pub enum Portable {}
 
 impl Serializer for Portable {
@@ -56,14 +56,14 @@ impl Deserializer for Portable {
     fn try_deserialize(buffer: &[u8]) -> Option<Bitmap> {
         unsafe {
             let bitmap = ffi::roaring_bitmap_portable_deserialize_safe(
-                buffer.as_ptr() as *const c_char,
+                buffer.as_ptr().cast::<c_char>(),
                 buffer.len(),
             );
 
-            if !bitmap.is_null() {
-                Some(Bitmap::take_heap(bitmap))
-            } else {
+            if bitmap.is_null() {
                 None
+            } else {
+                Some(Bitmap::take_heap(bitmap))
             }
         }
     }
@@ -81,7 +81,7 @@ impl ViewDeserializer for Portable {
     /// * Using this function (or the returned bitmap in any way) may execute unaligned memory accesses
     ///
     #[doc(alias = "roaring_bitmap_portable_deserialize_frozen")]
-    unsafe fn deserialize_view<'a>(data: &'a [u8]) -> BitmapView {
+    unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_> {
         // portable_deserialize_size does some amount of checks, and returns zero if data cannot be valid
         debug_assert_ne!(
             ffi::roaring_bitmap_portable_deserialize_size(data.as_ptr().cast(), data.len()),
@@ -134,14 +134,14 @@ impl Deserializer for Native {
     fn try_deserialize(buffer: &[u8]) -> Option<Bitmap> {
         unsafe {
             let bitmap = ffi::roaring_bitmap_deserialize_safe(
-                buffer.as_ptr() as *const c_void,
+                buffer.as_ptr().cast::<c_void>(),
                 buffer.len(),
             );
 
-            if !bitmap.is_null() {
-                Some(Bitmap::take_heap(bitmap))
-            } else {
+            if bitmap.is_null() {
                 None
+            } else {
+                Some(Bitmap::take_heap(bitmap))
             }
         }
     }
@@ -206,7 +206,7 @@ impl ViewDeserializer for Frozen {
     /// * data.len() must be equal exactly to the size of the frozen bitmap.
     ///
     /// See [`BitmapView::deserialize`] for examples.
-    unsafe fn deserialize_view<'a>(data: &'a [u8]) -> BitmapView {
+    unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_> {
         const REQUIRED_ALIGNMENT: usize = 32;
         assert_eq!(data.as_ptr() as usize % REQUIRED_ALIGNMENT, 0);
 

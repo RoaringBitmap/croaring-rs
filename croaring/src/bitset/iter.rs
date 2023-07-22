@@ -70,6 +70,7 @@ impl<'a> IntoIterator for &'a Bitset {
 impl Bitset {
     /// Returns an iterator over the set bits in the bitset
     #[inline]
+    #[must_use]
     pub const fn iter(&self) -> BitsetIterator<'_> {
         BitsetIterator {
             bitset: self,
