@@ -193,17 +193,17 @@ fn bulk_new(c: &mut Criterion) {
     group.bench_function("range_new", |b| {
         b.iter(|| Bitmap::from_range(range.clone()));
     });
-    let bulk_data = black_box(range.clone().collect::<Vec<_>>());
     group.bench_function("collect", |b| {
         b.iter(|| Bitmap::from_iter(range.clone()));
     });
     group.bench_function("slice_init", |b| {
+        let bulk_data = black_box(range.clone().collect::<Vec<_>>());
         b.iter(|| Bitmap::of(&bulk_data));
     });
     group.bench_function("sequential_adds", |b| {
         b.iter(|| {
             let mut bitmap = Bitmap::new();
-            for &i in &bulk_data {
+            for i in range.clone() {
                 bitmap.add(i);
             }
             bitmap
@@ -235,9 +235,9 @@ fn random_iter(c: &mut Criterion) {
     group.bench_function("random_adds", |b| {
         b.iter(|| {
             let mut bitmap = Bitmap::new();
-            for item in rand_iter.clone().take(N as usize) {
+            rand_iter.clone().take(N as usize).for_each(|item| {
                 bitmap.add(item);
-            }
+            });
             bitmap
         });
     });
