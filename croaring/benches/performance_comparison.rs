@@ -31,12 +31,12 @@ fn roaring_bitmap_of(items: &[u32]) -> RoaringBitmap {
     items.iter().copied().collect()
 }
 
-fn create(c: &mut Criterion) {
+fn new(c: &mut Criterion) {
     compare(
-        &mut c.benchmark_group("create"),
+        &mut c.benchmark_group("new"),
         || (),
         || (),
-        |()| Bitmap::create(),
+        |()| Bitmap::new(),
         |()| RoaringBitmap::new(),
     );
 }
@@ -47,7 +47,7 @@ fn create_and_add_one(c: &mut Criterion) {
         || (),
         || (),
         |()| {
-            let mut bitmap = Bitmap::create();
+            let mut bitmap = Bitmap::new();
             bitmap.add(black_box(1));
             bitmap
         },
@@ -65,7 +65,7 @@ fn add(c: &mut Criterion) {
     let mut group = c.benchmark_group("add_several");
     compare(
         &mut group,
-        Bitmap::create,
+        Bitmap::new,
         RoaringBitmap::new,
         |mut bitmap: Bitmap| {
             for &item in SIMPLE_ITEMS {
@@ -82,7 +82,7 @@ fn add(c: &mut Criterion) {
     );
     group.bench_function("croaring many", |b| {
         b.iter_batched(
-            Bitmap::create,
+            Bitmap::new,
             |mut bitmap| {
                 bitmap.add_many(black_box(SIMPLE_ITEMS));
                 bitmap
@@ -201,7 +201,7 @@ fn iter(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    create,
+    new,
     create_and_add_one,
     add,
     remove,

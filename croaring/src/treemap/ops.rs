@@ -21,7 +21,7 @@ impl fmt::Debug for Treemap {
 
 impl Default for Treemap {
     fn default() -> Self {
-        Self::create()
+        Self::new()
     }
 }
 
@@ -36,10 +36,10 @@ impl BitAnd for Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(1);
     /// treemap2.add(u64::MAX);
     ///
@@ -64,10 +64,10 @@ impl<'a> BitAnd<&'a Treemap> for Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(1);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(1);
     /// treemap2.add(2);
     ///
@@ -92,10 +92,10 @@ impl<'a, 'b> BitAnd<&'a Treemap> for &'b Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1: Treemap = Treemap::create();
+    /// let mut treemap1: Treemap = Treemap::new();
     /// treemap1.add(1);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(1);
     /// treemap2.add(2);
     ///
@@ -118,16 +118,16 @@ impl BitAndAssign for Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
-    /// let mut treemap3 = Treemap::create();
+    /// let mut treemap3 = Treemap::new();
     /// treemap3.add(15);
     ///
-    /// let mut treemap4 = Treemap::create();
+    /// let mut treemap4 = Treemap::new();
     /// treemap4.add(15);
     /// treemap4.add(25);
     ///
@@ -159,10 +159,10 @@ impl BitOr for Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
     /// let treemap3 = treemap1 | treemap2;
@@ -187,10 +187,10 @@ impl<'a> BitOr<&'a Treemap> for Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
     /// let treemap3 = treemap1 | &treemap2;
@@ -215,10 +215,10 @@ impl<'a, 'b> BitOr<&'a Treemap> for &'b Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
     /// let treemap3 = &treemap1 | &treemap2;
@@ -241,10 +241,10 @@ impl BitOrAssign for Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
     /// treemap1 |= treemap2;
@@ -270,11 +270,11 @@ impl BitXor for Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(u64::MAX);
     /// treemap2.add(35);
     ///
@@ -302,11 +302,11 @@ impl<'a> BitXor<&'a Treemap> for Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(u64::MAX);
     /// treemap2.add(35);
     ///
@@ -334,11 +334,11 @@ impl<'a, 'b> BitXor<&'a Treemap> for &'b Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(u64::MAX);
     /// treemap2.add(35);
     ///
@@ -364,11 +364,11 @@ impl BitXorAssign for Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(u64::MAX);
     /// treemap2.add(35);
     ///
@@ -396,12 +396,12 @@ impl Sub for Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     ///
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     ///
     /// treemap2.add(u64::MAX);
     /// treemap2.add(35);
@@ -430,12 +430,12 @@ impl<'a> Sub<&'a Treemap> for Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     ///
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     ///
     /// treemap2.add(25);
     /// treemap2.add(u64::MAX);
@@ -464,12 +464,12 @@ impl<'a, 'b> Sub<&'a Treemap> for &'b Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     ///
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     ///
     /// treemap2.add(25);
     /// treemap1.add(u64::MAX);
@@ -496,12 +496,12 @@ impl SubAssign for Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     ///
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     ///
     /// treemap2.add(25);
     /// treemap2.add(u64::MAX);

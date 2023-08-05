@@ -7,7 +7,7 @@ use proptest::prelude::*;
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
 #[test]
 fn smoke1() {
-    let mut bitmap = Bitmap::create();
+    let mut bitmap = Bitmap::new();
     assert_eq!(bitmap.cardinality(), 0);
     assert!(bitmap.is_empty());
     bitmap.remove(0);
@@ -43,7 +43,7 @@ fn smoke1() {
 // borrowed and adapted from https://github.com/Bitmap/gocroaring/blob/4a2fc02f79b1c36b904301e7d052f7f0017b6973/gocroaring_test.go#L24-L64
 #[test]
 fn smoke2() {
-    let mut rb1 = Bitmap::create();
+    let mut rb1 = Bitmap::new();
     rb1.add(1);
     rb1.add(2);
     rb1.add(3);
@@ -53,13 +53,13 @@ fn smoke2() {
     rb1.add(1000);
     rb1.run_optimize();
 
-    let mut rb2 = Bitmap::create();
+    let mut rb2 = Bitmap::new();
     rb2.add(3);
     rb2.add(4);
     rb2.add(1000);
     rb2.run_optimize();
 
-    let mut rb3 = Bitmap::create();
+    let mut rb3 = Bitmap::new();
 
     assert_eq!(rb1.cardinality(), 7);
     assert!(rb1.contains(3));
@@ -91,7 +91,7 @@ fn smoke2() {
 }
 
 fn expected_serialized_bitmap() -> Bitmap {
-    let mut bitmap = Bitmap::create();
+    let mut bitmap = Bitmap::new();
     bitmap.add_range(0x0_0000..0x0_9000);
     bitmap.add_range(0x0_A000..0x1_0000);
     bitmap.add(0x2_0000);
@@ -176,7 +176,7 @@ fn test_treemap_deserialize_jvm() {
 fn treemap_run_optimized() {
     use croaring::treemap::JvmSerializer;
 
-    let mut initial = Bitmap::create();
+    let mut initial = Bitmap::new();
     initial.add(1);
     initial.add(2);
     initial.add(3);

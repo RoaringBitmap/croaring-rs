@@ -14,9 +14,9 @@ impl Treemap {
     ///
     /// ```rust
     /// use croaring::Treemap;
-    /// let treemap = Treemap::create();
+    /// let treemap = Treemap::new();
     /// ```
-    pub fn create() -> Self {
+    pub fn new() -> Self {
         Treemap {
             map: BTreeMap::new(),
         }
@@ -48,7 +48,7 @@ impl Treemap {
     /// use std::u32;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add(3);
     /// assert!(treemap.contains(3));
     /// treemap.add(u32::MAX as u64);
@@ -69,7 +69,7 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut bitmap = Treemap::create();
+    /// let mut bitmap = Treemap::new();
     /// assert!(bitmap.add_checked(1));
     /// assert!(!bitmap.add_checked(1));
     /// ```
@@ -85,7 +85,7 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add_range((1..3));
     ///
     /// assert!(!treemap1.is_empty());
@@ -93,15 +93,15 @@ impl Treemap {
     /// assert!(treemap1.contains(2));
     /// assert!(!treemap1.contains(3));
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add_range((3..1));
     /// assert!(treemap2.is_empty());
     ///
-    /// let mut treemap3 = Treemap::create();
+    /// let mut treemap3 = Treemap::new();
     /// treemap3.add_range((3..3));
     /// assert!(treemap3.is_empty());
     ///
-    /// let mut treemap4 = Treemap::create();
+    /// let mut treemap4 = Treemap::new();
     /// treemap4.add_range(..=2);
     /// treemap4.add_range(u64::MAX..=u64::MAX);
     /// assert!(treemap4.contains(0));
@@ -157,7 +157,7 @@ impl Treemap {
     /// ```rust
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// ```
     pub fn contains(&self, value: u64) -> bool {
         let (hi, lo) = util::split(value);
@@ -175,7 +175,7 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     ///
     /// assert!(treemap.is_empty());
     ///
@@ -194,7 +194,7 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// assert!(!treemap.is_full());
     /// ```
     pub fn is_full(&self) -> bool {
@@ -243,7 +243,7 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add_range(1..5);
     /// treemap.flip(2..10);
     /// assert_eq!(treemap.cardinality(), 6);
@@ -333,7 +333,7 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     ///
     /// treemap.add(1);
     /// treemap.add(u64::MAX);
@@ -356,7 +356,7 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add(u64::MAX);
     /// treemap.remove(u64::MAX);
     ///
@@ -384,7 +384,7 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add(u64::MAX);
     /// assert!(treemap.remove_checked(u64::MAX));
     /// assert!(!treemap.remove_checked(u64::MAX));
@@ -410,7 +410,7 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add_range(0..=10);
     /// treemap.remove_range(5..=15);
     /// assert_eq!(treemap.cardinality(), 5);
@@ -490,7 +490,7 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add_range(10..=20);
     /// assert_eq!(treemap.select(0), Some(10));
     /// assert_eq!(treemap.select(10), Some(20));
@@ -561,7 +561,7 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add(1);
     ///
     /// assert_eq!(treemap.cardinality(), 1);
@@ -582,8 +582,8 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap: Treemap = Treemap::create();
-    /// let empty_treemap: Treemap = Treemap::create();
+    /// let mut treemap: Treemap = Treemap::new();
+    /// let empty_treemap: Treemap = Treemap::new();
     ///
     /// treemap.add(120);
     /// treemap.add(1000);
@@ -606,8 +606,8 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap: Treemap = Treemap::create();
-    /// let empty_treemap: Treemap = Treemap::create();
+    /// let mut treemap: Treemap = Treemap::new();
+    /// let empty_treemap: Treemap = Treemap::new();
     ///
     /// treemap.add(120);
     /// treemap.add(1000);
@@ -632,10 +632,10 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(u64::MAX);
     /// treemap2.add(2);
     ///
@@ -646,7 +646,7 @@ impl Treemap {
     /// ```
     #[must_use]
     pub fn and(&self, other: &Self) -> Self {
-        let mut treemap = Treemap::create();
+        let mut treemap = Treemap::new();
 
         for (key, bitmap) in &self.map {
             other
@@ -667,16 +667,16 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
-    /// let mut treemap3 = Treemap::create();
+    /// let mut treemap3 = Treemap::new();
     /// treemap3.add(u64::MAX);
     ///
-    /// let mut treemap4 = Treemap::create();
+    /// let mut treemap4 = Treemap::new();
     /// treemap4.add(u64::MAX);
     /// treemap4.add(25);
     ///
@@ -692,9 +692,9 @@ impl Treemap {
     /// assert!(treemap3.contains(u64::MAX));
     /// assert!(!treemap3.contains(25));
     ///
-    /// let mut treemap5 = Treemap::create();
+    /// let mut treemap5 = Treemap::new();
     /// treemap5.add(u64::MAX);
-    /// treemap5.and_inplace(&Treemap::create());
+    /// treemap5.and_inplace(&Treemap::new());
     /// assert_eq!(treemap5.cardinality(), 0);
     /// ```
     pub fn and_inplace(&mut self, other: &Self) {
@@ -728,10 +728,10 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
     /// let treemap3 = treemap1.or(&treemap2);
@@ -766,16 +766,16 @@ impl Treemap {
     /// ```
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     ///
-    /// let mut treemap3 = Treemap::create();
+    /// let mut treemap3 = Treemap::new();
     /// treemap3.add(15);
     ///
-    /// let mut bitmap4 = Treemap::create();
+    /// let mut bitmap4 = Treemap::new();
     /// bitmap4.add(15);
     /// bitmap4.add(25);
     ///
@@ -813,11 +813,11 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(u64::MAX);
     /// treemap2.add(35);
     ///
@@ -854,11 +854,11 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     /// treemap1.add(15);
     /// treemap1.add(25);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     /// treemap2.add(25);
     /// treemap2.add(35);
     ///
@@ -868,9 +868,9 @@ impl Treemap {
     /// assert!(treemap1.contains(15));
     /// assert!(treemap1.contains(35));
     ///
-    /// let mut treemap3 = Treemap::create();
+    /// let mut treemap3 = Treemap::new();
     /// treemap3.add(15);
-    /// treemap3.xor_inplace(&Treemap::create());
+    /// treemap3.xor_inplace(&Treemap::new());
     /// assert_eq!(treemap3.cardinality(), 1);
     /// assert!(treemap3.contains(15));
     /// ```
@@ -904,12 +904,12 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     ///
     /// treemap1.add(15);
     /// treemap1.add(u64::MAX);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     ///
     /// treemap2.add(u64::MAX);
     /// treemap2.add(35);
@@ -923,7 +923,7 @@ impl Treemap {
     /// ```
     #[must_use]
     pub fn andnot(&self, other: &Self) -> Self {
-        let mut treemap = Treemap::create();
+        let mut treemap = Treemap::new();
 
         for (key, bitmap) in &self.map {
             if let Some(other_bitmap) = other.map.get(key) {
@@ -944,13 +944,13 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap1 = Treemap::create();
+    /// let mut treemap1 = Treemap::new();
     ///
     /// treemap1.add(15);
     /// treemap1.add(25);
     /// treemap1.add(u64::MAX - 10);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     ///
     /// treemap2.add(25);
     /// treemap2.add(35);
@@ -963,9 +963,9 @@ impl Treemap {
     /// assert!(!treemap1.contains(u64::MAX));
     /// assert!(!treemap1.contains(35));
     ///
-    /// let mut treemap3 = Treemap::create();
+    /// let mut treemap3 = Treemap::new();
     /// treemap3.add(15);
-    /// let treemap4 = Treemap::create();
+    /// let treemap4 = Treemap::new();
     /// treemap3.andnot_inplace(&treemap4);
     /// assert_eq!(treemap3.cardinality(), 1);
     /// assert!(treemap3.contains(15));
@@ -985,7 +985,7 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add(25);
     /// treemap.add(15);
     /// treemap.add(u64::MAX);
@@ -1025,7 +1025,7 @@ impl Treemap {
     ///
     /// let treemap = Treemap::of(&elements);
     ///
-    /// let mut treemap2 = Treemap::create();
+    /// let mut treemap2 = Treemap::new();
     ///
     /// for element in &elements {
     ///     treemap2.add(*element);
@@ -1039,7 +1039,7 @@ impl Treemap {
     /// ```
     #[must_use]
     pub fn of(elements: &[u64]) -> Self {
-        let mut treemap = Treemap::create();
+        let mut treemap = Treemap::new();
 
         for element in elements {
             treemap.add(*element);
@@ -1088,7 +1088,7 @@ impl Treemap {
     }
 
     pub(super) fn get_or_create(&mut self, bucket: u32) -> &mut Bitmap {
-        self.map.entry(bucket).or_insert_with(Bitmap::create)
+        self.map.entry(bucket).or_insert_with(Bitmap::new)
     }
 }
 

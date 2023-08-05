@@ -22,7 +22,7 @@ impl fmt::Debug for Bitmap {
 
 impl Default for Bitmap {
     fn default() -> Self {
-        Self::create()
+        Self::new()
     }
 }
 
@@ -57,7 +57,7 @@ impl Clone for Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
+    /// let mut bitmap1 = Bitmap::new();
     /// bitmap1.add(11);
     ///
     /// let bitmap2 = bitmap1.clone();
@@ -66,7 +66,7 @@ impl Clone for Bitmap {
     /// ```
     #[inline]
     fn clone(&self) -> Self {
-        let mut result = Self::create();
+        let mut result = Self::new();
         result.clone_from(self);
         result
     }
@@ -277,10 +277,10 @@ impl_binop! {
         /// ```
         /// use croaring::Bitmap;
         ///
-        /// let mut bitmap1 = Bitmap::create();
+        /// let mut bitmap1 = Bitmap::new();
         /// bitmap1.add(1);
         ///
-        /// let mut bitmap2 = Bitmap::create();
+        /// let mut bitmap2 = Bitmap::new();
         /// bitmap2.add(1);
         /// bitmap2.add(2);
         ///

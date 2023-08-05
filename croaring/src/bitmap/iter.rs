@@ -56,7 +56,7 @@ impl<'a> BitmapIterator<'a> {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap: Bitmap = Bitmap::create();
+    /// let mut bitmap: Bitmap = Bitmap::new();
     /// bitmap.add_range(0..100);
     /// bitmap.add(222);
     /// bitmap.add(555);
@@ -159,7 +159,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// bitmap.add(4);
     /// bitmap.add(3);
     /// bitmap.add(2);

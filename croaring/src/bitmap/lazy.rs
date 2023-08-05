@@ -95,7 +95,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// let bitmaps_to_or = [Bitmap::of(&[1, 2, 5, 10]), Bitmap::of(&[1, 30, 100])];
     /// let total_added = bitmap.lazy_batch(|lazy| {
     ///     let mut total = 0;

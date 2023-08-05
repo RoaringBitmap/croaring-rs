@@ -4,17 +4,17 @@ use criterion::{
 
 use croaring::{Bitmap, Portable};
 
-fn create(c: &mut Criterion) {
-    c.bench_function("create", |b| b.iter(Bitmap::create));
+fn new(c: &mut Criterion) {
+    c.bench_function("new", |b| b.iter(Bitmap::new));
 
-    c.bench_function("create_with_capacity", |b| {
-        b.iter(|| Bitmap::create_with_capacity(10000))
+    c.bench_function("with_capacity", |b| {
+        b.iter(|| Bitmap::with_container_capacity(10_000))
     });
 }
 
 fn add(c: &mut Criterion) {
     c.bench_function("add", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
 
         b.iter(|| bitmap.add(10000));
     });
@@ -22,7 +22,7 @@ fn add(c: &mut Criterion) {
 
 fn add_many(c: &mut Criterion) {
     c.bench_function("add_many", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
         let int_slice = &[10, 100, 10_000, 1_000_000, 10_000_000];
 
         b.iter(|| bitmap.add_many(black_box(int_slice)));
@@ -31,7 +31,7 @@ fn add_many(c: &mut Criterion) {
 
 fn remove(c: &mut Criterion) {
     c.bench_function("remove", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
 
         b.iter(|| bitmap.remove(10000));
     });
@@ -40,7 +40,7 @@ fn remove(c: &mut Criterion) {
 fn contains(c: &mut Criterion) {
     let mut group = c.benchmark_group("contains");
     group.bench_function("true", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
 
         bitmap.add(5);
 
@@ -48,7 +48,7 @@ fn contains(c: &mut Criterion) {
     });
 
     group.bench_function("false", |b| {
-        let bitmap = Bitmap::create();
+        let bitmap = Bitmap::new();
 
         b.iter(|| bitmap.contains(5));
     });
@@ -146,7 +146,7 @@ fn get_serialized_size_in_bytes(c: &mut Criterion) {
 fn is_empty(c: &mut Criterion) {
     let mut group = c.benchmark_group("is_empty");
     group.bench_function("true", |b| {
-        let bitmap = Bitmap::create();
+        let bitmap = Bitmap::new();
         b.iter(|| bitmap.is_empty());
     });
     group.bench_function("false", |b| {
@@ -186,7 +186,7 @@ fn deserialize(c: &mut Criterion) {
 
 criterion_group!(
     benches,
-    create,
+    new,
     add,
     add_many,
     remove,

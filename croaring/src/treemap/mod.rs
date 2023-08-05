@@ -10,7 +10,7 @@
 //! use std::u32;
 //! use croaring::Treemap;
 //!
-//! let mut treemap = Treemap::create();
+//! let mut treemap = Treemap::new();
 //! treemap.add(3);
 //! assert!(treemap.contains(3));
 //! treemap.add(u32::MAX as u64);
