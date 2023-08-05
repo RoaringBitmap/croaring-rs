@@ -26,6 +26,46 @@ impl Default for Bitmap {
     }
 }
 
+/// Create a new bitmap from a slice of u32 values
+///
+/// # Examples
+///
+/// ```
+/// use croaring::Bitmap;
+///
+/// let data: &[u32] = &[1, 2, 3];
+///
+/// let bitmap1 = Bitmap::from(data);
+/// let bitmap2 = Bitmap::from_range(1..=3);
+/// assert_eq!(bitmap1, bitmap2);
+/// ```
+impl From<&'_ [u32]> for Bitmap {
+    #[inline]
+    #[doc(alias = "roaring_bitmap_of_ptr")]
+    fn from(values: &'_ [u32]) -> Self {
+        Self::of(values)
+    }
+}
+
+/// Create a new bitmap from an array of u32 values
+///
+/// # Examples
+///
+/// ```
+/// use croaring::Bitmap;
+///
+/// let bitmap1 = Bitmap::from([1, 2, 3]);
+/// let bitmap2 = Bitmap::from_range(1..=3);
+/// assert_eq!(bitmap1, bitmap2);
+/// ```
+impl<const N: usize> From<[u32; N]> for Bitmap {
+    #[inline]
+    #[doc(alias = "roaring_bitmap_of_ptr")]
+    fn from(values: [u32; N]) -> Self {
+        Self::of(&values)
+    }
+}
+
 impl PartialEq for Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_equals")]

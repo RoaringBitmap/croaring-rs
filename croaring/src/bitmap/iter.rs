@@ -1,5 +1,6 @@
 use std::iter::{FromIterator, IntoIterator};
 use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 
 use super::Bitmap;
 
@@ -15,7 +16,7 @@ unsafe impl Sync for BitmapIterator<'_> {}
 
 impl<'a> BitmapIterator<'a> {
     fn new(bitmap: &'a Bitmap) -> Self {
-        let mut iterator = std::mem::MaybeUninit::uninit();
+        let mut iterator = MaybeUninit::<ffi::roaring_uint32_iterator_s>::uninit();
         unsafe {
             ffi::roaring_init_iterator(&bitmap.bitmap, iterator.as_mut_ptr());
         }
@@ -194,14 +195,17 @@ impl FromIterator<u32> for Bitmap {
     /// assert_eq!(bitmap.cardinality(), 2);
     /// ```
     fn from_iter<I: IntoIterator<Item = u32>>(iter: I) -> Self {
-        Bitmap::of(&Vec::from_iter(iter))
+        let mut bitmap = Bitmap::new();
+        bitmap.extend(iter);
+        bitmap
     }
 }
 
 impl Extend<u32> for Bitmap {
     fn extend<T: IntoIterator<Item = u32>>(&mut self, iter: T) {
-        for item in iter {
-            self.add(item);
-        }
+        let mut ctx = MaybeUninit::<ffi::roaring_bulk_context_t>::zeroed();
+        iter.into_iter().for_each(|item| unsafe {
+            ffi::roaring_bitmap_add_bulk(&mut self.bitmap, ctx.as_mut_ptr(), item);
+        });
     }
 }
