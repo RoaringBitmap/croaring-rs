@@ -866,12 +866,10 @@ impl Bitmap {
     #[doc(alias = "roaring_bitmap_of_ptr")]
     #[must_use]
     pub fn of(elements: &[u32]) -> Self {
-        unsafe {
-            Self::take_heap(ffi::roaring_bitmap_of_ptr(
-                elements.len(),
-                elements.as_ptr(),
-            ))
-        }
+        // This does the same as `roaring_bitmap_of_ptr`, but that also allocates the bitmap itself
+        let mut bitmap = Self::new();
+        bitmap.add_many(elements);
+        bitmap
     }
 
     /// Create a new bitmap with all values in `range`
