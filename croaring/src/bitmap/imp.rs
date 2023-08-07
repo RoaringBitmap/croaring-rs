@@ -1,8 +1,9 @@
 use crate::Bitset;
 use ffi::roaring_bitmap_t;
 use std::convert::TryInto;
-use std::mem;
+use std::ffi::c_void;
 use std::ops::{Bound, RangeBounds};
+use std::{mem, ptr};
 
 use super::serialization::{Deserializer, Serializer};
 use super::{Bitmap, Statistics};
@@ -25,7 +26,7 @@ impl Bitmap {
                 && ffi::ROARING_VERSION_MINOR == 3
                 && ffi::ROARING_VERSION_REVISION == 0
         );
-        ffi::roaring_free(p as *mut _);
+        ffi::roaring_free(p.cast::<c_void>());
         result
     }
 
@@ -41,6 +42,7 @@ impl Bitmap {
     /// assert!(bitmap.is_empty());
     /// ```
     #[inline]
+    #[must_use]
     pub fn create() -> Self {
         Self::create_with_capacity(0)
     }
@@ -59,6 +61,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_init_with_capacity")]
+    #[must_use]
     pub fn create_with_capacity(capacity: u32) -> Self {
         let mut bitmap = mem::MaybeUninit::uninit();
         let success =
@@ -291,6 +294,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_contains")]
+    #[must_use]
     pub fn contains(&self, element: u32) -> bool {
         unsafe { ffi::roaring_bitmap_contains(&self.bitmap, element) }
     }
@@ -313,6 +317,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_add_offset")]
+    #[must_use]
     pub fn add_offset(&self, offset: i64) -> Self {
         unsafe { Bitmap::take_heap(ffi::roaring_bitmap_add_offset(&self.bitmap, offset)) }
     }
@@ -358,6 +363,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_get_cardinality")]
+    #[must_use]
     pub fn cardinality(&self) -> u64 {
         unsafe { ffi::roaring_bitmap_get_cardinality(&self.bitmap) }
     }
@@ -380,6 +386,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_and")]
+    #[must_use]
     pub fn and(&self, other: &Self) -> Self {
         unsafe { Self::take_heap(ffi::roaring_bitmap_and(&self.bitmap, &other.bitmap)) }
     }
@@ -434,6 +441,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_or")]
+    #[must_use]
     pub fn or(&self, other: &Self) -> Self {
         unsafe { Self::take_heap(ffi::roaring_bitmap_or(&self.bitmap, &other.bitmap)) }
     }
@@ -482,10 +490,11 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_or_many")]
+    #[must_use]
     pub fn fast_or(bitmaps: &[&Bitmap]) -> Self {
         let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps
             .iter()
-            .map(|item| &item.bitmap as *const _)
+            .map(|item| ptr::addr_of!(item.bitmap))
             .collect();
 
         unsafe { Self::take_heap(ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr())) }
@@ -512,18 +521,16 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_or_many_heap")]
+    #[must_use]
     pub fn fast_or_heap(bitmaps: &[&Bitmap]) -> Self {
         let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps
             .iter()
-            .map(|item| &item.bitmap as *const _)
+            .map(|item| ptr::addr_of!(item.bitmap))
             .collect();
 
-        unsafe {
-            Self::take_heap(ffi::roaring_bitmap_or_many_heap(
-                bms.len() as u32,
-                bms.as_mut_ptr(),
-            ))
-        }
+        let count = u32::try_from(bms.len()).expect("can only or up to 2^32 bitmaps");
+
+        unsafe { Self::take_heap(ffi::roaring_bitmap_or_many_heap(count, bms.as_mut_ptr())) }
     }
 
     /// Computes the symmetric difference (xor) between two bitmaps
@@ -546,6 +553,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_xor")]
+    #[must_use]
     pub fn xor(&self, other: &Self) -> Self {
         unsafe { Self::take_heap(ffi::roaring_bitmap_xor(&self.bitmap, &other.bitmap)) }
     }
@@ -593,10 +601,11 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_xor_many")]
+    #[must_use]
     pub fn fast_xor(bitmaps: &[&Bitmap]) -> Self {
         let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps
             .iter()
-            .map(|item| &item.bitmap as *const _)
+            .map(|item| ptr::addr_of!(item.bitmap))
             .collect();
 
         unsafe { Self::take_heap(ffi::roaring_bitmap_xor_many(bms.len(), bms.as_mut_ptr())) }
@@ -621,6 +630,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_andnot")]
+    #[must_use]
     pub fn andnot(&self, other: &Self) -> Self {
         unsafe { Self::take_heap(ffi::roaring_bitmap_andnot(&self.bitmap, &other.bitmap)) }
     }
@@ -679,6 +689,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_flip")]
+    #[must_use]
     pub fn flip<R: RangeBounds<u32>>(&self, range: R) -> Self {
         let (start, end) = range_to_exclusive(range);
         unsafe { Self::take_heap(ffi::roaring_bitmap_flip(&self.bitmap, start, end)) }
@@ -723,6 +734,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_to_uint32_array")]
+    #[must_use]
     pub fn to_vec(&self) -> Vec<u32> {
         let bitmap_size: usize = self.cardinality().try_into().unwrap();
 
@@ -736,8 +748,9 @@ impl Bitmap {
 
     /// Computes the serialized size in bytes of the Bitmap in format `S`.
     #[inline]
+    #[must_use]
     pub fn get_serialized_size_in_bytes<S: Serializer>(&self) -> usize {
-        S::get_serialized_size_in_bytes(&self)
+        S::get_serialized_size_in_bytes(self)
     }
 
     /// Serializes a bitmap to a slice of bytes in format `S`.
@@ -756,6 +769,7 @@ impl Bitmap {
     /// assert_eq!(original_bitmap, deserialized_bitmap);
     /// ```
     #[inline]
+    #[must_use]
     pub fn serialize<S: Serializer>(&self) -> Vec<u8> {
         let mut dst = Vec::new();
         self.serialize_into::<S>(&mut dst);
@@ -809,6 +823,7 @@ impl Bitmap {
     /// assert!(deserialized_bitmap.is_none());
     /// ```
     #[inline]
+    #[must_use]
     pub fn try_deserialize<D: Deserializer>(buffer: &[u8]) -> Option<Self> {
         D::try_deserialize(buffer)
     }
@@ -846,6 +861,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_of_ptr")]
+    #[must_use]
     pub fn of(elements: &[u32]) -> Self {
         unsafe {
             Self::take_heap(ffi::roaring_bitmap_of_ptr(
@@ -1017,6 +1033,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_is_empty")]
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         unsafe { ffi::roaring_bitmap_is_empty(&self.bitmap) }
     }
@@ -1039,6 +1056,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_is_subset")]
+    #[must_use]
     pub fn is_subset(&self, other: &Self) -> bool {
         unsafe { ffi::roaring_bitmap_is_subset(&self.bitmap, &other.bitmap) }
     }
@@ -1062,6 +1080,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_is_strict_subset")]
+    #[must_use]
     pub fn is_strict_subset(&self, other: &Self) -> bool {
         unsafe { ffi::roaring_bitmap_is_strict_subset(&self.bitmap, &other.bitmap) }
     }
@@ -1083,6 +1102,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_intersect")]
+    #[must_use]
     pub fn intersect(&self, other: &Self) -> bool {
         unsafe { ffi::roaring_bitmap_intersect(&self.bitmap, &other.bitmap) }
     }
@@ -1126,6 +1146,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_jaccard_index")]
+    #[must_use]
     pub fn jaccard_index(&self, other: &Self) -> f64 {
         unsafe { ffi::roaring_bitmap_jaccard_index(&self.bitmap, &other.bitmap) }
     }
@@ -1144,6 +1165,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_and_cardinality")]
+    #[must_use]
     pub fn and_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_and_cardinality(&self.bitmap, &other.bitmap) }
     }
@@ -1161,6 +1183,7 @@ impl Bitmap {
     /// assert_eq!(bitmap1.or_cardinality(&bitmap2), 2);
     #[inline]
     #[doc(alias = "roaring_bitmap_or_cardinality")]
+    #[must_use]
     pub fn or_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_or_cardinality(&self.bitmap, &other.bitmap) }
     }
@@ -1179,6 +1202,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_andnot_cardinality")]
+    #[must_use]
     pub fn andnot_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_andnot_cardinality(&self.bitmap, &other.bitmap) }
     }
@@ -1197,6 +1221,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_xor_cardinality")]
+    #[must_use]
     pub fn xor_cardinality(&self, other: &Self) -> u64 {
         unsafe { ffi::roaring_bitmap_xor_cardinality(&self.bitmap, &other.bitmap) }
     }
@@ -1222,6 +1247,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_minimum")]
+    #[must_use]
     pub fn minimum(&self) -> Option<u32> {
         if self.is_empty() {
             None
@@ -1251,6 +1277,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_maximum")]
+    #[must_use]
     pub fn maximum(&self) -> Option<u32> {
         if self.is_empty() {
             None
@@ -1279,6 +1306,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_rank")]
+    #[must_use]
     pub fn rank(&self, x: u32) -> u64 {
         unsafe { ffi::roaring_bitmap_rank(&self.bitmap, x) }
     }
@@ -1316,13 +1344,13 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "index")]
     #[doc(alias = "roaring_bitmap_get_index")]
+    #[must_use]
     pub fn position(&self, x: u32) -> Option<u32> {
         let index = unsafe { ffi::roaring_bitmap_get_index(&self.bitmap, x) };
         if index == -1 {
             None
         } else {
-            debug_assert!((0..=u32::MAX as i64).contains(&index));
-            Some(index as u32)
+            Some(u32::try_from(index).unwrap())
         }
     }
 
@@ -1355,6 +1383,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_select")]
+    #[must_use]
     pub fn select(&self, position: u32) -> Option<u32> {
         let mut element: u32 = 0;
         let result = unsafe { ffi::roaring_bitmap_select(&self.bitmap, position, &mut element) };
@@ -1411,6 +1440,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_statistics")]
+    #[must_use]
     pub fn statistics(&self) -> Statistics {
         let mut statistics: ffi::roaring_statistics_s = unsafe { ::std::mem::zeroed() };
 
@@ -1436,6 +1466,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_to_bitset")]
+    #[must_use]
     pub fn to_bitset(&self) -> Option<Bitset> {
         let mut bitset = Bitset::new();
         let success = unsafe { ffi::roaring_bitmap_to_bitset(&self.bitmap, bitset.as_raw_mut()) };

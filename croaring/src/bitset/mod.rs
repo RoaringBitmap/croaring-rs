@@ -5,6 +5,7 @@ mod iter;
 mod ops;
 
 /// A dense bitset
+#[repr(transparent)]
 pub struct Bitset {
     bitset: ffi::bitset_t,
 }

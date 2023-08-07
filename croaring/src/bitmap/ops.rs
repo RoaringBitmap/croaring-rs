@@ -48,6 +48,8 @@ impl PartialEq<Bitmap> for BitmapView<'_> {
     }
 }
 
+impl Eq for Bitmap {}
+
 impl Clone for Bitmap {
     /// Create a copy of a Bitmap
     /// # Examples

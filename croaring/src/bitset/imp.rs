@@ -16,6 +16,7 @@ impl Bitset {
 
     /// Access the raw underlying slice
     #[inline]
+    #[must_use]
     pub const fn as_slice(&self) -> &[u64] {
         if self.bitset.arraysize == 0 {
             &[]
@@ -47,6 +48,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_create")]
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             bitset: ffi::bitset_t {
@@ -69,12 +71,14 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_create_with_capacity")]
+    #[must_use]
     pub fn with_size(size: usize) -> Self {
         unsafe { Self::take_heap(ffi::bitset_create_with_capacity(size)) }
     }
 
     /// Capacity in bits
     #[inline]
+    #[must_use]
     pub const fn capacity(&self) -> usize {
         self.bitset.capacity * 64
     }
@@ -109,6 +113,7 @@ impl Bitset {
     /// How many bytes of memory the backend buffer uses
     #[inline]
     #[doc(alias = "bitset_size_in_bytes")]
+    #[must_use]
     pub const fn size_in_bytes(&self) -> usize {
         self.size_in_words() * mem::size_of::<u64>()
     }
@@ -116,6 +121,7 @@ impl Bitset {
     /// How many bits can be accessed
     #[inline]
     #[doc(alias = "bitset_size_in_bits")]
+    #[must_use]
     pub const fn size_in_bits(&self) -> usize {
         self.size_in_bytes() * 8
     }
@@ -123,6 +129,7 @@ impl Bitset {
     /// How many 64-bit words of memory the backend buffer uses
     #[inline]
     #[doc(alias = "bitset_size_in_words")]
+    #[must_use]
     pub const fn size_in_words(&self) -> usize {
         self.bitset.arraysize
     }
@@ -138,13 +145,14 @@ impl Bitset {
     /// bitset.resize_words(1, false);
     /// bitset.resize_words(2, true);
     /// assert_eq!(bitset.iter().collect::<Vec<_>>(), (64..128).collect::<Vec<_>>());
+    /// ```
     pub fn resize_words(&mut self, new_array_size: usize, value: bool) {
         let old_array_size = self.bitset.arraysize;
         let res = unsafe { ffi::bitset_resize(&mut self.bitset, new_array_size, value) };
         assert!(res);
         if new_array_size > old_array_size {
             let new_data_slice = &mut self.as_mut_slice()[old_array_size..];
-            new_data_slice.fill((value as u64) * !0);
+            new_data_slice.fill(u64::from(value) * !0);
         }
     }
 
@@ -221,7 +229,7 @@ impl Bitset {
         }
         let dst = &mut self.as_mut_slice()[array_idx];
         let mask = 1 << (i % 64);
-        let value_bit = (value as u64) << (i % 64);
+        let value_bit = u64::from(value) << (i % 64);
         let mut word = *dst;
         word &= !mask;
         word |= value_bit;
@@ -244,6 +252,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_get")]
+    #[must_use]
     pub const fn get(&self, i: usize) -> bool {
         let array_idx = i / 64;
         if array_idx >= self.bitset.arraysize {
@@ -264,6 +273,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_count")]
+    #[must_use]
     pub fn count(&self) -> usize {
         unsafe { ffi::bitset_count(&self.bitset) }
     }
@@ -281,6 +291,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_minimum")]
+    #[must_use]
     pub fn minimum(&self) -> usize {
         unsafe { ffi::bitset_minimum(&self.bitset) }
     }
@@ -300,6 +311,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_maximum")]
+    #[must_use]
     pub fn maximum(&self) -> usize {
         unsafe { ffi::bitset_maximum(&self.bitset) }
     }
@@ -317,6 +329,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_union_count")]
+    #[must_use]
     pub fn union_count(&self, other: &Self) -> usize {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
@@ -338,6 +351,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_intersection_count")]
+    #[must_use]
     pub fn intersection_count(&self, other: &Self) -> usize {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
@@ -368,6 +382,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_disjoint")]
+    #[must_use]
     pub fn is_disjoint(&self, other: &Self) -> bool {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
@@ -389,6 +404,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_intersect")]
+    #[must_use]
     pub fn has_intersect(&self, other: &Self) -> bool {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
@@ -410,6 +426,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_contains_all")]
+    #[must_use]
     pub fn is_superset(&self, other: &Self) -> bool {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
@@ -431,6 +448,7 @@ impl Bitset {
     /// ```
     #[inline]
     #[doc(alias = "bitset_difference_count")]
+    #[must_use]
     pub fn difference_count(&self, other: &Self) -> usize {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
@@ -453,6 +471,7 @@ impl Bitset {
     #[inline]
     #[doc(alias = "bitset_symmetric_difference_count")]
     #[doc(alias = "xor_count")]
+    #[must_use]
     pub fn symmetric_difference_count(&self, other: &Self) -> usize {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
@@ -461,18 +480,20 @@ impl Bitset {
         unsafe { ffi::bitset_symmetric_difference_count(&self.bitset, &other.bitset) }
     }
 
-    /// Expose the raw CRoaring bitset
+    /// Expose the raw `CRoaring` bitset
     ///
-    /// This allows calling raw CRoaring functions on the bitset.
+    /// This allows calling raw `CRoaring` functions on the bitset.
     #[inline]
+    #[must_use]
     pub fn as_raw(&self) -> &ffi::bitset_t {
         &self.bitset
     }
 
-    /// Expose the raw CRoaring bitset mutibly
+    /// Expose the raw `CRoaring` bitset mutably
     ///
-    /// This allows calling raw CRoaring functions on the bitset.
+    /// This allows calling raw `CRoaring` functions on the bitset.
     #[inline]
+    #[must_use]
     pub fn as_raw_mut(&mut self) -> &mut ffi::bitset_t {
         &mut self.bitset
     }

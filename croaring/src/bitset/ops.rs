@@ -51,8 +51,8 @@ impl ops::BitOrAssign<&Bitset> for Bitset {
     #[inline]
     #[doc(alias = "bitset_inplace_union")]
     fn bitor_assign(&mut self, rhs: &Bitset) {
-        let res = unsafe { ffi::bitset_inplace_union(&mut self.bitset, &rhs.bitset) };
-        assert!(res);
+        let result = unsafe { ffi::bitset_inplace_union(&mut self.bitset, &rhs.bitset) };
+        assert!(result);
     }
 }
 

@@ -45,6 +45,8 @@ impl<'a> BitmapView<'a> {
         }
     }
 
+    /// Create a bitmap view of a slice of data without copying
+    ///
     /// # Examples
     ///
     /// ```
@@ -55,6 +57,11 @@ impl<'a> BitmapView<'a> {
     /// assert!(view.contains_range(1..=4));
     /// assert_eq!(orig_bitmap, view);
     /// ```
+    ///
+    /// # Safety
+    ///
+    /// The data must be the result of serializing a bitmap with the same serialization format
+    #[must_use]
     pub unsafe fn deserialize<S: ViewDeserializer>(data: &'a [u8]) -> Self {
         S::deserialize_view(data)
     }
@@ -76,6 +83,7 @@ impl<'a> BitmapView<'a> {
     /// assert!(!view.contains(10));
     /// assert!(mutable_bitmap.contains(10));
     /// ```
+    #[must_use]
     pub fn to_bitmap(&self) -> Bitmap {
         (**self).clone()
     }
@@ -86,12 +94,21 @@ impl<'a> Deref for BitmapView<'a> {
 
     fn deref(&self) -> &Self::Target {
         const _: () = assert!(mem::size_of::<Bitmap>() == mem::size_of::<BitmapView>());
+        const _: () = assert!(mem::align_of::<Bitmap>() == mem::align_of::<BitmapView>());
         // SAFETY:
         //   Bitmap and BitmapView are repr(transparent), and both only wrap a roaring_bitmap_t
         //   Bitmap provides no features with a shared reference which modifies the underlying bitmap
         unsafe { mem::transmute::<&BitmapView, &Bitmap>(self) }
     }
 }
+
+impl PartialEq for BitmapView<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        Bitmap::eq(self, other)
+    }
+}
+
+impl Eq for BitmapView<'_> {}
 
 impl<'a> Drop for BitmapView<'a> {
     fn drop(&mut self) {
