@@ -22,7 +22,47 @@ impl fmt::Debug for Bitmap {
 
 impl Default for Bitmap {
     fn default() -> Self {
-        Self::create()
+        Self::new()
+    }
+}
+
+/// Create a new bitmap from a slice of u32 values
+///
+/// # Examples
+///
+/// ```
+/// use croaring::Bitmap;
+///
+/// let data: &[u32] = &[1, 2, 3];
+///
+/// let bitmap1 = Bitmap::from(data);
+/// let bitmap2 = Bitmap::from_range(1..=3);
+/// assert_eq!(bitmap1, bitmap2);
+/// ```
+impl From<&'_ [u32]> for Bitmap {
+    #[inline]
+    #[doc(alias = "roaring_bitmap_of_ptr")]
+    fn from(values: &'_ [u32]) -> Self {
+        Self::of(values)
+    }
+}
+
+/// Create a new bitmap from an array of u32 values
+///
+/// # Examples
+///
+/// ```
+/// use croaring::Bitmap;
+///
+/// let bitmap1 = Bitmap::from([1, 2, 3]);
+/// let bitmap2 = Bitmap::from_range(1..=3);
+/// assert_eq!(bitmap1, bitmap2);
+/// ```
+impl<const N: usize> From<[u32; N]> for Bitmap {
+    #[inline]
+    #[doc(alias = "roaring_bitmap_of_ptr")]
+    fn from(values: [u32; N]) -> Self {
+        Self::of(&values)
     }
 }
 
@@ -57,7 +97,7 @@ impl Clone for Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
+    /// let mut bitmap1 = Bitmap::new();
     /// bitmap1.add(11);
     ///
     /// let bitmap2 = bitmap1.clone();
@@ -66,7 +106,7 @@ impl Clone for Bitmap {
     /// ```
     #[inline]
     fn clone(&self) -> Self {
-        let mut result = Self::create();
+        let mut result = Self::new();
         result.clone_from(self);
         result
     }
@@ -277,10 +317,10 @@ impl_binop! {
         /// ```
         /// use croaring::Bitmap;
         ///
-        /// let mut bitmap1 = Bitmap::create();
+        /// let mut bitmap1 = Bitmap::new();
         /// bitmap1.add(1);
         ///
-        /// let mut bitmap2 = Bitmap::create();
+        /// let mut bitmap2 = Bitmap::new();
         /// bitmap2.add(1);
         /// bitmap2.add(2);
         ///

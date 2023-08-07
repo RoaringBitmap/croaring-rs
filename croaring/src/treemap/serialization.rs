@@ -37,7 +37,7 @@ impl NativeSerializer for Treemap {
 
     fn deserialize(buffer: &[u8]) -> Result<Self> {
         let mut cursor = Cursor::new(&buffer);
-        let mut treemap = Treemap::create();
+        let mut treemap = Treemap::new();
         let bitmap_count = cursor.read_u64::<NativeEndian>()?;
 
         for _ in 0..bitmap_count {
@@ -61,7 +61,7 @@ impl NativeSerializer for Treemap {
     /// use croaring::Treemap;
     /// use croaring::treemap::NativeSerializer;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     ///
     /// for i in 100..1000 {
     ///   treemap.add(i);
@@ -112,7 +112,7 @@ impl JvmSerializer for Treemap {
         let mut cursor = Cursor::new(&buffer);
         cursor.read_u8()?; // read and discard boolean indicator
 
-        let mut treemap = Treemap::create();
+        let mut treemap = Treemap::new();
         let bitmap_count = cursor.read_u32::<BigEndian>()?;
 
         for _ in 0..bitmap_count {
@@ -136,7 +136,7 @@ impl JvmSerializer for Treemap {
     /// use croaring::Treemap;
     /// use croaring::treemap::JvmSerializer;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     ///
     /// for i in 100..1000 {
     ///   treemap.add(i);

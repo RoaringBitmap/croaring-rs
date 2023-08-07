@@ -4,17 +4,17 @@ use criterion::{
 
 use croaring::{Bitmap, Portable};
 
-fn create(c: &mut Criterion) {
-    c.bench_function("create", |b| b.iter(Bitmap::create));
+fn new(c: &mut Criterion) {
+    c.bench_function("new", |b| b.iter(Bitmap::new));
 
-    c.bench_function("create_with_capacity", |b| {
-        b.iter(|| Bitmap::create_with_capacity(10000))
+    c.bench_function("with_capacity", |b| {
+        b.iter(|| Bitmap::with_container_capacity(10_000))
     });
 }
 
 fn add(c: &mut Criterion) {
     c.bench_function("add", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
 
         b.iter(|| bitmap.add(10000));
     });
@@ -22,7 +22,7 @@ fn add(c: &mut Criterion) {
 
 fn add_many(c: &mut Criterion) {
     c.bench_function("add_many", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
         let int_slice = &[10, 100, 10_000, 1_000_000, 10_000_000];
 
         b.iter(|| bitmap.add_many(black_box(int_slice)));
@@ -31,7 +31,7 @@ fn add_many(c: &mut Criterion) {
 
 fn remove(c: &mut Criterion) {
     c.bench_function("remove", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
 
         b.iter(|| bitmap.remove(10000));
     });
@@ -40,7 +40,7 @@ fn remove(c: &mut Criterion) {
 fn contains(c: &mut Criterion) {
     let mut group = c.benchmark_group("contains");
     group.bench_function("true", |b| {
-        let mut bitmap = Bitmap::create();
+        let mut bitmap = Bitmap::new();
 
         bitmap.add(5);
 
@@ -48,7 +48,7 @@ fn contains(c: &mut Criterion) {
     });
 
     group.bench_function("false", |b| {
-        let bitmap = Bitmap::create();
+        let bitmap = Bitmap::new();
 
         b.iter(|| bitmap.contains(5));
     });
@@ -67,8 +67,8 @@ fn cardinality(c: &mut Criterion) {
 }
 
 fn binops(c: &mut Criterion) {
-    let bitmap1 = Bitmap::of(&[500, 1000]);
-    let bitmap2 = Bitmap::of(&[1000, 2000]);
+    let bitmap1 = Bitmap::from([500, 1000]);
+    let bitmap2 = Bitmap::from([1000, 2000]);
 
     macro_rules! bench_op {
         ($new:ident, $inplace:ident) => {{
@@ -146,7 +146,7 @@ fn get_serialized_size_in_bytes(c: &mut Criterion) {
 fn is_empty(c: &mut Criterion) {
     let mut group = c.benchmark_group("is_empty");
     group.bench_function("true", |b| {
-        let bitmap = Bitmap::create();
+        let bitmap = Bitmap::new();
         b.iter(|| bitmap.is_empty());
     });
     group.bench_function("false", |b| {
@@ -184,9 +184,77 @@ fn deserialize(c: &mut Criterion) {
     }
 }
 
+fn bulk_new(c: &mut Criterion) {
+    const N: u32 = 1_000_000;
+
+    let mut group = c.benchmark_group("bulk_new");
+    group.throughput(Throughput::Elements(N.into()));
+    let range = black_box(0..N);
+    group.bench_function("range_new", |b| {
+        b.iter(|| Bitmap::from_range(range.clone()));
+    });
+    group.bench_function("collect", |b| {
+        b.iter(|| Bitmap::from_iter(range.clone()));
+    });
+    group.bench_function("slice_init", |b| {
+        let bulk_data = black_box(range.clone().collect::<Vec<_>>());
+        b.iter(|| Bitmap::of(&bulk_data));
+    });
+    group.bench_function("sequential_adds", |b| {
+        b.iter(|| {
+            let mut bitmap = Bitmap::new();
+            for i in range.clone() {
+                bitmap.add(i);
+            }
+            bitmap
+        });
+    });
+
+    group.finish();
+}
+
+fn random_iter(c: &mut Criterion) {
+    const N: u32 = 5_000;
+    // Clamp values so we get some re-use of containers
+    const MAX: u32 = 8 * (u16::MAX as u32 + 1);
+
+    let mut group = c.benchmark_group("random_iter");
+    group.throughput(Throughput::Elements(N.into()));
+
+    let rand_iter = {
+        const MULTIPLIER: u32 = 742938285;
+        const MODULUS: u32 = (1 << 31) - 1;
+        // Super simple LCG iterator
+        let mut z = 20170705; // seed
+        std::iter::from_fn(move || {
+            z = (MULTIPLIER * z) % MODULUS;
+            Some(z % MAX)
+        })
+    };
+
+    group.bench_function("random_adds", |b| {
+        b.iter(|| {
+            let mut bitmap = Bitmap::new();
+            rand_iter.clone().take(N as usize).for_each(|item| {
+                bitmap.add(item);
+            });
+            bitmap
+        });
+    });
+    group.bench_function("random_from_iter", |b| {
+        b.iter(|| Bitmap::from_iter(rand_iter.clone().take(N as usize)));
+    });
+    group.bench_function("collect_to_vec_first", |b| {
+        b.iter(|| {
+            let vec = rand_iter.clone().take(N as usize).collect::<Vec<_>>();
+            Bitmap::of(&vec)
+        });
+    });
+}
+
 criterion_group!(
     benches,
-    create,
+    new,
     add,
     add_many,
     remove,
@@ -200,5 +268,7 @@ criterion_group!(
     of,
     serialize,
     deserialize,
+    bulk_new,
+    random_iter,
 );
 criterion_main!(benches);

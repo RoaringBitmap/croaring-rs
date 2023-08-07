@@ -59,7 +59,7 @@ impl Treemap {
     /// use std::u64;
     /// use croaring::Treemap;
     ///
-    /// let mut treemap = Treemap::create();
+    /// let mut treemap = Treemap::new();
     /// treemap.add(4);
     /// treemap.add(3);
     /// treemap.add(2);
@@ -97,7 +97,7 @@ impl FromIterator<u64> for Treemap {
     /// assert_eq!(treemap.cardinality(), 11);
     /// ```
     fn from_iter<I: IntoIterator<Item = u64>>(iter: I) -> Self {
-        let mut result = Self::create();
+        let mut result = Self::new();
         result.extend(iter);
         result
     }

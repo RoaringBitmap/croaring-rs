@@ -37,32 +37,35 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let bitmap = Bitmap::create();
+    /// let bitmap = Bitmap::new();
     ///
     /// assert!(bitmap.is_empty());
     /// ```
     #[inline]
     #[must_use]
-    pub fn create() -> Self {
-        Self::create_with_capacity(0)
+    pub fn new() -> Self {
+        Self::with_container_capacity(0)
     }
 
     /// Creates a new bitmap (initially empty) with a provided
     /// container-storage capacity (it is a performance hint).
+    ///
+    /// Note that this is in units of containers, not values: each container holds up to
+    /// 2^16 values.
     ///
     /// # Examples
     ///
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let bitmap = Bitmap::create_with_capacity(100_000);
+    /// let bitmap = Bitmap::with_container_capacity(1_000);
     ///
     /// assert!(bitmap.is_empty());
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_init_with_capacity")]
     #[must_use]
-    pub fn create_with_capacity(capacity: u32) -> Self {
+    pub fn with_container_capacity(capacity: u32) -> Self {
         let mut bitmap = mem::MaybeUninit::uninit();
         let success =
             unsafe { ffi::roaring_bitmap_init_with_capacity(bitmap.as_mut_ptr(), capacity) };
@@ -80,7 +83,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// bitmap.add_many(&[1, 2, 3]);
     ///
     /// assert!(!bitmap.is_empty());
@@ -101,7 +104,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// assert!(bitmap.is_empty());
     /// bitmap.add(1);
     /// assert!(!bitmap.is_empty());
@@ -120,7 +123,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// assert!(bitmap.add_checked(1));
     /// assert!(!bitmap.add_checked(1));
     /// ```
@@ -137,7 +140,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap1 = Bitmap::create();
+    /// let mut bitmap1 = Bitmap::new();
     /// bitmap1.add_range((1..3));
     ///
     /// assert!(!bitmap1.is_empty());
@@ -145,15 +148,15 @@ impl Bitmap {
     /// assert!(bitmap1.contains(2));
     /// assert!(!bitmap1.contains(3));
     ///
-    /// let mut bitmap2 = Bitmap::create();
+    /// let mut bitmap2 = Bitmap::new();
     /// bitmap2.add_range((3..1));
     /// assert!(bitmap2.is_empty());
     ///
-    /// let mut bitmap3 = Bitmap::create();
+    /// let mut bitmap3 = Bitmap::new();
     /// bitmap3.add_range((3..3));
     /// assert!(bitmap3.is_empty());
     ///
-    /// let mut bitmap4 = Bitmap::create();
+    /// let mut bitmap4 = Bitmap::new();
     /// bitmap4.add_range(..=2);
     /// bitmap4.add_range(u32::MAX..=u32::MAX);
     /// assert!(bitmap4.contains(0));
@@ -178,7 +181,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// bitmap.add_range((1..4));
     /// assert!(!bitmap.is_empty());
     ///
@@ -229,7 +232,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// bitmap.add(1);
     /// bitmap.add(2);
     /// bitmap.clear();
@@ -249,7 +252,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// bitmap.add(1);
     /// bitmap.remove(1);
     ///
@@ -269,7 +272,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     /// bitmap.add(1);
     /// assert!(bitmap.remove_checked(1));
     /// assert!(!bitmap.remove_checked(1));
@@ -654,7 +657,7 @@ impl Bitmap {
     /// assert!(!bitmap1.contains(35));
     ///
     /// let mut bitmap3 = Bitmap::of(&[15]);
-    /// let bitmap4 = Bitmap::create();
+    /// let bitmap4 = Bitmap::new();
     /// bitmap3.andnot_inplace(&bitmap4);
     /// assert_eq!(bitmap3.cardinality(), 1);
     /// assert!(bitmap3.contains(15));
@@ -834,7 +837,7 @@ impl Bitmap {
     /// On invalid input returns empty bitmap.
     #[inline]
     pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
-        Self::try_deserialize::<D>(buffer).unwrap_or_else(Bitmap::create)
+        Self::try_deserialize::<D>(buffer).unwrap_or_else(Bitmap::new)
     }
 
     /// Creates a new bitmap from a slice of u32 integers
@@ -848,7 +851,7 @@ impl Bitmap {
     ///
     /// let bitmap = Bitmap::of(&elements);
     ///
-    /// let mut bitmap2 = Bitmap::create();
+    /// let mut bitmap2 = Bitmap::new();
     ///
     /// for element in &elements {
     ///     bitmap2.add(*element);
@@ -863,12 +866,10 @@ impl Bitmap {
     #[doc(alias = "roaring_bitmap_of_ptr")]
     #[must_use]
     pub fn of(elements: &[u32]) -> Self {
-        unsafe {
-            Self::take_heap(ffi::roaring_bitmap_of_ptr(
-                elements.len(),
-                elements.as_ptr(),
-            ))
-        }
+        // This does the same as `roaring_bitmap_of_ptr`, but that also allocates the bitmap itself
+        let mut bitmap = Self::new();
+        bitmap.add_many(elements);
+        bitmap
     }
 
     /// Create a new bitmap with all values in `range`
@@ -890,7 +891,7 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
     pub fn from_range<R: RangeBounds<u32>>(range: R) -> Self {
-        let mut result = Self::create();
+        let mut result = Self::new();
         result.add_range(range);
         result
     }
@@ -910,17 +911,17 @@ impl Bitmap {
     /// assert_eq!(bitmap.to_vec(), [0, 3, 6, 9]);
     ///
     /// // empty ranges
-    /// assert_eq!(Bitmap::from_range_with_step(0..0, 1), Bitmap::create());
-    /// assert_eq!(Bitmap::from_range_with_step(100..=0, 1), Bitmap::create());
+    /// assert_eq!(Bitmap::from_range_with_step(0..0, 1), Bitmap::new());
+    /// assert_eq!(Bitmap::from_range_with_step(100..=0, 1), Bitmap::new());
     ///
     /// // Step of zero
-    /// assert_eq!(Bitmap::from_range_with_step(0..100, 0), Bitmap::create());
+    /// assert_eq!(Bitmap::from_range_with_step(0..100, 0), Bitmap::new());
     ///
     /// // No values of step in range
     /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(0), Bound::Included(10)), 100);
-    /// assert_eq!(bitmap, Bitmap::create());
+    /// assert_eq!(bitmap, Bitmap::new());
     /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(u32::MAX), Bound::Included(u32::MAX)), 1);
-    /// assert_eq!(bitmap, Bitmap::create());
+    /// assert_eq!(bitmap, Bitmap::new());
     ///
     /// // Exclusive ranges still step from the start, but do not include it
     /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(10), Bound::Included(30)), 10);
@@ -944,7 +945,7 @@ impl Bitmap {
         unsafe {
             let result = ffi::roaring_bitmap_from_range(start, end, step);
             if result.is_null() {
-                Self::create()
+                Self::new()
             } else {
                 Self::take_heap(result)
             }
@@ -960,7 +961,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create_with_capacity(10);
+    /// let mut bitmap = Bitmap::with_container_capacity(10);
     /// let saved_bytes = bitmap.shrink_to_fit();
     /// assert!(saved_bytes > 0);
     /// let more_saved_bytes = bitmap.shrink_to_fit();
@@ -1023,7 +1024,7 @@ impl Bitmap {
     /// ```
     /// use croaring::Bitmap;
     ///
-    /// let mut bitmap = Bitmap::create();
+    /// let mut bitmap = Bitmap::new();
     ///
     /// assert!(bitmap.is_empty());
     ///
@@ -1236,7 +1237,7 @@ impl Bitmap {
     /// use croaring::Bitmap;
     ///
     /// let mut bitmap: Bitmap = (5..10).collect();
-    /// let empty_bitmap: Bitmap = Bitmap::create();
+    /// let empty_bitmap: Bitmap = Bitmap::new();
     ///
     /// assert_eq!(bitmap.minimum(), Some(5));
     /// assert_eq!(empty_bitmap.minimum(), None);
@@ -1266,7 +1267,7 @@ impl Bitmap {
     /// use croaring::Bitmap;
     ///
     /// let mut bitmap: Bitmap = (5..10).collect();
-    /// let empty_bitmap: Bitmap = Bitmap::create();
+    /// let empty_bitmap: Bitmap = Bitmap::new();
     ///
     /// assert_eq!(bitmap.maximum(), Some(9));
     /// assert_eq!(empty_bitmap.maximum(), None);

@@ -10,8 +10,8 @@ use libfuzzer_sys::fuzz_target;
 mod arbitrary_ops;
 
 fuzz_target!(|input: FuzzInput| {
-    let mut lhs = Bitmap::create();
-    let mut rhs = Bitmap::create();
+    let mut lhs = Bitmap::new();
+    let mut rhs = Bitmap::new();
 
     let mut lhs_check = bitvec![0; 4 * 0x1_0000];
     let mut rhs_check = bitvec![0; 4 * 0x1_0000];

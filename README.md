@@ -8,7 +8,7 @@ The original java version can be found at https://github.com/RoaringBitmap/Roari
 ```rust
 use croaring::Bitmap;
 
-let mut rb1 = Bitmap::create();
+let mut rb1 = Bitmap::new();
 rb1.add(1);
 rb1.add(2);
 rb1.add(3);
@@ -18,13 +18,13 @@ rb1.add(100);
 rb1.add(1000);
 rb1.run_optimize();
 
-let mut rb2 = Bitmap::create();
+let mut rb2 = Bitmap::new();
 rb2.add(3);
 rb2.add(4);
 rb2.add(1000);
 rb2.run_optimize();
 
-let mut rb3 = Bitmap::create();
+let mut rb3 = Bitmap::new();
 
 assert_eq!(rb1.cardinality(), 7);
 assert!(rb1.contains(3));
@@ -63,7 +63,7 @@ For 64bit Bitmap support, checkout the [`Treemap`](https://docs.rs/croaring/0.4.
 use std::u64;
 use croaring::Treemap;
 
-let mut treemap = Treemap::create();
+let mut treemap = Treemap::new();
 treemap.add(u64::MAX);
 treemap.remove(u64::MAX);
 
@@ -71,7 +71,7 @@ treemap.remove(u64::MAX);
 
 use croaring::treemap::NativeSerializer;
 
-let mut treemap1 = Treemap::create();
+let mut treemap1 = Treemap::new();
 
 for i in 100..1000 {
   treemap1.add(i);
@@ -83,7 +83,7 @@ treemap1.add(std::u64::MAX);
 /// Serialization compatible with JVM Treemap version at https://github.com/RoaringBitmap/RoaringBitmap/blob/34654b2d5c3e75e7f9bca1672f4c0b5800d60cf3/roaringbitmap/src/main/java/org/roaringbitmap/longlong/Roaring64NavigableMap.java
 use croaring::treemap::JvmSerializer;
 
-let mut treemap2 = Treemap::create();
+let mut treemap2 = Treemap::new();
 
 for i in 100..1000 {
   treemap2.add(i);

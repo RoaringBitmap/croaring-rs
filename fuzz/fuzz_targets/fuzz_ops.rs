@@ -9,8 +9,8 @@ use libfuzzer_sys::fuzz_target;
 mod arbitrary_ops;
 
 fuzz_target!(|input: FuzzInput| {
-    let mut lhs = Bitmap::create();
-    let mut rhs = Bitmap::create();
+    let mut lhs = Bitmap::new();
+    let mut rhs = Bitmap::new();
 
     for op in &input.lhs_ops {
         op.on_roaring(&mut lhs);

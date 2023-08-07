@@ -6,7 +6,7 @@
 //! ```rust
 //! use croaring::Bitmap;
 //!
-//! let mut rb1 = Bitmap::create();
+//! let mut rb1 = Bitmap::new();
 //! rb1.add(1);
 //! rb1.add(2);
 //! rb1.add(3);
@@ -16,13 +16,13 @@
 //! rb1.add(1000);
 //! rb1.run_optimize();
 //!
-//! let mut rb2 = Bitmap::create();
+//! let mut rb2 = Bitmap::new();
 //! rb2.add(3);
 //! rb2.add(4);
 //! rb2.add(1000);
 //! rb2.run_optimize();
 //!
-//! let mut rb3 = Bitmap::create();
+//! let mut rb3 = Bitmap::new();
 //!
 //! assert_eq!(rb1.cardinality(), 7);
 //! assert!(rb1.contains(3));
