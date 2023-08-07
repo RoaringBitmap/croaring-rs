@@ -46,6 +46,7 @@ _get_cargo_fuzz:
 
 fuzz: _get_cargo_fuzz
 	cd fuzz && \
+		cargo fuzz check && \
 		ASAN_OPTIONS="detect_leaks=1 detect_stack_use_after_return=1" \
 		CC=clang CFLAGS=-fsanitize=address \
 		cargo fuzz run fuzz_ops -s address -- -max_len=10000 -rss_limit_mb=4096
