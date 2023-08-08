@@ -1,4 +1,5 @@
 use super::{Bitmap, BitmapView};
+use crate::serialization::{Frozen, Native, Portable};
 
 use std::ffi::{c_char, c_void};
 
@@ -14,10 +15,6 @@ pub trait Deserializer {
 pub trait ViewDeserializer {
     unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_>;
 }
-
-/// The `Portable` format is meant to be compatible with other roaring bitmap libraries, such as Go or Java.
-/// It's defined here: <https://github.com/RoaringBitmap/RoaringFormatSpec>
-pub enum Portable {}
 
 impl Serializer for Portable {
     /// Serializes a bitmap to a slice of bytes in portable format.
@@ -92,11 +89,6 @@ impl ViewDeserializer for Portable {
     }
 }
 
-/// The `Native` format format can sometimes be more space efficient than [`Portable`], e.g. when
-/// the data is sparse. It's not compatible with Java and Go implementations. Use [`Portable`] for
-/// that purpose.
-pub enum Native {}
-
 impl Serializer for Native {
     /// Serializes a bitmap to a slice of bytes in native format.
     /// See [`Bitmap::serialize_into`] for examples.
@@ -146,11 +138,6 @@ impl Deserializer for Native {
         }
     }
 }
-
-/// The `Frozen` format imitates memory layout of the underlying C library.
-/// This reduces amount of allocations and copying required during deserialization, though
-/// `Portable` offers comparable performance.
-pub enum Frozen {}
 
 impl Serializer for Frozen {
     /// Serializes a bitmap to a slice of bytes in "frozen" format.
