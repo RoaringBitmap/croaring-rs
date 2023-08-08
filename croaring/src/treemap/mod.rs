@@ -33,5 +33,3 @@ mod util;
 pub struct Treemap {
     pub map: BTreeMap<u32, Bitmap>,
 }
-
-pub use crate::treemap::serialization::{JvmSerializer, NativeSerializer};

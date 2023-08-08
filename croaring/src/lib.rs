@@ -3,7 +3,7 @@ pub mod bitset;
 pub mod serialization;
 pub mod treemap;
 
-pub use serialization::{Frozen, Native, Portable};
+pub use serialization::*;
 
 pub use bitmap::Bitmap;
 pub use bitmap::BitmapIterator;
