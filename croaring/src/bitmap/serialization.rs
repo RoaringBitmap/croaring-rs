@@ -147,22 +147,24 @@ impl Serializer for Frozen {
     /// See [`Bitmap::serialize_into`] for examples.
     #[doc(alias = "roaring_bitmap_frozen_serialize")]
     fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        const REQUIRED_ALIGNMENT: usize = 32;
         let len = Self::get_serialized_size_in_bytes(bitmap);
 
-        let offset = dst.len();
-        // Need to be able to add up to 31 extra bytes to align to 32 bytes
-        dst.reserve(len.checked_add(REQUIRED_ALIGNMENT - 1).unwrap());
-        let extra_offset = match (dst.as_ptr() as usize + offset) % REQUIRED_ALIGNMENT {
-            0 => 0,
-            r => REQUIRED_ALIGNMENT - r,
-        };
-        let offset = offset.checked_add(extra_offset).unwrap();
+        let mut offset = dst.len();
+        if dst.capacity() < dst.len() + len
+            || (dst.as_ptr_range().end as usize) % Self::REQUIRED_ALIGNMENT != 0
+        {
+            // Need to be able to add up to 31 extra bytes to align to 32 bytes
+            dst.reserve(len.checked_add(Self::REQUIRED_ALIGNMENT - 1).unwrap());
+            let extra_offset = match (dst.as_ptr_range().end as usize) % Self::REQUIRED_ALIGNMENT {
+                0 => 0,
+                r => Self::REQUIRED_ALIGNMENT - r,
+            };
+            offset = offset.checked_add(extra_offset).unwrap();
+            // we must initialize up to offset
+            dst.resize(offset, 0);
+        }
         let total_len = offset.checked_add(len).unwrap();
         debug_assert!(dst.capacity() >= total_len);
-
-        // we must initialize up to offset
-        dst.resize(offset, 0);
 
         unsafe {
             ffi::roaring_bitmap_frozen_serialize(
@@ -194,8 +196,7 @@ impl ViewDeserializer for Frozen {
     ///
     /// See [`BitmapView::deserialize`] for examples.
     unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_> {
-        const REQUIRED_ALIGNMENT: usize = 32;
-        assert_eq!(data.as_ptr() as usize % REQUIRED_ALIGNMENT, 0);
+        assert_eq!(data.as_ptr() as usize % Self::REQUIRED_ALIGNMENT, 0);
 
         let roaring = ffi::roaring_bitmap_frozen_view(data.as_ptr().cast(), data.len());
         BitmapView::take_heap(roaring)
