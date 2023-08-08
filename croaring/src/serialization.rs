@@ -1,5 +1,7 @@
 /// The `Portable` format is meant to be compatible with other roaring bitmap libraries, such as Go or Java.
 ///
+/// Note despite the name, it is not fully portable: it depends on native endianness.
+///
 /// It's defined here: <https://github.com/RoaringBitmap/RoaringFormatSpec>
 pub enum Portable {}
 
@@ -13,6 +15,10 @@ pub enum Native {}
 ///
 /// This reduces amount of allocations and copying required during deserialization, though
 /// `Portable` offers comparable performance.
+///
+/// Note that because frozen serialization format imitates C memory layout
+/// of roaring_bitmap_t, it is not fixed. It is different on big/little endian
+/// platforms and can be changed in future.
 pub enum Frozen {}
 
 impl Frozen {

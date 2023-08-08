@@ -29,6 +29,9 @@ mod ops;
 mod serialization;
 mod util;
 
+pub use serialization::{Serializer, Deserializer};
+pub use iter::TreemapIterator;
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Treemap {
     pub map: BTreeMap<u32, Bitmap>,

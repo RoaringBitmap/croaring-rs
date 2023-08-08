@@ -3,6 +3,7 @@ use crate::serialization::{Frozen, Native, Portable};
 
 use std::ffi::{c_char, c_void};
 
+/// Trait for different formats of bitmap serialization
 pub trait Serializer {
     /// Serialize a bitmap into bytes, using the provided vec buffer to store the serialized data
     ///
@@ -20,6 +21,7 @@ pub trait Serializer {
     fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize;
 }
 
+/// Trait for different formats of bitmap deserialization
 pub trait Deserializer {
     /// Try to deserialize a bitmap from the beginning of the provided buffer
     ///
@@ -34,7 +36,16 @@ pub trait Deserializer {
     fn try_deserialize(buffer: &[u8]) -> Option<Bitmap>;
 }
 
+/// Trait for different formats of bitmap deserialization into a view without copying
 pub trait ViewDeserializer {
+    /// Create a bitmap view using the passed data
+    ///
+    /// # Safety
+    /// * `data` must be the result of serializing a roaring bitmap in this format.
+    /// * Its beginning must be aligned properly for this format.
+    /// * data.len() must be equal exactly to the size of the serialized bitmap.
+    ///
+    /// See [`BitmapView::deserialize`] for examples.
     unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_>;
 }
 
@@ -61,7 +72,7 @@ impl Serializer for Portable {
     }
 
     /// Computes the serialized size in bytes of the Bitmap in portable format.
-    /// See [`Bitmap::get_size_in_bytes`] for examples.
+    /// See [`Bitmap::get_serialized_size_in_bytes`] for examples.
     #[doc(alias = "roaring_bitmap_portable_size_in_bytes")]
     fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
         unsafe { ffi::roaring_bitmap_portable_size_in_bytes(&bitmap.bitmap) }
@@ -134,7 +145,7 @@ impl Serializer for Native {
     }
 
     /// Computes the serialized size in bytes of the Bitmap in native format.
-    /// See [`Bitmap::get_size_in_bytes`] for examples.
+    /// See [`Bitmap::get_serialized_size_in_bytes`] for examples.
     #[doc(alias = "roaring_bitmap_size_in_bytes")]
     fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
         unsafe { ffi::roaring_bitmap_size_in_bytes(&bitmap.bitmap) }
@@ -200,7 +211,7 @@ impl Serializer for Frozen {
     }
 
     /// Computes the serialized size in bytes of the Bitmap in frozen format.
-    /// See [`Bitmap::get_size_in_bytes`] for examples.
+    /// See [`Bitmap::get_serialized_size_in_bytes`] for examples.
     #[doc(alias = "roaring_bitmap_frozen_size_in_bytes")]
     fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize {
         unsafe { ffi::roaring_bitmap_frozen_size_in_bytes(&bitmap.bitmap) }
@@ -212,7 +223,7 @@ impl ViewDeserializer for Frozen {
     ///
     /// # Safety
     /// * `data` must be the result of serializing a roaring bitmap in frozen mode
-    ///   (in c with `roaring_bitmap_frozen_serialize`, or via [`Bitmap::serialize_frozen_into`]).
+    ///   (in c with `roaring_bitmap_frozen_serialize`, or via [`Bitmap::serialize_into::<Frozen>`]).
     /// * Its beginning must be aligned by 32 bytes.
     /// * data.len() must be equal exactly to the size of the frozen bitmap.
     ///

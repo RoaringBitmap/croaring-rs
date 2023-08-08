@@ -2,10 +2,11 @@ use crate::Bitmap;
 use crate::Treemap;
 
 use super::util;
+use crate::treemap::{Deserializer, Serializer};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::ops::{Bound, RangeBounds};
-use std::u64;
+use std::{io, u64};
 
 impl Treemap {
     /// Creates an empty `Treemap`.
@@ -1011,6 +1012,120 @@ impl Treemap {
         }
 
         result
+    }
+
+    /// Computes the serialized size in bytes of the treemap in format `S`.
+    #[must_use]
+    pub fn get_serialized_size_in_bytes<S: Serializer>(&self) -> usize {
+        S::get_serialized_size_in_bytes(self)
+    }
+
+    /// Serializes the treemap to a slice of bytes in format `S`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    ///
+    /// let treemap: Treemap = (1..5).collect();
+    ///
+    /// let serialized_buffer = treemap.serialize::<Portable>();
+    ///
+    /// let deserialized_treemap = Treemap::deserialize::<Portable>(&serialized_buffer);
+    ///
+    /// assert_eq!(treemap, deserialized_treemap);
+    /// ```
+    #[must_use]
+    pub fn serialize<S: Serializer>(&self) -> Vec<u8> {
+        let mut dst = Vec::new();
+        self.serialize_into::<S>(&mut dst);
+        dst
+    }
+
+    /// Serializes a treemap to a slice of bytes in format `S`, re-using existing capacity
+    ///
+    /// `dst` is not cleared, data is added after any existing data. Returns the added slice of `dst`.
+    /// If `dst` is empty, it is guaranteed to hold only the serialized data after this call
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    ///
+    /// let original_treemap_1: Treemap = (1..5).collect();
+    /// let original_treemap_2: Treemap = (1..10).collect();
+    ///
+    /// let mut data = Vec::new();
+    /// for treemap in [original_treemap_1, original_treemap_2] {
+    ///     data.clear();
+    ///     let serialized_output = treemap.serialize_into::<Portable>(&mut data);
+    ///     // do something with serialized_output
+    /// }
+    /// ```
+    pub fn serialize_into<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
+        S::serialize_into(self, dst)
+    }
+
+    /// Serializes a treemap to a writer in format `S`.
+    ///
+    /// Returns the number of bytes written to the writer.
+    ///
+    /// Note that the [`Frozen`][crate::Frozen] format requires alignment to 32 bytes. This function
+    /// assumes the writer starts at an aligned position (and cannot check this).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    /// use std::io::Cursor;
+    ///
+    /// let treemap: Treemap = (1..5).collect();
+    ///
+    /// let mut cursor = Cursor::new(Vec::new());
+    /// treemap.serialize_into_writer::<Portable, _>(&mut cursor).unwrap();
+    ///
+    /// let deserialized_treemap = Treemap::try_deserialize::<Portable>(cursor.into_inner().as_slice()).unwrap();
+    ///
+    /// assert_eq!(treemap, deserialized_treemap);
+    /// ```
+    pub fn serialize_into_writer<S: Serializer, W: io::Write>(
+        &self,
+        writer: W,
+    ) -> io::Result<usize> {
+        S::serialize_into_writer(self, writer)
+    }
+
+    /// Given a serialized treemap as slice of bytes in format `S`, returns a `Bitmap` instance.
+    /// See example of [`Self::serialize`] function.
+    ///
+    /// On invalid input returns None.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    ///
+    /// let original_treemap: Treemap = (1..5).collect();
+    /// let serialized_buffer = original_treemap.serialize::<Portable>();
+    ///
+    /// let deserialized_treemap = Treemap::try_deserialize::<Portable>(&serialized_buffer);
+    /// assert_eq!(original_treemap, deserialized_treemap.unwrap());
+    ///
+    /// let invalid_buffer: Vec<u8> = vec![3];
+    /// let deserialized_treemap = Treemap::try_deserialize::<Portable>(&invalid_buffer);
+    /// assert!(deserialized_treemap.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_deserialize<D: Deserializer>(buffer: &[u8]) -> Option<Self> {
+        D::try_deserialize(buffer).map(|(treemap, _bytes_read)| treemap)
+    }
+
+    /// Given a serialized treemap as slice of bytes in format `S `, returns a treemap instance.
+    /// See example of [`Self::serialize`] function.
+    ///
+    /// On invalid input returns empty treemap.
+    pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
+        Self::try_deserialize::<D>(buffer).unwrap_or_default()
     }
 
     /// Creates a new treemap from a slice of u64 integers

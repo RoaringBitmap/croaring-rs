@@ -142,7 +142,7 @@ impl Serializer for Portable {
     }
 
     /// Computes the serialized size in bytes of the Treemap in portable format.
-    /// See [`Treemap::get_size_in_bytes`] for examples.
+    /// See [`Treemap::get_serialized_size_in_bytes`] for examples.
     fn get_serialized_size_in_bytes(treemap: &Treemap) -> usize {
         size_in_bytes_impl::<Self>(treemap)
     }
@@ -171,7 +171,7 @@ impl Serializer for Native {
     }
 
     /// Computes the serialized size in bytes of the Treemap in native format.
-    /// See [`Treemap::get_size_in_bytes`] for examples.
+    /// See [`Treemap::get_serialized_size_in_bytes`] for examples.
     fn get_serialized_size_in_bytes(treemap: &Treemap) -> usize {
         size_in_bytes_impl::<Self>(treemap)
     }
@@ -260,7 +260,7 @@ impl Serializer for Frozen {
     }
 
     /// Computes the serialized size in bytes of the Treemap in frozen format.
-    /// See [`Treemap::get_size_in_bytes`] for examples.
+    /// See [`Treemap::get_serialized_size_in_bytes`] for examples.
     fn get_serialized_size_in_bytes(treemap: &Treemap) -> usize {
         // Yes, the frozen format changes based on the size of usize
         const METADATA_SIZE: usize = size_of::<usize>() + size_of::<u32>();
