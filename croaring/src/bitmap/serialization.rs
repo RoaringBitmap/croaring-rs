@@ -4,11 +4,33 @@ use crate::serialization::{Frozen, Native, Portable};
 use std::ffi::{c_char, c_void};
 
 pub trait Serializer {
+    /// Serialize a bitmap into bytes, using the provided vec buffer to store the serialized data
+    ///
+    /// Note that some serializers ([Frozen]) may require that the bitmap is aligned specially,
+    /// this method will ensure that the returned slice of bytes is aligned correctly, by adding
+    /// additional padding before the serialized data if required.
+    ///
+    /// The contents of the provided vec buffer will not be overwritten: only new data will be
+    /// appended to the end of the buffer. If the buffer has enough capacity, and the current
+    /// end of the buffer is correctly aligned, then no additional allocations will be performed.
     fn serialize_into<'a>(bitmap: &Bitmap, dst: &'a mut Vec<u8>) -> &'a [u8];
+    /// Get the number of bytes required to serialize this bitmap
+    ///
+    /// This does not include any additional padding which may be required to align the bitmap
     fn get_serialized_size_in_bytes(bitmap: &Bitmap) -> usize;
 }
 
 pub trait Deserializer {
+    /// Try to deserialize a bitmap from the beginning of the provided buffer
+    ///
+    /// If the buffer starts with the serialized representation of a bitmap, then
+    /// this method will return a new bitmap containing the deserialized data.
+    ///
+    /// If the buffer does not start with a serialized bitmap (or contains an invalidly
+    /// truncated bitmap), then this method will return `None`.
+    ///
+    /// To determine how many bytes were consumed from the buffer, use the
+    /// [`Serializer::get_serialized_size_in_bytes`] method on the returned bitmap.
     fn try_deserialize(buffer: &[u8]) -> Option<Bitmap>;
 }
 

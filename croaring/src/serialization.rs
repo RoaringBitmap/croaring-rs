@@ -16,5 +16,6 @@ pub enum Native {}
 pub enum Frozen {}
 
 impl Frozen {
+    /// The frozen format requires bitmaps are aligned to 32 bytes.
     pub const REQUIRED_ALIGNMENT: usize = 32;
 }
