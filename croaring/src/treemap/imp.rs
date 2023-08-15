@@ -17,6 +17,7 @@ impl Treemap {
     /// use croaring::Treemap;
     /// let treemap = Treemap::new();
     /// ```
+    #[must_use]
     pub fn new() -> Self {
         Treemap {
             map: BTreeMap::new(),
@@ -35,6 +36,7 @@ impl Treemap {
     /// let treemap = Treemap::from_bitmap(bitmap);
     /// assert_eq!(treemap.cardinality(), 3);
     /// ```
+    #[must_use]
     pub fn from_bitmap(bitmap: Bitmap) -> Self {
         let mut map = BTreeMap::new();
         map.insert(0, bitmap);
@@ -160,6 +162,7 @@ impl Treemap {
     ///
     /// let mut treemap = Treemap::new();
     /// ```
+    #[must_use]
     pub fn contains(&self, value: u64) -> bool {
         let (hi, lo) = util::split(value);
         match self.map.get(&hi) {
@@ -184,6 +187,7 @@ impl Treemap {
     ///
     /// assert!(!treemap.is_empty());
     /// ```
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.map.values().all(Bitmap::is_empty)
     }
@@ -198,6 +202,7 @@ impl Treemap {
     /// let mut treemap = Treemap::new();
     /// assert!(!treemap.is_full());
     /// ```
+    #[must_use]
     pub fn is_full(&self) -> bool {
         // only bother to check if map is fully saturated
         if self.map.len() != usize::try_from(u32::MAX).unwrap() + 1 {
@@ -224,6 +229,7 @@ impl Treemap {
     /// assert!(bitmap3.is_subset(&bitmap1));
     /// assert!(!bitmap4.is_subset(&bitmap1));
     /// ```
+    #[must_use]
     pub fn is_subset(&self, other: &Treemap) -> bool {
         self.map.iter().all(|(key, lhs)| {
             lhs.is_empty() || other.map.get(key).map_or(false, |rhs| lhs.is_subset(rhs))
@@ -231,6 +237,7 @@ impl Treemap {
     }
 
     /// Returns true if this bitmap is a strict subset of `other`
+    #[must_use]
     pub fn is_strict_subset(&self, other: &Treemap) -> bool {
         self.is_subset(other) && self.cardinality() != other.cardinality()
     }
@@ -497,6 +504,7 @@ impl Treemap {
     /// assert_eq!(treemap.select(10), Some(20));
     /// assert_eq!(treemap.select(11), None);
     /// ```
+    #[must_use]
     pub fn select(&self, mut rank: u64) -> Option<u64> {
         for (&key, bitmap) in &self.map {
             let sub_cardinality = bitmap.cardinality();
@@ -515,6 +523,7 @@ impl Treemap {
     }
 
     /// Returns the number of elements that are smaller or equal to `value`
+    #[must_use]
     pub fn rank(&self, value: u64) -> u64 {
         let (hi, lo) = util::split(value);
         let mut rank = 0;
@@ -539,6 +548,7 @@ impl Treemap {
     /// The difference with the `rank` method is that this method will return
     /// None if the value is not in the set, whereas `rank` will always return a value
     #[doc(alias = "get_index")]
+    #[must_use]
     pub fn position(&self, value: u64) -> Option<u64> {
         let (hi, lo) = util::split(value);
         let mut range = self.map.range(..=hi);
@@ -571,6 +581,7 @@ impl Treemap {
     ///
     /// assert_eq!(treemap.cardinality(), 2);
     /// ```
+    #[must_use]
     pub fn cardinality(&self) -> u64 {
         self.map.values().map(Bitmap::cardinality).sum()
     }
@@ -1124,6 +1135,7 @@ impl Treemap {
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns empty treemap.
+    #[must_use]
     pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
         Self::try_deserialize::<D>(buffer).unwrap_or_default()
     }
@@ -1203,7 +1215,7 @@ impl Treemap {
     }
 
     pub(super) fn get_or_create(&mut self, bucket: u32) -> &mut Bitmap {
-        self.map.entry(bucket).or_insert_with(Bitmap::new)
+        self.map.entry(bucket).or_default()
     }
 }
 

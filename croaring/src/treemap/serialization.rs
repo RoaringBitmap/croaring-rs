@@ -8,13 +8,14 @@ use std::io::Write as _;
 use byteorder::{BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
 use std::mem::size_of;
 
+/// Trait for different formats of treemap deserialization
 pub trait Serializer {
     /// Serialize a treemap into a writer
     ///
     /// Returns the number of bytes written, or an error if writing failed
     ///
-    /// Note tha some serializers ([Frozen]) may require that the bitmap is aligned specially when
-    /// reading: this method does not perform any extra alignment. See [Self::serialize_into]
+    /// Note tha some serializers ([`Frozen`]) may require that the bitmap is aligned specially when
+    /// reading: this method does not perform any extra alignment. See [`Self::serialize_into`]
     /// for a method which will return a slice of bytes which are guaranteed to be aligned correctly
     /// in memory
     fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> io::Result<usize>
@@ -23,7 +24,7 @@ pub trait Serializer {
 
     /// Serialize a treemap into bytes, using the provided vec buffer to store the serialized data
     ///
-    /// Note that some serializers ([Frozen]) may require that bitmaps are aligned specially, this
+    /// Note that some serializers ([`Frozen`]) may require that bitmaps are aligned specially, this
     /// method will ensure that the returned slice of bytes is aligned correctly so that each bitmap
     /// is correctly aligned, adding additional padding before the serialized data if required.
     ///
@@ -42,6 +43,7 @@ pub trait Serializer {
     fn get_serialized_size_in_bytes(treemap: &Treemap) -> usize;
 }
 
+/// Trait for different formats of treemap deserialization
 pub trait Deserializer {
     /// Try to deserialize a treemap from the beginning of the provided buffer
     ///
@@ -104,7 +106,7 @@ where
     let total_sizes = treemap
         .map
         .values()
-        .map(|b| b.get_serialized_size_in_bytes::<S>())
+        .map(Bitmap::get_serialized_size_in_bytes::<S>)
         .sum::<usize>();
     overhead + total_sizes
 }
@@ -322,7 +324,7 @@ impl Serializer for JvmLegacy {
         let total_sizes = treemap
             .map
             .values()
-            .map(|b| b.get_serialized_size_in_bytes::<Portable>())
+            .map(Bitmap::get_serialized_size_in_bytes::<Portable>)
             .sum::<usize>();
         overhead + total_sizes
     }

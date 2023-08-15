@@ -73,6 +73,7 @@ impl Treemap {
     /// assert_eq!(iterator.next(), Some(u64::MAX));
     /// assert_eq!(iterator.next(), None);
     /// ```
+    #[must_use]
     pub fn iter(&self) -> TreemapIterator {
         TreemapIterator::new(self)
     }

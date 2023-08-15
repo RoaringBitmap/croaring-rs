@@ -1,7 +1,8 @@
 pub mod bitmap;
 pub mod bitset;
-pub mod serialization;
 pub mod treemap;
+
+mod serialization;
 
 pub use serialization::*;
 

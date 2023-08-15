@@ -17,7 +17,7 @@ pub enum Native {}
 /// `Portable` offers comparable performance.
 ///
 /// Note that because frozen serialization format imitates C memory layout
-/// of roaring_bitmap_t, it is not fixed. It is different on big/little endian
+/// of `roaring_bitmap_t`, it is not fixed. It is different on big/little endian
 /// platforms and can be changed in future.
 pub enum Frozen {}
 
@@ -26,7 +26,7 @@ impl Frozen {
     pub const REQUIRED_ALIGNMENT: usize = 32;
 }
 
-/// The `JvmLegacy` format is meant to be compatible with the original Java implementation of Roaring64NavigableMap
+/// The `JvmLegacy` format is meant to be compatible with the original Java implementation of `Roaring64NavigableMap`
 ///
 /// It is used only for [Treemap][crate::Treemap]s, not bitmaps.
 ///
