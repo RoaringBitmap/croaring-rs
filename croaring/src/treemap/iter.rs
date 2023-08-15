@@ -30,6 +30,9 @@ type InnerIter<'a> = iter::FlatMap<
     fn((&'a u32, &'a Bitmap)) -> To64Iter<'a>,
 >;
 
+/// Iterator over values stored in the treemap
+///
+/// Values are ordered in ascending order
 pub struct TreemapIterator<'a> {
     iter: InnerIter<'a>,
 }
