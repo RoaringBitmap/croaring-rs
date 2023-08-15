@@ -371,3 +371,48 @@ impl<W: io::Write> io::Write for OffsetTrackingWriter<W> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn example_treemap() -> Treemap {
+        Treemap::from_iter([1, 2, 3, 4, 5, u64::from(u32::MAX), u64::MAX])
+    }
+
+    fn smoke_test_ser<S: Serializer>(expected_len: usize) {
+        let treemap = example_treemap();
+        assert_eq!(treemap.get_serialized_size_in_bytes::<S>(), expected_len);
+
+        let mut buf = Vec::new();
+        let serialized = treemap.serialize_into::<S>(&mut buf);
+        assert_eq!(serialized.len(), expected_len);
+
+        let mut writer = Vec::new();
+        assert_eq!(
+            treemap.serialize_into_writer::<S, _>(&mut writer).unwrap(),
+            expected_len,
+        );
+        assert_eq!(serialized, writer);
+    }
+
+    #[test]
+    fn smoke_portable() {
+        smoke_test_ser::<Portable>(70);
+    }
+
+    #[test]
+    fn smoke_native() {
+        smoke_test_ser::<Native>(54);
+    }
+
+    #[test]
+    fn smoke_frozen() {
+        smoke_test_ser::<Frozen>(107);
+    }
+
+    #[test]
+    fn smoke_jvm_legacy() {
+        smoke_test_ser::<JvmLegacy>(67);
+    }
+}
