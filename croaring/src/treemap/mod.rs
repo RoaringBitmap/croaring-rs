@@ -31,7 +31,11 @@ mod util;
 pub use iter::TreemapIterator;
 pub use serialization::{Deserializer, Serializer};
 
+/// A RoaringBitmap-based structure that supports 64bit unsigned integer values
+///
+/// Implemented as a [`BTreeMap`] of [`Bitmap`]s.
 #[derive(Clone, PartialEq, Eq)]
 pub struct Treemap {
+    /// The underlying map of bitmaps
     pub map: BTreeMap<u32, Bitmap>,
 }
