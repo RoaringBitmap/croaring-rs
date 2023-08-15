@@ -184,14 +184,10 @@ impl Serializer for Frozen {
 
         let mut offset = dst.len();
         if dst.capacity() < dst.len() + len
-            || (dst.as_ptr_range().end as usize) % Self::REQUIRED_ALIGNMENT != 0
+            || Self::required_padding(dst.as_ptr_range().end as usize) != 0
         {
-            // Need to be able to add up to 31 extra bytes to align to 32 bytes
-            dst.reserve(len.checked_add(Self::REQUIRED_ALIGNMENT - 1).unwrap());
-            let extra_offset = match (dst.as_ptr_range().end as usize) % Self::REQUIRED_ALIGNMENT {
-                0 => 0,
-                r => Self::REQUIRED_ALIGNMENT - r,
-            };
+            dst.reserve(len.checked_add(Self::MAX_PADDING).unwrap());
+            let extra_offset = Self::required_padding(dst.as_ptr_range().end as usize);
             offset = offset.checked_add(extra_offset).unwrap();
             // we must initialize up to offset
             dst.resize(offset, 0);

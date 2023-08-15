@@ -24,6 +24,17 @@ pub enum Frozen {}
 impl Frozen {
     /// The frozen format requires bitmaps are aligned to 32 bytes.
     pub const REQUIRED_ALIGNMENT: usize = 32;
+
+    // The most padding required to get 32 byte alignment is 31 bytes.
+    pub(crate) const MAX_PADDING: usize = Self::REQUIRED_ALIGNMENT - 1;
+
+    #[inline]
+    pub(crate) const fn required_padding(x: usize) -> usize {
+        match x % Self::REQUIRED_ALIGNMENT {
+            0 => 0,
+            r => Self::REQUIRED_ALIGNMENT - r,
+        }
+    }
 }
 
 /// The `JvmLegacy` format is meant to be compatible with the original Java implementation of `Roaring64NavigableMap`

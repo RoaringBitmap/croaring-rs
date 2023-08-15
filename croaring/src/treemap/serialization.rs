@@ -194,8 +194,7 @@ impl Serializer for Frozen {
     where
         W: io::Write,
     {
-        const MAX_PADDING: usize = Frozen::REQUIRED_ALIGNMENT - 1;
-        const FULL_PADDING: [u8; MAX_PADDING] = [0; MAX_PADDING];
+        const FULL_PADDING: [u8; Frozen::MAX_PADDING] = [0; Frozen::MAX_PADDING];
 
         let mut dst = OffsetTrackingWriter::new(dst);
 
@@ -206,7 +205,7 @@ impl Serializer for Frozen {
         for (&key, bitmap) in &treemap.map {
             let bitmap_serialized = bitmap.serialize_into::<Self>(&mut buf);
             let required_padding =
-                frozen_needed_alignment(dst.bytes_written + FROZEN_BITMAP_METADATA_SIZE);
+                Self::required_padding(dst.bytes_written + FROZEN_BITMAP_METADATA_SIZE);
 
             dst.write_all(&FULL_PADDING[..required_padding])?;
             dst.write_all(&usize::to_ne_bytes(bitmap_serialized.len()))?;
@@ -227,11 +226,10 @@ impl Serializer for Frozen {
         let len = Self::get_serialized_size_in_bytes(treemap);
         let mut offset = dst.len();
         if dst.capacity() < dst.len() + len
-            || (dst.as_ptr() as usize + offset) % Self::REQUIRED_ALIGNMENT != 0
+            || Self::required_padding(dst.as_ptr() as usize + offset) != 0
         {
-            // Need to be able to add up to 31 extra bytes to align to 32 bytes
-            dst.reserve(len.checked_add(Self::REQUIRED_ALIGNMENT - 1).unwrap());
-            let extra_offset = frozen_needed_alignment(dst.as_ptr() as usize + offset);
+            dst.reserve(len.checked_add(Self::MAX_PADDING).unwrap());
+            let extra_offset = Self::required_padding(dst.as_ptr() as usize + offset);
             offset = offset.checked_add(extra_offset).unwrap();
             // we must initialize up to offset
             dst.resize(offset, 0);
@@ -244,7 +242,7 @@ impl Serializer for Frozen {
 
         treemap.map.iter().for_each(|(&key, bitmap)| {
             let end_with_metadata = dst.as_ptr_range().end as usize + FROZEN_BITMAP_METADATA_SIZE;
-            let extra_padding = frozen_needed_alignment(end_with_metadata);
+            let extra_padding = Self::required_padding(end_with_metadata);
             dst.resize(dst.len() + extra_padding, 0);
 
             let frozen_size_in_bytes: usize = bitmap.get_serialized_size_in_bytes::<Self>();
@@ -264,17 +262,10 @@ impl Serializer for Frozen {
     /// Computes the serialized size in bytes of the Treemap in frozen format.
     /// See [`Treemap::get_serialized_size_in_bytes`] for examples.
     fn get_serialized_size_in_bytes(treemap: &Treemap) -> usize {
-        // Yes, the frozen format changes based on the size of usize
-        const METADATA_SIZE: usize = size_of::<usize>() + size_of::<u32>();
-
         let mut result = size_of::<u64>();
         for bitmap in treemap.map.values() {
-            // pad to 32 bytes minus the metadata size
-            result += METADATA_SIZE;
-            result += match result % 32 {
-                0 => 0,
-                r => 32 - r,
-            };
+            result += FROZEN_BITMAP_METADATA_SIZE;
+            result += Self::required_padding(result);
             result += bitmap.get_serialized_size_in_bytes::<Self>();
         }
         result
@@ -346,14 +337,6 @@ impl Deserializer for JvmLegacy {
         }
 
         Some((Treemap { map }, start_len - buffer.len()))
-    }
-}
-
-#[inline]
-fn frozen_needed_alignment(x: usize) -> usize {
-    match x % Frozen::REQUIRED_ALIGNMENT {
-        0 => 0,
-        r => Frozen::REQUIRED_ALIGNMENT - r,
     }
 }
 
