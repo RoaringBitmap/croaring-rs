@@ -7,7 +7,6 @@ mod serialization;
 pub use serialization::*;
 
 pub use bitmap::Bitmap;
-pub use bitmap::BitmapIterator;
 pub use bitset::Bitset;
 pub use treemap::Treemap;
 

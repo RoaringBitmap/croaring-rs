@@ -1,5 +1,6 @@
 use super::util;
-use super::{Bitmap, BitmapIterator, Treemap};
+use crate::bitmap::BitmapIterator;
+use crate::{Bitmap, Treemap};
 use std::collections::btree_map;
 use std::iter::{self, FromIterator};
 
