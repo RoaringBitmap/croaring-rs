@@ -35,3 +35,4 @@ pub struct Treemap {
 }
 
 pub use crate::treemap::serialization::{JvmSerializer, NativeSerializer};
+pub use self::iter::TreemapIterator;
