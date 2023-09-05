@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::{fs, iter, u32};
 
-use croaring::{Bitmap, BitmapView, Frozen, Native, Portable, Treemap};
+use croaring::{Bitmap, BitmapView, Frozen, JvmLegacy, Native, Portable, Treemap};
 use proptest::prelude::*;
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
@@ -138,9 +138,7 @@ fn test_frozen_view() {
 fn test_treemap_deserialize_cpp() {
     match fs::read("tests/data/testcpp.bin") {
         Ok(buffer) => {
-            use croaring::treemap::NativeSerializer;
-
-            let treemap = Treemap::deserialize(&buffer).unwrap();
+            let treemap = Treemap::try_deserialize::<Portable>(&buffer).unwrap();
 
             for i in 100..1000 {
                 assert!(treemap.contains(i));
@@ -157,9 +155,7 @@ fn test_treemap_deserialize_cpp() {
 fn test_treemap_deserialize_jvm() {
     match fs::read("tests/data/testjvm.bin") {
         Ok(buffer) => {
-            use croaring::treemap::JvmSerializer;
-
-            let treemap = Treemap::deserialize(&buffer).unwrap();
+            let treemap = Treemap::try_deserialize::<JvmLegacy>(&buffer).unwrap();
 
             for i in 100..1000 {
                 assert!(treemap.contains(i));
@@ -174,8 +170,6 @@ fn test_treemap_deserialize_jvm() {
 
 #[test]
 fn treemap_run_optimized() {
-    use croaring::treemap::JvmSerializer;
-
     let mut initial = Bitmap::new();
     initial.add(1);
     initial.add(2);
@@ -200,13 +194,13 @@ fn treemap_run_optimized() {
     let mut test = tree_unoptimized.clone();
     test.run_optimize();
     assert_eq!(
-        test.get_serialized_size_in_bytes(),
-        tree_optimized.get_serialized_size_in_bytes()
+        test.get_serialized_size_in_bytes::<JvmLegacy>(),
+        tree_optimized.get_serialized_size_in_bytes::<JvmLegacy>()
     );
     test.remove_run_compression();
     assert_eq!(
-        test.get_serialized_size_in_bytes(),
-        tree_unoptimized.get_serialized_size_in_bytes()
+        test.get_serialized_size_in_bytes::<JvmLegacy>(),
+        tree_unoptimized.get_serialized_size_in_bytes::<JvmLegacy>()
     );
 }
 
@@ -278,13 +272,11 @@ proptest! {
     fn test_treemap_native_serialization_roundtrip(
         indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
     ) {
-        use croaring::treemap::NativeSerializer;
-
         let original = Treemap::of(&indices);
 
-        let buffer = original.serialize().unwrap();
+        let buffer = original.serialize::<Portable>();
 
-        let deserialized = Treemap::deserialize(&buffer).unwrap();
+        let deserialized = Treemap::try_deserialize::<Portable>(&buffer).unwrap();
 
         prop_assert_eq!(original , deserialized);
     }
@@ -293,13 +285,11 @@ proptest! {
     fn test_treemap_jvm_serialization_roundtrip(
         indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
     ) {
-        use croaring::treemap::JvmSerializer;
-
         let original = Treemap::of(&indices);
 
-        let buffer = original.serialize().unwrap();
+        let buffer = original.serialize::<JvmLegacy>();
 
-        let deserialized = Treemap::deserialize(&buffer).unwrap();
+        let deserialized = Treemap::try_deserialize::<JvmLegacy>(&buffer).unwrap();
 
         prop_assert_eq!(original , deserialized);
     }

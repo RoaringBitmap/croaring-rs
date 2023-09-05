@@ -2,10 +2,11 @@ use crate::Bitmap;
 use crate::Treemap;
 
 use super::util;
+use crate::treemap::{Deserializer, Serializer};
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::ops::{Bound, RangeBounds};
-use std::u64;
+use std::{io, u64};
 
 impl Treemap {
     /// Creates an empty `Treemap`.
@@ -16,6 +17,7 @@ impl Treemap {
     /// use croaring::Treemap;
     /// let treemap = Treemap::new();
     /// ```
+    #[must_use]
     pub fn new() -> Self {
         Treemap {
             map: BTreeMap::new(),
@@ -34,6 +36,7 @@ impl Treemap {
     /// let treemap = Treemap::from_bitmap(bitmap);
     /// assert_eq!(treemap.cardinality(), 3);
     /// ```
+    #[must_use]
     pub fn from_bitmap(bitmap: Bitmap) -> Self {
         let mut map = BTreeMap::new();
         map.insert(0, bitmap);
@@ -159,6 +162,7 @@ impl Treemap {
     ///
     /// let mut treemap = Treemap::new();
     /// ```
+    #[must_use]
     pub fn contains(&self, value: u64) -> bool {
         let (hi, lo) = util::split(value);
         match self.map.get(&hi) {
@@ -183,6 +187,7 @@ impl Treemap {
     ///
     /// assert!(!treemap.is_empty());
     /// ```
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.map.values().all(Bitmap::is_empty)
     }
@@ -197,6 +202,7 @@ impl Treemap {
     /// let mut treemap = Treemap::new();
     /// assert!(!treemap.is_full());
     /// ```
+    #[must_use]
     pub fn is_full(&self) -> bool {
         // only bother to check if map is fully saturated
         if self.map.len() != usize::try_from(u32::MAX).unwrap() + 1 {
@@ -223,6 +229,7 @@ impl Treemap {
     /// assert!(bitmap3.is_subset(&bitmap1));
     /// assert!(!bitmap4.is_subset(&bitmap1));
     /// ```
+    #[must_use]
     pub fn is_subset(&self, other: &Treemap) -> bool {
         self.map.iter().all(|(key, lhs)| {
             lhs.is_empty() || other.map.get(key).map_or(false, |rhs| lhs.is_subset(rhs))
@@ -230,6 +237,7 @@ impl Treemap {
     }
 
     /// Returns true if this bitmap is a strict subset of `other`
+    #[must_use]
     pub fn is_strict_subset(&self, other: &Treemap) -> bool {
         self.is_subset(other) && self.cardinality() != other.cardinality()
     }
@@ -496,6 +504,7 @@ impl Treemap {
     /// assert_eq!(treemap.select(10), Some(20));
     /// assert_eq!(treemap.select(11), None);
     /// ```
+    #[must_use]
     pub fn select(&self, mut rank: u64) -> Option<u64> {
         for (&key, bitmap) in &self.map {
             let sub_cardinality = bitmap.cardinality();
@@ -514,6 +523,7 @@ impl Treemap {
     }
 
     /// Returns the number of elements that are smaller or equal to `value`
+    #[must_use]
     pub fn rank(&self, value: u64) -> u64 {
         let (hi, lo) = util::split(value);
         let mut rank = 0;
@@ -538,6 +548,7 @@ impl Treemap {
     /// The difference with the `rank` method is that this method will return
     /// None if the value is not in the set, whereas `rank` will always return a value
     #[doc(alias = "get_index")]
+    #[must_use]
     pub fn position(&self, value: u64) -> Option<u64> {
         let (hi, lo) = util::split(value);
         let mut range = self.map.range(..=hi);
@@ -570,6 +581,7 @@ impl Treemap {
     ///
     /// assert_eq!(treemap.cardinality(), 2);
     /// ```
+    #[must_use]
     pub fn cardinality(&self) -> u64 {
         self.map.values().map(Bitmap::cardinality).sum()
     }
@@ -1013,6 +1025,121 @@ impl Treemap {
         result
     }
 
+    /// Computes the serialized size in bytes of the treemap in format `S`.
+    #[must_use]
+    pub fn get_serialized_size_in_bytes<S: Serializer>(&self) -> usize {
+        S::get_serialized_size_in_bytes(self)
+    }
+
+    /// Serializes the treemap to a slice of bytes in format `S`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    ///
+    /// let treemap: Treemap = (1..5).collect();
+    ///
+    /// let serialized_buffer = treemap.serialize::<Portable>();
+    ///
+    /// let deserialized_treemap = Treemap::deserialize::<Portable>(&serialized_buffer);
+    ///
+    /// assert_eq!(treemap, deserialized_treemap);
+    /// ```
+    #[must_use]
+    pub fn serialize<S: Serializer>(&self) -> Vec<u8> {
+        let mut dst = Vec::new();
+        self.serialize_into::<S>(&mut dst);
+        dst
+    }
+
+    /// Serializes a treemap to a slice of bytes in format `S`, re-using existing capacity
+    ///
+    /// `dst` is not cleared, data is added after any existing data. Returns the added slice of `dst`.
+    /// If `dst` is empty, it is guaranteed to hold only the serialized data after this call
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    ///
+    /// let original_treemap_1: Treemap = (1..5).collect();
+    /// let original_treemap_2: Treemap = (1..10).collect();
+    ///
+    /// let mut data = Vec::new();
+    /// for treemap in [original_treemap_1, original_treemap_2] {
+    ///     data.clear();
+    ///     let serialized_output = treemap.serialize_into::<Portable>(&mut data);
+    ///     // do something with serialized_output
+    /// }
+    /// ```
+    pub fn serialize_into<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
+        S::serialize_into(self, dst)
+    }
+
+    /// Serializes a treemap to a writer in format `S`.
+    ///
+    /// Returns the number of bytes written to the writer.
+    ///
+    /// Note that the [`Frozen`][crate::Frozen] format requires alignment to 32 bytes. This function
+    /// assumes the writer starts at an aligned position (and cannot check this).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    /// use std::io::Cursor;
+    ///
+    /// let treemap: Treemap = (1..5).collect();
+    ///
+    /// let mut cursor = Cursor::new(Vec::new());
+    /// treemap.serialize_into_writer::<Portable, _>(&mut cursor).unwrap();
+    ///
+    /// let deserialized_treemap = Treemap::try_deserialize::<Portable>(cursor.into_inner().as_slice()).unwrap();
+    ///
+    /// assert_eq!(treemap, deserialized_treemap);
+    /// ```
+    pub fn serialize_into_writer<S: Serializer, W: io::Write>(
+        &self,
+        writer: W,
+    ) -> io::Result<usize> {
+        S::serialize_into_writer(self, writer)
+    }
+
+    /// Given a serialized treemap as slice of bytes in format `S`, returns a `Bitmap` instance.
+    /// See example of [`Self::serialize`] function.
+    ///
+    /// On invalid input returns None.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Treemap, Portable};
+    ///
+    /// let original_treemap: Treemap = (1..5).collect();
+    /// let serialized_buffer = original_treemap.serialize::<Portable>();
+    ///
+    /// let deserialized_treemap = Treemap::try_deserialize::<Portable>(&serialized_buffer);
+    /// assert_eq!(original_treemap, deserialized_treemap.unwrap());
+    ///
+    /// let invalid_buffer: Vec<u8> = vec![3];
+    /// let deserialized_treemap = Treemap::try_deserialize::<Portable>(&invalid_buffer);
+    /// assert!(deserialized_treemap.is_none());
+    /// ```
+    #[must_use]
+    pub fn try_deserialize<D: Deserializer>(buffer: &[u8]) -> Option<Self> {
+        D::try_deserialize(buffer).map(|(treemap, _bytes_read)| treemap)
+    }
+
+    /// Given a serialized treemap as slice of bytes in format `S `, returns a treemap instance.
+    /// See example of [`Self::serialize`] function.
+    ///
+    /// On invalid input returns empty treemap.
+    #[must_use]
+    pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
+        Self::try_deserialize::<D>(buffer).unwrap_or_default()
+    }
+
     /// Creates a new treemap from a slice of u64 integers
     ///
     /// # Examples
@@ -1088,7 +1215,7 @@ impl Treemap {
     }
 
     pub(super) fn get_or_create(&mut self, bucket: u32) -> &mut Bitmap {
-        self.map.entry(bucket).or_insert_with(Bitmap::new)
+        self.map.entry(bucket).or_default()
     }
 }
 

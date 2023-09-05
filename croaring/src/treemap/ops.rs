@@ -255,7 +255,7 @@ impl BitOrAssign for Treemap {
     /// ```
     #[inline]
     fn bitor_assign(&mut self, other: Treemap) {
-        self.or_inplace(&other)
+        self.or_inplace(&other);
     }
 }
 
@@ -381,7 +381,7 @@ impl BitXorAssign for Treemap {
     /// ```
     #[inline]
     fn bitxor_assign(&mut self, other: Treemap) {
-        self.xor_inplace(&other)
+        self.xor_inplace(&other);
     }
 }
 
@@ -515,6 +515,6 @@ impl SubAssign for Treemap {
     /// ```
     #[inline]
     fn sub_assign(&mut self, other: Treemap) {
-        self.andnot_inplace(&other)
+        self.andnot_inplace(&other);
     }
 }
