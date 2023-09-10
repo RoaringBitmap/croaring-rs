@@ -1,6 +1,6 @@
 [package]
 name = "croaring"
-version = "0.9.0"
+version = "1.0.0"
 edition = "2021"
 authors = ["croaring-rs developers"]
 license = "Apache-2.0"
@@ -20,7 +20,7 @@ roaring = "0.10"
 criterion = { version = "0.5", features = ["html_reports"] }
 
 [dependencies]
-ffi = { package = "croaring-sys", path = "../croaring-sys", version = "0.9.0" }
+ffi = { package = "croaring-sys", path = "../croaring-sys", version = "1.0.0" }
 byteorder = "1"
 
 [[bench]]
