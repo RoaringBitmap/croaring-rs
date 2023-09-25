@@ -21,11 +21,7 @@ impl Bitmap {
         // (it can be moved safely), and can be freed with `free`, without freeing the underlying
         // containers and auxiliary data. Ensure this is still valid every time we update
         // the version of croaring.
-        const _: () = assert!(
-            ffi::ROARING_VERSION_MAJOR == 1
-                && ffi::ROARING_VERSION_MINOR == 3
-                && ffi::ROARING_VERSION_REVISION == 0
-        );
+        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 2 && ffi::ROARING_VERSION_MINOR == 0);
         ffi::roaring_free(p.cast::<c_void>());
         result
     }
