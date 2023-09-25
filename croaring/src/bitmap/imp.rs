@@ -1,7 +1,7 @@
 use crate::Bitset;
 use ffi::roaring_bitmap_t;
 use std::convert::TryInto;
-use std::ffi::c_void;
+use std::ffi::{c_void, CStr};
 use std::ops::{Bound, RangeBounds};
 use std::{mem, ptr};
 
@@ -1468,6 +1468,40 @@ impl Bitmap {
         let mut bitset = Bitset::new();
         let success = unsafe { ffi::roaring_bitmap_to_bitset(&self.bitmap, bitset.as_raw_mut()) };
         success.then_some(bitset)
+    }
+
+    /// Ensure the bitmap is internally valid
+    ///
+    /// This is useful for development, but is not needed for normal use:
+    /// bitmaps should _always_ be internally valid.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the bitmap is not valid, with a description of the problem.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap = Bitmap::from_range(0..100);
+    /// bitmap.internal_validate().unwrap();
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_bitmap_internal_validate")]
+    #[doc(hidden)]
+    pub fn internal_validate(&self) -> Result<(), String> {
+        let mut error_str = ptr::null();
+        let valid = unsafe { ffi::roaring_bitmap_internal_validate(&self.bitmap, &mut error_str) };
+        if valid {
+            Ok(())
+        } else {
+            if error_str.is_null() {
+                return Err(String::from("Unknown error"));
+            }
+            let reason = unsafe { CStr::from_ptr(error_str) };
+            Err(reason.to_string_lossy().into_owned())
+        }
     }
 }
 

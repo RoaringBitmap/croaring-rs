@@ -134,7 +134,9 @@ impl MutableBitmapOperation {
                 b.add_range(start..=end)
             }
         }
+        b.internal_validate().unwrap();
         b.remove_range(MAX_NUM..);
+        b.internal_validate().unwrap();
     }
 }
 
@@ -142,7 +144,7 @@ impl BitmapCompOperation {
     pub fn on_roaring(&self, lhs: &mut Bitmap, rhs: &Bitmap) {
         match *self {
             BitmapCompOperation::Eq => {
-                drop(lhs == rhs);
+                _ = lhs == rhs;
                 assert_eq!(lhs, lhs);
             }
             BitmapCompOperation::IsSubset => {
@@ -165,6 +167,7 @@ impl BitmapCompOperation {
                 assert_eq!(lhs.and(lhs), *lhs);
 
                 let res = lhs.and(rhs);
+                res.internal_validate().unwrap();
                 assert_eq!(res.cardinality(), lhs.and_cardinality(rhs));
                 lhs.and_inplace(rhs);
                 assert_eq!(*lhs, res);
@@ -173,6 +176,7 @@ impl BitmapCompOperation {
                 assert_eq!(lhs.or(lhs), *lhs);
 
                 let res = lhs.or(rhs);
+                res.internal_validate().unwrap();
                 assert_eq!(res.cardinality(), lhs.or_cardinality(rhs));
                 assert_eq!(res, Bitmap::fast_or(&[lhs, rhs]));
                 assert_eq!(res, Bitmap::fast_or_heap(&[lhs, rhs]));
@@ -184,6 +188,7 @@ impl BitmapCompOperation {
                 assert!(lhs.xor(lhs).is_empty());
 
                 let res = lhs.xor(rhs);
+                res.internal_validate().unwrap();
                 assert_eq!(res.cardinality(), lhs.xor_cardinality(rhs));
                 assert_eq!(res, Bitmap::fast_xor(&[lhs, rhs]));
 
@@ -194,11 +199,14 @@ impl BitmapCompOperation {
                 assert!(lhs.andnot(lhs).is_empty());
 
                 let res = lhs.andnot(rhs);
+                res.internal_validate().unwrap();
                 assert_eq!(res.cardinality(), lhs.andnot_cardinality(rhs));
 
                 lhs.andnot_inplace(rhs);
                 assert_eq!(*lhs, res);
             }
         }
+        lhs.internal_validate().unwrap();
+        rhs.internal_validate().unwrap();
     }
 }

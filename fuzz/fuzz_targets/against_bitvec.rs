@@ -151,6 +151,7 @@ impl ReadBitmapOp {
                 b.add_offset(i);
             }
         }
+        b.internal_validate().unwrap();
     }
 }
 
@@ -246,6 +247,7 @@ impl BitmapCompOperation {
                 }
             }
         }
+        rhs.internal_validate().unwrap();
     }
 }
 
