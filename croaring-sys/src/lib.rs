@@ -3,4 +3,4 @@
 #![allow(non_snake_case)]
 #![allow(rustdoc::bare_urls)]
 
-include!(concat!(env!("OUT_DIR"), "/croaring-sys.rs"));
+include!("../CRoaring/bindgen_bundled_version.rs");
