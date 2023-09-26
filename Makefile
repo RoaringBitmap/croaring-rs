@@ -31,6 +31,7 @@ bindgen:
 			--allowlist-function 'roaring.*|bitset.*' \
 			--allowlist-type 'roaring.*|bitset.*' \
 			--allowlist-var '(?i:roaring|bitset).*' \
+			--no-layout-tests \
 			-o bindgen_bundled_version.rs \
 			roaring.h
 

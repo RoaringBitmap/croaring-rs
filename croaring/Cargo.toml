@@ -12,7 +12,9 @@ documentation = "https://docs.rs/croaring"
 
 [features]
 default = []
-buildtime_bindgen = ["ffi/buildtime_bindgen"]
+# This feature is now a no-op, but we keep it for backwards compatibility
+# pre-built bindgen is _always_ used
+buildtime_bindgen = []
 
 [dev-dependencies]
 proptest = "1"

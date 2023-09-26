@@ -12,7 +12,9 @@ description = "Raw bindings to CRoaring"
 
 [features]
 default = []
-buildtime_bindgen = ["bindgen"]
+# This feature is now a no-op, but we keep it for backwards compatibility
+# pre-built bindgen is _always_ used
+buildtime_bindgen = []
 
 [lib]
 doctest = false
@@ -21,4 +23,3 @@ doctest = false
 
 [build-dependencies]
 cc = "1"
-bindgen = { version = "0.62", optional = true, default-features = false, features = ["runtime"] }
