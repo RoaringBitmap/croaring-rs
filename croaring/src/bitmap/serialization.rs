@@ -25,6 +25,9 @@ pub trait Serializer {
 pub trait Deserializer {
     /// Try to deserialize a bitmap from the beginning of the provided buffer
     ///
+    /// The [`Bitmap::try_deserialize`] method should usually be used instead of this method
+    /// directly.
+    ///
     /// If the buffer starts with the serialized representation of a bitmap, then
     /// this method will return a new bitmap containing the deserialized data.
     ///
@@ -34,6 +37,15 @@ pub trait Deserializer {
     /// To determine how many bytes were consumed from the buffer, use the
     /// [`Serializer::get_serialized_size_in_bytes`] method on the returned bitmap.
     fn try_deserialize(buffer: &[u8]) -> Option<Bitmap>;
+
+    /// Deserialize a bitmap from the beginning of the provided buffer
+    ///
+    /// # Safety
+    ///
+    /// Unlike its safe counterpart, [`try_deserialize`], this function assumes the data is valid,
+    /// passing data which does not contain/start with a bitmap serialized with this format will
+    /// result in undefined behavior.
+    unsafe fn try_deserialize_unchecked(buffer: &[u8]) -> Bitmap;
 }
 
 /// Trait for different formats of bitmap deserialization into a view without copying
@@ -91,11 +103,22 @@ impl Deserializer for Portable {
             );
 
             if bitmap.is_null() {
-                None
+                return None;
+            }
+
+            let bitmap = Bitmap::take_heap(bitmap);
+            if bitmap.internal_validate().is_ok() {
+                Some(bitmap)
             } else {
-                Some(Bitmap::take_heap(bitmap))
+                None
             }
         }
+    }
+
+    #[doc(alias = "roaring_bitmap_portable_deserialize")]
+    unsafe fn try_deserialize_unchecked(buffer: &[u8]) -> Bitmap {
+        let bitmap = ffi::roaring_bitmap_portable_deserialize(buffer.as_ptr().cast::<c_char>());
+        Bitmap::take_heap(bitmap)
     }
 }
 
@@ -164,11 +187,21 @@ impl Deserializer for Native {
             );
 
             if bitmap.is_null() {
-                None
+                return None;
+            }
+            let bitmap = Bitmap::take_heap(bitmap);
+            if bitmap.internal_validate().is_ok() {
+                Some(bitmap)
             } else {
-                Some(Bitmap::take_heap(bitmap))
+                None
             }
         }
+    }
+
+    #[doc(alias = "roaring_bitmap_deserialize")]
+    unsafe fn try_deserialize_unchecked(buffer: &[u8]) -> Bitmap {
+        let bitmap = ffi::roaring_bitmap_deserialize(buffer.as_ptr().cast::<c_void>());
+        Bitmap::take_heap(bitmap)
     }
 }
 
