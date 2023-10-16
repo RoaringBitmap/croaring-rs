@@ -23,7 +23,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 
 [dependencies]
 ffi = { package = "croaring-sys", path = "../croaring-sys", version = "1.0.0" }
-byteorder = "1"
+byteorder = "1.4.3"
 
 [[bench]]
 name = "benches"
