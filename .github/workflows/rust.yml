@@ -73,4 +73,4 @@ jobs:
 
     - name: Minimal versions
       if: matrix.rust == 'nightly'
-      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions build
+      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test
