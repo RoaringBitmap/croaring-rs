@@ -70,3 +70,7 @@ jobs:
     - name: Benchmark
       if: matrix.rust == 'nightly'
       run: cargo +${{ matrix.rust }} bench
+
+    - name: Minimal versions
+      if: matrix.rust == 'nightly'
+      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test
