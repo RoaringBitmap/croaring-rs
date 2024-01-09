@@ -1,8 +1,9 @@
 use criterion::{
     black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput,
 };
+use std::ops::ControlFlow;
 
-use croaring::{Bitmap, Portable};
+use croaring::{Bitmap, Bitmap64, Portable};
 
 fn new(c: &mut Criterion) {
     c.bench_function("new", |b| b.iter(Bitmap::new));
@@ -252,6 +253,56 @@ fn random_iter(c: &mut Criterion) {
     });
 }
 
+fn collect_bitmap64_to_vec(c: &mut Criterion) {
+    const N: u64 = 1_000_000;
+
+    let mut group = c.benchmark_group("collect_bitmap64_to_vec");
+    group.throughput(Throughput::Elements(N.into()));
+    let bitmap = Bitmap64::from_range(0..N);
+    group.bench_function("to_vec", |b| {
+        b.iter_batched(|| (), |()| bitmap.to_vec(), BatchSize::LargeInput);
+    });
+    group.bench_function("foreach", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                let mut vec = Vec::with_capacity(bitmap.cardinality() as usize);
+                bitmap.for_each(|item| -> ControlFlow<()> {
+                    vec.push(item);
+                    ControlFlow::Continue(())
+                });
+                vec
+            },
+            BatchSize::LargeInput,
+        );
+    });
+    group.bench_function("iter", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                let mut vec = Vec::with_capacity(bitmap.cardinality() as usize);
+                vec.extend(bitmap.iter());
+                vec
+            },
+            BatchSize::LargeInput,
+        );
+    });
+    group.bench_function("iter_many", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                let mut vec = vec![0; bitmap.cardinality() as usize];
+                let mut iter = bitmap.cursor();
+                assert_eq!(iter.next_many(&mut vec), vec.len());
+                vec
+            },
+            BatchSize::LargeInput,
+        );
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     new,
@@ -270,5 +321,6 @@ criterion_group!(
     deserialize,
     bulk_new,
     random_iter,
+    collect_bitmap64_to_vec,
 );
 criterion_main!(benches);

@@ -922,6 +922,13 @@ impl Bitmap {
     /// // Exclusive ranges still step from the start, but do not include it
     /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(10), Bound::Included(30)), 10);
     /// assert_eq!(bitmap.to_vec(), [20, 30]);
+    ///
+    /// // Ranges including max value
+    /// let bitmap = Bitmap::from_range_with_step((u32::MAX - 1)..=u32::MAX, 1);
+    /// assert_eq!(bitmap.to_vec(), vec![u32::MAX - 1, u32::MAX]);
+    ///
+    /// let bitmap = Bitmap::from_range_with_step((u32::MAX - 1)..=u32::MAX, 3);
+    /// assert_eq!(bitmap.to_vec(), vec![u32::MAX - 1]);
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
