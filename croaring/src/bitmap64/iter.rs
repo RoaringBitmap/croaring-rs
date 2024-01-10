@@ -458,6 +458,14 @@ pub struct Bitmap64Iterator<'a> {
     _bitmap: PhantomData<&'a Bitmap64>,
 }
 
+impl Drop for Bitmap64Iterator<'_> {
+    fn drop(&mut self) {
+        unsafe {
+            ffi::roaring64_iterator_free(self.raw.as_ptr());
+        }
+    }
+}
+
 impl<'a> Bitmap64Iterator<'a> {
     fn new(bitmap: &'a Bitmap64) -> Self {
         let raw = unsafe { ffi::roaring64_iterator_create(bitmap.raw.as_ptr()) };
