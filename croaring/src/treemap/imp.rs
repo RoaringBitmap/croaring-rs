@@ -938,9 +938,18 @@ impl Treemap {
         let mut treemap = Treemap::new();
 
         for (key, bitmap) in &self.map {
-            if let Some(other_bitmap) = other.map.get(key) {
-                treemap.map.insert(*key, bitmap.andnot(other_bitmap));
-            }
+            let sub_bitmap = match other.map.get(key) {
+                Some(other_bitmap) => {
+                    let sub_bitmap = bitmap.andnot(other_bitmap);
+                    if sub_bitmap.is_empty() {
+                        continue;
+                    }
+                    sub_bitmap
+                }
+                // x.andnot(empty) == x
+                None => bitmap.clone(),
+            };
+            treemap.map.insert(*key, sub_bitmap);
         }
 
         treemap

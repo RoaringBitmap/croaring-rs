@@ -169,6 +169,18 @@ fn test_treemap_deserialize_jvm() {
 }
 
 #[test]
+fn test_treemap_max_andnot_empty() {
+    let single_max = Treemap::of(&[std::u64::MAX]);
+    let empty = Treemap::new();
+    let diff = single_max.andnot(&empty);
+    assert_eq!(diff, single_max);
+
+    let mut diff = single_max.clone();
+    diff.andnot_inplace(&empty);
+    assert_eq!(diff, single_max);
+}
+
+#[test]
 fn treemap_run_optimized() {
     let mut initial = Bitmap::new();
     initial.add(1);
