@@ -472,7 +472,7 @@ impl<'a, 'b> Sub<&'a Treemap> for &'b Treemap {
     /// let mut treemap2 = Treemap::new();
     ///
     /// treemap2.add(25);
-    /// treemap1.add(u64::MAX);
+    /// treemap2.add(u64::MAX);
     ///
     /// let treemap3 = &treemap1 - &treemap2;
     ///
