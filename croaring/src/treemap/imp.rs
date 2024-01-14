@@ -654,16 +654,10 @@ impl Treemap {
     /// ```
     #[must_use]
     pub fn and(&self, other: &Self) -> Self {
-        let mut treemap = Treemap::new();
-
-        for (key, bitmap) in &self.map {
-            other
-                .map
-                .get(key)
-                .map(|other_bitmap| treemap.map.insert(*key, bitmap.and(other_bitmap)));
-        }
-
-        treemap
+        binop(self, other, |args| match args {
+            BinopArgs::Both(lhs, rhs) => Some(lhs.and(rhs)),
+            BinopArgs::Lhs(_) | BinopArgs::Rhs(_) => None,
+        })
     }
 
     /// Computes the intersection between two treemaps and stores the result
@@ -750,20 +744,10 @@ impl Treemap {
     /// ```
     #[must_use]
     pub fn or(&self, other: &Self) -> Self {
-        let mut treemap = self.clone();
-
-        for (key, other_bitmap) in &other.map {
-            match treemap.map.entry(*key) {
-                Entry::Vacant(current_map) => {
-                    current_map.insert(other_bitmap.clone());
-                }
-                Entry::Occupied(mut bitmap) => {
-                    bitmap.get_mut().or_inplace(other_bitmap);
-                }
-            };
-        }
-
-        treemap
+        binop(self, other, |args| match args {
+            BinopArgs::Both(lhs, rhs) => Some(lhs.or(rhs)),
+            BinopArgs::Lhs(bitmap) | BinopArgs::Rhs(bitmap) => Some(bitmap.clone()),
+        })
     }
 
     /// Computes the intersection between two bitmaps and stores the result
@@ -802,11 +786,11 @@ impl Treemap {
     pub fn or_inplace(&mut self, other: &Self) {
         for (key, other_bitmap) in &other.map {
             match self.map.entry(*key) {
-                Entry::Vacant(current_map) => {
-                    current_map.insert(other_bitmap.clone());
+                Entry::Vacant(entry) => {
+                    entry.insert(other_bitmap.clone());
                 }
-                Entry::Occupied(mut current_map) => {
-                    current_map.get_mut().or_inplace(other_bitmap);
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().or_inplace(other_bitmap);
                 }
             };
         }
@@ -838,20 +822,10 @@ impl Treemap {
     /// ```
     #[must_use]
     pub fn xor(&self, other: &Self) -> Self {
-        let mut treemap = self.clone();
-
-        for (key, other_bitmap) in &other.map {
-            match treemap.map.entry(*key) {
-                Entry::Vacant(current_map) => {
-                    current_map.insert(other_bitmap.clone());
-                }
-                Entry::Occupied(mut bitmap) => {
-                    bitmap.get_mut().xor_inplace(other_bitmap);
-                }
-            };
-        }
-
-        treemap
+        binop(self, other, |args| match args {
+            BinopArgs::Both(lhs, rhs) => Some(lhs.xor(rhs)),
+            BinopArgs::Lhs(bitmap) | BinopArgs::Rhs(bitmap) => Some(bitmap.clone()),
+        })
     }
 
     /// Inplace version of xor, stores result in the current treemap.
@@ -883,24 +857,19 @@ impl Treemap {
     /// assert!(treemap3.contains(15));
     /// ```
     pub fn xor_inplace(&mut self, other: &Self) {
-        let mut keys_to_remove: Vec<u32> = Vec::new();
-
         for (key, other_bitmap) in &other.map {
             match self.map.entry(*key) {
-                Entry::Vacant(bitmap) => {
-                    bitmap.insert(other_bitmap.clone());
+                Entry::Vacant(entry) => {
+                    entry.insert(other_bitmap.clone());
                 }
-                Entry::Occupied(mut bitmap) => {
-                    bitmap.get_mut().xor_inplace(other_bitmap);
-                    if bitmap.get().is_empty() {
-                        keys_to_remove.push(*key);
+                Entry::Occupied(mut entry) => {
+                    let bitmap = entry.get_mut();
+                    bitmap.xor_inplace(other_bitmap);
+                    if bitmap.is_empty() {
+                        entry.remove();
                     }
                 }
             };
-        }
-
-        for key in keys_to_remove {
-            self.map.remove(&key);
         }
     }
 
@@ -933,6 +902,8 @@ impl Treemap {
     pub fn andnot(&self, other: &Self) -> Self {
         let mut treemap = Treemap::new();
 
+        // This doesn't use `binop` because we don't have to visit all the items in `rhs`:
+        // we only care about the cases where `self` has a bitmap.
         for (key, bitmap) in &self.map {
             let sub_bitmap = match other.map.get(key) {
                 Some(other_bitmap) => {
@@ -988,9 +959,13 @@ impl Treemap {
     /// assert!(treemap3.contains(15));
     /// ```
     pub fn andnot_inplace(&mut self, other: &Self) {
-        for (key, bitmap) in &mut self.map {
-            if let Some(other_bitmap) = other.map.get(key) {
-                bitmap.andnot_inplace(other_bitmap);
+        for (&key, to_sub) in &other.map {
+            if let Entry::Occupied(mut entry) = self.map.entry(key) {
+                let bitmap = entry.get_mut();
+                bitmap.andnot_inplace(to_sub);
+                if bitmap.is_empty() {
+                    entry.remove();
+                }
             }
         }
     }
@@ -1222,6 +1197,62 @@ impl Treemap {
     pub(super) fn get_or_create(&mut self, bucket: u32) -> &mut Bitmap {
         self.map.entry(bucket).or_default()
     }
+}
+
+enum BinopArgs<'a> {
+    Both(&'a Bitmap, &'a Bitmap),
+    Lhs(&'a Bitmap),
+    Rhs(&'a Bitmap),
+}
+
+#[must_use]
+fn binop<F>(lhs: &Treemap, rhs: &Treemap, f: F) -> Treemap
+where
+    F: Fn(BinopArgs<'_>) -> Option<Bitmap>,
+{
+    let mut treemap = Treemap::new();
+    let mut lhs_iter = lhs.map.iter();
+    let mut rhs_iter = rhs.map.iter();
+
+    let mut lhs_next = lhs_iter.next();
+    let mut rhs_next = rhs_iter.next();
+
+    loop {
+        let (key, bitmap) = match (lhs_next, rhs_next) {
+            (Some((&lhs_key, lhs_bitmap)), Some((&rhs_key, rhs_bitmap))) => {
+                if lhs_key == rhs_key {
+                    let bitmap = f(BinopArgs::Both(lhs_bitmap, rhs_bitmap));
+                    lhs_next = lhs_iter.next();
+                    rhs_next = rhs_iter.next();
+                    (lhs_key, bitmap)
+                } else if lhs_key < rhs_key {
+                    let bitmap = f(BinopArgs::Lhs(lhs_bitmap));
+                    lhs_next = lhs_iter.next();
+                    (lhs_key, bitmap)
+                } else {
+                    let bitmap = f(BinopArgs::Rhs(rhs_bitmap));
+                    rhs_next = rhs_iter.next();
+                    (rhs_key, bitmap)
+                }
+            }
+            (Some((&lhs_key, lhs_bitmap)), None) => {
+                let bitmap = f(BinopArgs::Lhs(lhs_bitmap));
+                lhs_next = lhs_iter.next();
+                (lhs_key, bitmap)
+            }
+            (None, Some((&rhs_key, rhs_bitmap))) => {
+                let bitmap = f(BinopArgs::Rhs(rhs_bitmap));
+                rhs_next = rhs_iter.next();
+                (rhs_key, bitmap)
+            }
+            (None, None) => break,
+        };
+        if let Some(bitmap) = bitmap.filter(|b| !b.is_empty()) {
+            treemap.map.insert(key, bitmap);
+        }
+    }
+
+    treemap
 }
 
 fn range_to_inclusive<R: RangeBounds<u64>>(range: R) -> (u64, u64) {
