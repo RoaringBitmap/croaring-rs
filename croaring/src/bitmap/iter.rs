@@ -18,7 +18,7 @@ impl<'a> BitmapIterator<'a> {
     fn new(bitmap: &'a Bitmap) -> Self {
         let mut iterator = MaybeUninit::<ffi::roaring_uint32_iterator_s>::uninit();
         unsafe {
-            ffi::roaring_init_iterator(&bitmap.bitmap, iterator.as_mut_ptr());
+            ffi::roaring_iterator_init(&bitmap.bitmap, iterator.as_mut_ptr());
         }
         BitmapIterator {
             iterator: unsafe { iterator.assume_init() },
@@ -42,7 +42,7 @@ impl<'a> BitmapIterator<'a> {
 
     #[inline]
     fn advance(&mut self) -> bool {
-        unsafe { ffi::roaring_advance_uint32_iterator(&mut self.iterator) }
+        unsafe { ffi::roaring_uint32_iterator_advance(&mut self.iterator) }
     }
 
     /// Attempt to read many values from the iterator into `dst`
@@ -100,7 +100,7 @@ impl<'a> BitmapIterator<'a> {
     pub fn next_many(&mut self, dst: &mut [u32]) -> usize {
         let count: u32 = u32::try_from(dst.len()).unwrap_or(u32::MAX);
         let result = unsafe {
-            ffi::roaring_read_uint32_iterator(&mut self.iterator, dst.as_mut_ptr(), count)
+            ffi::roaring_uint32_iterator_read(&mut self.iterator, dst.as_mut_ptr(), count)
         };
         debug_assert!(result <= count);
         result as usize
@@ -132,7 +132,7 @@ impl<'a> BitmapIterator<'a> {
     #[inline]
     #[doc(alias = "roaring_move_uint32_iterator_equalorlarger")]
     pub fn reset_at_or_after(&mut self, val: u32) {
-        unsafe { ffi::roaring_move_uint32_iterator_equalorlarger(&mut self.iterator, val) };
+        unsafe { ffi::roaring_uint32_iterator_move_equalorlarger(&mut self.iterator, val) };
     }
 }
 
