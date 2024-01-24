@@ -13,13 +13,12 @@ env:
 
 jobs:
   test:
-    name: Test on ${{ matrix.os }} using Rust ${{ matrix.rust }} with bindgen features '${{ matrix.cargo_features }}'
+    name: Test on ${{ matrix.os }} using Rust ${{ matrix.rust }}'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable, nightly]
-        cargo_features: ['']
+        os: [windows-latest]
+        rust: [nightly]
 
     steps:
     - uses: hecrj/setup-rust-action@v2
@@ -39,38 +38,56 @@ jobs:
       run: echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $GITHUB_ENV
       shell: bash
 
-    - name: Cargo fmt
-      run: cargo +${{ matrix.rust }} fmt --all -- --check
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly'
+    - name: Run c roaring
+      if: matrix.os == 'windows-latest'
+      run: |
+        clang --version || true
+        clang -O3 -o c_roaring.exe roaring_fast_or.c
+        ./c_roaring.exe
 
-    - name: Cargo clippy
-      run: cargo +${{ matrix.rust }} clippy --all-targets --workspace --features "${{ matrix.cargo_features }}"
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly' && matrix.cargo_features != ''
+      shell: bash
 
-    - name: Cargo clippy
-      run: cargo +${{ matrix.rust }} clippy --all-targets --workspace
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly' && matrix.cargo_features == ''
+    - name: msvc c roaring
+      if: matrix.os == 'windows-latest'
+      run: |
+        $env:LIB="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\lib\x64;C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\atlmfc\lib\x64;C:\Program Files (x86)\Windows Kits\10\lib\10.0.22621.0\ucrt\x64;C:\Program Files (x86)\Windows Kits\10\lib\10.0.22621.0\um\x64;"
+        $env:PATH="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\bin\HostX64\x64;C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\bin\HostX64\x64;C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64;C:\Program Files (x86)\Windows Kits\10\bin\x64;D:\a\croaring-rs\croaring-rs\target\release\deps;D:\a\croaring-rs\croaring-rs\target\release;C:\Users\runneradmin\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib;C:\Users\runneradmin\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\bin;C:\Program Files\PowerShell\7;/c/Users/runneradmin/.cargo/bin;C:\Program Files\MongoDB\Server\5.0\bin;C:\aliyun-cli;C:\vcpkg;C:\Program Files (x86)\NSIS\;C:\tools\zstd;C:\Program Files\Mercurial\;C:\hostedtoolcache\windows\stack\2.13.1\x64;C:\cabal\bin;C:\\ghcup\bin;C:\mingw64\bin;C:\Program Files\dotnet;C:\Program Files\MySQL\MySQL Server 8.0\bin;C:\Program Files\R\R-4.3.2\bin\x64;C:\SeleniumWebDrivers\GeckoDriver;C:\SeleniumWebDrivers\EdgeDriver\;C:\SeleniumWebDrivers\ChromeDriver;C:\Program Files (x86)\sbt\bin;C:\Program Files (x86)\GitHub CLI;C:\Program Files\Git\bin;C:\Program Files (x86)\pipx_bin;C:\npm\prefix;C:\hostedtoolcache\windows\go\1.20.13\x64\bin;C:\hostedtoolcache\windows\Python\3.9.13\x64\Scripts;C:\hostedtoolcache\windows\Python\3.9.13\x64;C:\hostedtoolcache\windows\Ruby\3.0.6\x64\bin;C:\Program Files\OpenSSL\bin;C:\tools\kotlinc\bin;C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\8.0.402-6\x64\bin;C:\Program Files\ImageMagick-7.1.1-Q16-HDRI;C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin;C:\ProgramData\kind;C:\ProgramData\Chocolatey\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files\dotnet\;C:\Program Files\PowerShell\7\;C:\Program Files\Microsoft\Web Platform Installer\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\;C:\Program Files\Microsoft SQL Server\150\Tools\Binn\;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files\Microsoft SQL Server\130\DTS\Binn\;C:\Program Files\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\150\DTS\Binn\;C:\Program Files\Microsoft SQL Server\160\DTS\Binn\;C:\Strawberry\c\bin;C:\Strawberry\perl\site\bin;C:\Strawberry\perl\bin;C:\ProgramData\chocolatey\lib\pulumi\tools\Pulumi\bin;C:\Program Files\TortoiseSVN\bin;C:\Program Files\CMake\bin;C:\ProgramData\chocolatey\lib\maven\apache-maven-3.8.7\bin;C:\Program Files\Microsoft Service Fabric\bin\Fabric\Fabric.Code;C:\Program Files\Microsoft SDKs\Service Fabric\Tools\ServiceFabricLocalClusterManager;C:\Program Files\nodejs\;C:\Program Files\Git\cmd;C:\Program Files\Git\mingw64\bin;C:\Program Files\Git\usr\bin;C:\Program Files\GitHub CLI\;c:\tools\php;C:\Program Files (x86)\sbt\bin;C:\Program Files\Amazon\AWSCLIV2\;C:\Program Files\Amazon\SessionManagerPlugin\bin\;C:\Program Files\Amazon\AWSSAMCLI\bin\;C:\Program Files\Microsoft SQL Server\130\Tools\Binn\;C:\Program Files\LLVM\bin;C:\Users\runneradmin\.dotnet\tools;C:\Users\runneradmin\.cargo\bin;C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps"
+        $env:INCLUDE="C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\include;C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\atlmfc\include;C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\um;C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\cppwinrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\winrt;C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\shared;"
+        & "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Tools\MSVC\14.38.33130\bin\HostX64\x64\cl.exe" -nologo -MD -O2 -Brepro /Fe:roaring_fast_or.exe /Zi /DEBUG /D "CROARING_COMPILER_SUPPORTS_AVX512=0" ./roaring_fast_or.c
+        echo "running"
+        ./roaring_fast_or.exe
+        echo "$LASTEXITCODE"
+      continue-on-error: true
 
-    - name: Build
-      run: cargo +${{ matrix.rust }} build --features "${{ matrix.cargo_features }}"
-      if: matrix.cargo_features != ''
 
-    - name: Build
-      run: cargo +${{ matrix.rust }} build
-      if: matrix.cargo_features == ''
+      # - name: Cargo fmt
+    #   run: cargo +${{ matrix.rust }} fmt --all -- --check
+    #   if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly'
 
-    - name: Test
-      run: cargo +${{ matrix.rust }} test --features "${{ matrix.cargo_features }}"
-      if: matrix.cargo_features != ''
+    # - name: Cargo clippy
+    #   run: cargo +${{ matrix.rust }} clippy --all-targets --workspace
+    #   if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly'
 
-    - name: Test
-      run: cargo +${{ matrix.rust }} test
-      if: matrix.cargo_features == ''
+    # - name: Build
+    #   run: cargo +${{ matrix.rust }} build
+
+    # - name: Test
+    #   run: cargo +${{ matrix.rust }} test
 
     - name: Benchmark
       if: matrix.rust == 'nightly'
-      run: cargo +${{ matrix.rust }} bench
+      run: cargo +${{ matrix.rust }} bench -- 'or/fast'
+      continue-on-error: true
 
-    - name: Minimal versions
-      if: matrix.rust == 'nightly'
-      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test
+    - name: Archive artifacts
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: built artifacts
+        path: |
+          roaring_fast_or*
+        # target/release/*.exe
+
+    # - name: Minimal versions
+    #   if: matrix.rust == 'nightly'
+    #   run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test

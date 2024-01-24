@@ -6,12 +6,21 @@ fn main() {
     println!("cargo:rerun-if-env-changed=ROARING_ARCH");
 
     let mut build = cc::Build::new();
+    let compiler = build.get_compiler();
     build.file("CRoaring/roaring.c");
+
+    // TODO:
+    if (env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows") {
+        println!("cargo::warning=Disabling AVX512");
+        build.define("CROARING_COMPILER_SUPPORTS_AVX512", "0");
+    }
 
     if let Ok(target_arch) = env::var("ROARING_ARCH") {
         build.flag_if_supported(&format!("-march={target_arch}"));
     }
 
     build.flag_if_supported("-Wno-unused-function");
+    println!("cargo:warning=compiler {compiler:#?}");
+    println!("cargo:warning=build: {build:#?}");
     build.compile("roaring");
 }

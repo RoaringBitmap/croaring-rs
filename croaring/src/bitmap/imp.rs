@@ -491,12 +491,28 @@ impl Bitmap {
     #[doc(alias = "roaring_bitmap_or_many")]
     #[must_use]
     pub fn fast_or(bitmaps: &[&Bitmap]) -> Self {
+        #[cfg(windows)]
+        {
+            extern "C" {
+                pub fn croaring_hardware_support() -> std::ffi::c_int;
+            }
+            eprintln!("hardware support: {:x}", unsafe {
+                croaring_hardware_support()
+            });
+        }
         let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps
             .iter()
             .map(|item| ptr::addr_of!(item.bitmap))
             .collect();
 
-        unsafe { Self::take_heap(ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr())) }
+        eprintln!("{bms:#?}");
+
+        unsafe {
+            Self::take_heap(dbg!(ffi::roaring_bitmap_or_many(
+                bms.len(),
+                bms.as_mut_ptr()
+            )))
+        }
     }
 
     /// Compute the union of 'number' bitmaps using a heap. This can
