@@ -303,6 +303,46 @@ fn collect_bitmap64_to_vec(c: &mut Criterion) {
     group.finish();
 }
 
+fn iterate_bitmap64(c: &mut Criterion) {
+    const N: u64 = 1_000_000;
+    const END_ITER: u64 = N - 100;
+
+    let mut group = c.benchmark_group("bitmap64_iterate");
+    group.throughput(Throughput::Elements(N.into()));
+    let bitmap = Bitmap64::from_range(0..N);
+    group.bench_function("iter", |b| {
+        b.iter(|| {
+            for x in bitmap.iter() {
+                if x == END_ITER {
+                    break;
+                }
+            }
+        })
+    });
+    group.bench_function("cursor", |b| {
+        b.iter(|| {
+            let mut cursor = bitmap.cursor();
+            while let Some(x) = cursor.next() {
+                if x == END_ITER {
+                    break;
+                }
+            }
+        })
+    });
+    group.bench_function("for_each", |b| {
+        b.iter(|| {
+            bitmap.for_each(|x| -> ControlFlow<()> {
+                if x == END_ITER {
+                    return ControlFlow::Break(());
+                }
+                ControlFlow::Continue(())
+            })
+        })
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     new,
@@ -322,5 +362,6 @@ criterion_group!(
     bulk_new,
     random_iter,
     collect_bitmap64_to_vec,
+    iterate_bitmap64,
 );
 criterion_main!(benches);
