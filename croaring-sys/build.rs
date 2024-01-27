@@ -11,8 +11,8 @@ fn main() {
 
     // TODO:
     if (env::var("CARGO_CFG_TARGET_OS").unwrap() == "windows") {
-        println!("cargo::warning=Disabling AVX512");
-        build.define("CROARING_COMPILER_SUPPORTS_AVX512", "0");
+        println!("cargo::warning=Disabling AVX");
+        build.define("ROARING_DISABLE_AVX", "1");
     }
 
     if let Ok(target_arch) = env::var("ROARING_ARCH") {
