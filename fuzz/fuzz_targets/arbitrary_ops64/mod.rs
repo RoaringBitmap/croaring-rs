@@ -139,7 +139,9 @@ impl ReadBitmapOp {
                 let mut t_with_range = t.clone();
                 if !r.is_empty() {
                     t_with_range.remove_range(0..*r.start());
-                    t_with_range.remove_range(r.end() + 1..);
+                    if let Some(after_end) = r.end().checked_add(1) {
+                        t_with_range.remove_range(after_end..);
+                    }
                 }
                 assert_eq!(
                     b.range_cardinality(r.start()..=r.end()),
