@@ -1,3 +1,0 @@
-[workspace]
-members = ["croaring", "croaring-sys"]
-resolver = "2"

@@ -1,0 +1,3 @@
+/Users/zach/Development/tmp/croaring-msvc/cmake-build-debug/CMakeFiles/roaring_fast_or.dir
+/Users/zach/Development/tmp/croaring-msvc/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/zach/Development/tmp/croaring-msvc/cmake-build-debug/CMakeFiles/rebuild_cache.dir

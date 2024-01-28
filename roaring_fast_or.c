@@ -1,4 +1,4 @@
-#include "croaring-sys/CRoaring/roaring.c"
+#include "roaring.c"
 
 int main(void) {
     roaring_bitmap_t *r1 = roaring_bitmap_of(2, 500, 1000);
