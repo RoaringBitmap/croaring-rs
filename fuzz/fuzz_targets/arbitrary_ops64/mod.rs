@@ -91,7 +91,7 @@ impl BitmapMutBinop {
     }
 }
 
-#[derive(Arbitrary, Debug, PartialEq, Eq)]
+#[derive(Arbitrary, Debug, PartialEq, Eq, Hash)]
 pub enum BitmapCompOperation {
     Eq,
     IsSubset,
@@ -104,7 +104,7 @@ pub enum BitmapCompOperation {
     AndNot,
 }
 
-#[derive(Arbitrary, Debug, PartialEq, Eq)]
+#[derive(Arbitrary, Debug, PartialEq, Eq, Hash)]
 pub enum ReadBitmapOp {
     ContainsRange(RangeInclusive<u64>),
     Contains(u64),
@@ -410,14 +410,24 @@ impl BitmapCompOperation {
 
 pub fn assert_64_eq(lhs: &Bitmap64, rhs: &Treemap) {
     assert_eq!(lhs.cardinality(), rhs.cardinality());
-    if lhs.serialize::<Portable>() != rhs.serialize::<Portable>() {
-        let mut lhs = lhs.iter().enumerate();
-        let mut rhs = rhs.iter();
-        while let Some((i, l)) = lhs.next() {
-            let r = rhs.next().unwrap();
+    let lhs_ser = lhs.serialize::<Portable>();
+    let rhs_ser = rhs.serialize::<Portable>();
+    if lhs_ser != rhs_ser {
+        let mut lhs_it = lhs.iter().enumerate();
+        let mut rhs_it = rhs.iter();
+        while let Some((i, l)) = lhs_it.next() {
+            let r = rhs_it.next().unwrap();
             assert_eq!(l, r, "{l} != {r} at {i}");
         }
-        assert_eq!(rhs.next(), None);
-        panic!("Serialize not equal, but all items equal?")
+        assert_eq!(rhs_it.next(), None);
+        std::fs::write("/tmp/lhs.bin", &lhs_ser).unwrap();
+        std::fs::write("/tmp/rhs.bin", &rhs_ser).unwrap();
+
+        let new_lhs: Bitmap64 = lhs.iter().collect();
+        assert_eq!(lhs, &new_lhs, "lhs iter not equal to lhs collect");
+        let new_lhs_ser = new_lhs.serialize::<Portable>();
+        std::fs::write("/tmp/new_lhs.bin", &new_lhs_ser).unwrap();
+        assert_eq!(lhs_ser, new_lhs_ser, "serialize changed after iter collect");
+        panic!("Serialize not equal, but all items equal? Written to /tmp/{{lhs,rhs}}.bin")
     }
 }

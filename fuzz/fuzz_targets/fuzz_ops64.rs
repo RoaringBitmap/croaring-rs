@@ -1,10 +1,11 @@
 #![no_main]
 
 use crate::arbitrary_ops64::*;
-use croaring::{Bitmap64, Portable, Treemap};
+use croaring::{Bitmap64, Treemap};
 use libfuzzer_sys::arbitrary;
 use libfuzzer_sys::arbitrary::Arbitrary;
 use libfuzzer_sys::fuzz_target;
+use std::collections::HashSet;
 
 mod arbitrary_ops64;
 
@@ -17,23 +18,18 @@ fuzz_target!(|input: FuzzInput| {
     let mut lhs_tree = Treemap::new();
     let mut rhs_tree = Treemap::new();
 
-    let mut input = input;
-    // Only dedup read-only ops
-    input.compares.dedup();
-    input.view_ops.dedup();
-
-    for op in input.lhs_ops.iter().take(10) {
+    for op in input.lhs_ops.iter() {
         op.on_bitmap64(&mut lhs64);
         op.on_treemap(&mut lhs_tree);
     }
-    for op in input.rhs_ops.iter().take(10) {
+    for op in input.rhs_ops.iter() {
         op.on_bitmap64(&mut rhs64, &lhs64);
         op.on_treemap(&mut rhs_tree, &lhs_tree);
     }
-    for op in input.compares.iter().take(10) {
+    for op in input.compares.iter() {
         op.compare_with_tree(&lhs64, &rhs64, &lhs_tree, &rhs_tree);
     }
-    for op in input.view_ops.iter().take(10) {
+    for op in input.view_ops.iter() {
         op.check_against_tree(&lhs64, &lhs_tree);
     }
 
@@ -45,7 +41,7 @@ fuzz_target!(|input: FuzzInput| {
 struct FuzzInput {
     lhs_ops: Vec<MutableBitmapOperation>,
     rhs_ops: Vec<MutableRhsBitmapOperation>,
-    compares: Vec<BitmapCompOperation>,
-    view_ops: Vec<ReadBitmapOp>,
+    compares: HashSet<BitmapCompOperation>,
+    view_ops: HashSet<ReadBitmapOp>,
     // initial_input: &'a [u8],
 }
