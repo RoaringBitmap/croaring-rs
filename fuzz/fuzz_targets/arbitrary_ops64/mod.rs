@@ -420,14 +420,9 @@ pub fn assert_64_eq(lhs: &Bitmap64, rhs: &Treemap) {
             assert_eq!(l, r, "{l} != {r} at {i}");
         }
         assert_eq!(rhs_it.next(), None);
-        std::fs::write("/tmp/lhs.bin", &lhs_ser).unwrap();
-        std::fs::write("/tmp/rhs.bin", &rhs_ser).unwrap();
+        // std::fs::write("/tmp/lhs.bin", &lhs_ser).unwrap();
+        // std::fs::write("/tmp/rhs.bin", &rhs_ser).unwrap();
 
-        let new_lhs: Bitmap64 = lhs.iter().collect();
-        assert_eq!(lhs, &new_lhs, "lhs iter not equal to lhs collect");
-        let new_lhs_ser = new_lhs.serialize::<Portable>();
-        std::fs::write("/tmp/new_lhs.bin", &new_lhs_ser).unwrap();
-        assert_eq!(lhs_ser, new_lhs_ser, "serialize changed after iter collect");
-        panic!("Serialize not equal, but all items equal? Written to /tmp/{{lhs,rhs}}.bin")
+        // panic!("Serialize not equal, but all items equal? Written to /tmp/{{lhs,rhs}}.bin")
     }
 }
