@@ -17,10 +17,11 @@ impl<'a> Iterator for To64Iter<'a> {
     }
 }
 
-fn to64iter<'a>(t: (&'a u32, &'a Bitmap)) -> To64Iter<'a> {
+fn to64iter<'a>((key, bitmap): (&'a u32, &'a Bitmap)) -> To64Iter<'a> {
+    assert!(!bitmap.is_empty(), "empty bitmap at {key}");
     To64Iter {
-        key: *t.0,
-        iterator: t.1.iter(),
+        key: *key,
+        iterator: bitmap.iter(),
     }
 }
 

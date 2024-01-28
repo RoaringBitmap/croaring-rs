@@ -417,7 +417,7 @@ pub fn assert_64_eq(lhs: &Bitmap64, rhs: &Treemap) {
             let r = rhs.next().unwrap();
             assert_eq!(l, r, "{l} != {r} at {i}");
         }
-        assert!(rhs.next().is_none());
+        assert_eq!(rhs.next(), None);
         panic!("Serialize not equal, but all items equal?")
     }
 }
