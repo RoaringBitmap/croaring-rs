@@ -15,7 +15,7 @@ impl<'a> Arbitrary<'a> for Num {
     }
 }
 
-#[derive(Arbitrary, Debug)]
+#[derive(Arbitrary, Debug, PartialEq, Eq)]
 pub enum MutableBitmapOperation {
     Add(Num),
     AddChecked(Num),
@@ -33,13 +33,13 @@ pub enum MutableBitmapOperation {
     AddToMax(u16),
 }
 
-#[derive(Arbitrary, Debug)]
+#[derive(Arbitrary, Debug, PartialEq, Eq)]
 pub enum MutableRhsBitmapOperation {
     MutateSelf(MutableBitmapOperation),
     MutBinaryOp(BitmapMutBinop),
 }
 
-#[derive(Arbitrary, Debug)]
+#[derive(Arbitrary, Debug, PartialEq, Eq)]
 pub enum BitmapMutBinop {
     And,
     Or,
@@ -91,7 +91,7 @@ impl BitmapMutBinop {
     }
 }
 
-#[derive(Arbitrary, Debug)]
+#[derive(Arbitrary, Debug, PartialEq, Eq)]
 pub enum BitmapCompOperation {
     Eq,
     IsSubset,
@@ -104,11 +104,11 @@ pub enum BitmapCompOperation {
     AndNot,
 }
 
-#[derive(Arbitrary, Debug)]
+#[derive(Arbitrary, Debug, PartialEq, Eq)]
 pub enum ReadBitmapOp {
-    ContainsRange(RangeInclusive<Num>),
-    Contains(Num),
-    RangeCardinality(RangeInclusive<Num>),
+    ContainsRange(RangeInclusive<u64>),
+    Contains(u64),
+    RangeCardinality(RangeInclusive<u64>),
     Cardinality,
     ToVec,
     GetPortableSerializedSizeInBytes,
@@ -118,13 +118,12 @@ pub enum ReadBitmapOp {
     GetFrozenSerializedSizeInBytes,
      */
     IsEmpty,
-    AddOffset(i64),
-    IntersectWithRange(RangeInclusive<Num>),
+    IntersectWithRange(RangeInclusive<u64>),
     Minimum,
     Maximum,
-    Rank(Num),
-    Index(Num),
-    Select(Num),
+    Rank(u64),
+    Index(u64),
+    Select(u64),
     Clone,
     Debug,
 }
@@ -132,18 +131,18 @@ pub enum ReadBitmapOp {
 impl ReadBitmapOp {
     pub fn check_against_tree(&self, b: &Bitmap64, t: &Treemap) {
         match *self {
-            ReadBitmapOp::Contains(Num(i)) => {
+            ReadBitmapOp::Contains(i) => {
                 assert_eq!(b.contains(i), t.contains(i));
             }
             ReadBitmapOp::RangeCardinality(ref r) => {
                 // Tree doesn't implement directly, but we can do it manually
                 let mut t_with_range = t.clone();
                 if !r.is_empty() {
-                    t_with_range.remove_range(0..r.start().0);
-                    t_with_range.remove_range(r.end().0 + 1..);
+                    t_with_range.remove_range(0..*r.start());
+                    t_with_range.remove_range(r.end() + 1..);
                 }
                 assert_eq!(
-                    b.range_cardinality(r.start().0..=r.end().0),
+                    b.range_cardinality(r.start()..=r.end()),
                     t_with_range.cardinality()
                 );
             }
@@ -160,13 +159,13 @@ impl ReadBitmapOp {
             ReadBitmapOp::Maximum => {
                 assert_eq!(b.maximum(), t.maximum());
             }
-            ReadBitmapOp::Rank(Num(i)) => {
+            ReadBitmapOp::Rank(i) => {
                 assert_eq!(b.rank(i), t.rank(i));
             }
-            ReadBitmapOp::Index(Num(i)) => {
+            ReadBitmapOp::Index(i) => {
                 assert_eq!(b.position(i), t.position(i));
             }
-            ReadBitmapOp::Select(Num(i)) => {
+            ReadBitmapOp::Select(i) => {
                 assert_eq!(b.select(i), t.select(i));
             }
             ReadBitmapOp::Clone => {
@@ -192,14 +191,11 @@ impl ReadBitmapOp {
             }
             ReadBitmapOp::ContainsRange(ref range) => {
                 // Unsupported by treemaps
-                _ = b.contains_range(range.start().0..=range.end().0);
-            }
-            ReadBitmapOp::AddOffset(_) => {
-                // Unsupported
+                _ = b.contains_range(range.start()..=range.end());
             }
             ReadBitmapOp::IntersectWithRange(ref range) => {
                 // Unsupported by treemaps
-                _ = b.intersect_with_range(range.start().0..=range.end().0);
+                _ = b.intersect_with_range(range.start()..=range.end());
             }
         }
     }
@@ -414,5 +410,14 @@ impl BitmapCompOperation {
 
 pub fn assert_64_eq(lhs: &Bitmap64, rhs: &Treemap) {
     assert_eq!(lhs.cardinality(), rhs.cardinality());
-    assert!(lhs.iter().eq(rhs.iter()));
+    if lhs.serialize::<Portable>() != rhs.serialize::<Portable>() {
+        let mut lhs = lhs.iter().enumerate();
+        let mut rhs = rhs.iter();
+        while let Some((i, l)) = lhs.next() {
+            let r = rhs.next().unwrap();
+            assert_eq!(l, r, "{l} != {r} at {i}");
+        }
+        assert!(rhs.next().is_none());
+        panic!("Serialize not equal, but all items equal?")
+    }
 }

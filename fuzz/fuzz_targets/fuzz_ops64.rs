@@ -9,10 +9,18 @@ use libfuzzer_sys::fuzz_target;
 mod arbitrary_ops64;
 
 fuzz_target!(|input: FuzzInput| {
-    let mut lhs64 = Bitmap64::deserialize::<Portable>(input.initial_input);
+    // TODO: Deserialization isn't safe yet without internal validate
+    // let mut lhs64 = Bitmap64::deserialize::<Portable>(input.initial_input);
+    // let mut lhs_tree = Treemap::from_iter(lhs64.iter());
+    let mut lhs64 = Bitmap64::new();
     let mut rhs64 = Bitmap64::new();
-    let mut lhs_tree = Treemap::from_iter(lhs64.iter());
+    let mut lhs_tree = Treemap::new();
     let mut rhs_tree = Treemap::new();
+
+    let mut input = input;
+    // Only dedup read-only ops
+    input.compares.dedup();
+    input.view_ops.dedup();
 
     for op in input.lhs_ops.iter().take(10) {
         op.on_bitmap64(&mut lhs64);
@@ -34,10 +42,10 @@ fuzz_target!(|input: FuzzInput| {
 });
 
 #[derive(Arbitrary, Debug)]
-struct FuzzInput<'a> {
+struct FuzzInput {
     lhs_ops: Vec<MutableBitmapOperation>,
     rhs_ops: Vec<MutableRhsBitmapOperation>,
     compares: Vec<BitmapCompOperation>,
     view_ops: Vec<ReadBitmapOp>,
-    initial_input: &'a [u8],
+    // initial_input: &'a [u8],
 }
