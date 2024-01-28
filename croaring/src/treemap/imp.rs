@@ -446,35 +446,31 @@ impl Treemap {
             return;
         }
 
-        let mut iter = self.map.range_mut(start_high..=end_high);
-        let mut keys_to_remove = Vec::new();
         // Step 1: Remove first partial range if bitmap exists
-        if let Some((&first_high, first_bitmap)) = iter.next() {
-            if first_high == start_high {
-                first_bitmap.remove_range(start_low..=u32::MAX);
-                if first_bitmap.is_empty() {
-                    keys_to_remove.push(first_high);
-                }
-            } else {
-                keys_to_remove.push(first_high);
+        if let Entry::Occupied(mut e) = self.map.entry(start_high) {
+            let bitmap = e.get_mut();
+            bitmap.remove_range(start_low..);
+            if bitmap.is_empty() {
+                e.remove();
             }
         }
         // Step 2: Remove the final partial range if bitmap exists
-        if let Some((&last_high, last_bitmap)) = iter.next_back() {
-            if last_high == end_high {
-                last_bitmap.remove_range(0..=end_low);
-                if last_bitmap.is_empty() {
-                    keys_to_remove.push(last_high);
-                }
-            } else {
-                keys_to_remove.push(last_high);
+        if let Entry::Occupied(mut e) = self.map.entry(end_high) {
+            let bitmap = e.get_mut();
+            bitmap.remove_range(..=end_low);
+            if bitmap.is_empty() {
+                e.remove();
             }
         }
 
         // Step 3: Remove all full ranges
         // Unfortunately, there's no way to remove a range from a BTreeMap, so
         // we have to build a list of keys to remove and then remove them individually
-        keys_to_remove.extend(iter.map(|(&k, _)| k));
+        let keys_to_remove = self
+            .map
+            .range_mut(start_high + 1..end_high)
+            .map(|(&k, _)| k)
+            .collect::<Vec<_>>();
 
         for key in &keys_to_remove {
             self.map.remove(key);
