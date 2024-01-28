@@ -181,6 +181,19 @@ fn test_treemap_max_andnot_empty() {
 }
 
 #[test]
+fn treemap_remove_big_range() {
+    let mut treemap = Treemap::new();
+    let value = 0xFFFFFFFFFFFF038D;
+    let range_end = 0xFFFFFFFFFF25FFFF;
+    treemap.add(value);
+
+    assert!(range_end < value);
+    treemap.remove_range(..value);
+    assert!(treemap.contains(value));
+    assert_eq!(treemap.cardinality(), 1);
+}
+
+#[test]
 fn treemap_run_optimized() {
     let mut initial = Bitmap::new();
     initial.add(1);
