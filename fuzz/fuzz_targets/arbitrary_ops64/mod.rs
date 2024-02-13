@@ -29,6 +29,8 @@ pub enum MutableBitmapOperation {
     RemoveChecked(Num),
     RunOptimize,
     RemoveRunCompression,
+    MakeDeep,
+    MakeWide,
     // Add to the max key (or with 0xFFFFFFFF_FFFF0000)
     AddToMax(u16),
 }
@@ -252,8 +254,20 @@ impl MutableBitmapOperation {
                 t.add(UPPER_BITS | u64::from(low_bits));
             }
             MutableBitmapOperation::FlipRange(ref range) => {
-                // Tremap's flip is inplace
+                // Treemap's flip is inplace
                 () = t.flip(range.start().0..=range.end().0);
+            }
+            MutableBitmapOperation::MakeDeep => {
+                t.add(0);
+                for i in 0..6 {
+                    let val = 1u64 << (i * 8 + 16);
+                    t.add(val);
+                }
+            }
+            MutableBitmapOperation::MakeWide => {
+                for i in 0..200 {
+                    t.add(i * 0x1_0000);
+                }
             }
         }
     }
@@ -282,13 +296,7 @@ impl MutableBitmapOperation {
                 *b = b.clone();
             }
             MutableBitmapOperation::Clear => {
-                const UPPER_BITS: u64 = 0xFFFF_FFFF_FFFF_0000;
-                if !b.is_empty() {
-                    b.remove_range(UPPER_BITS..);
-                }
-                if !b.is_empty() {
-                    b.remove_range(b.minimum().unwrap()..=b.maximum().unwrap())
-                }
+                b.remove_range(..);
             }
             MutableBitmapOperation::Remove(Num(i)) => {
                 b.remove(i);
@@ -312,6 +320,18 @@ impl MutableBitmapOperation {
                 let expected = b.flip(range.start().0..=range.end().0);
                 b.flip_inplace(range.start().0..=range.end().0);
                 assert_eq!(expected, *b);
+            }
+            MutableBitmapOperation::MakeDeep => {
+                b.add(0);
+                for i in 0..6 {
+                    let val = 1u64 << (i * 8 + 16);
+                    b.add(val);
+                }
+            }
+            MutableBitmapOperation::MakeWide => {
+                for i in 0..200 {
+                    b.add(i * 0x1_0000);
+                }
             }
         }
     }
@@ -422,9 +442,5 @@ pub fn assert_64_eq(lhs: &Bitmap64, rhs: &Treemap) {
             assert_eq!(l, r, "{l} != {r} at {i}");
         }
         assert_eq!(rhs_it.next(), None);
-        // std::fs::write("/tmp/lhs.bin", &lhs_ser).unwrap();
-        // std::fs::write("/tmp/rhs.bin", &rhs_ser).unwrap();
-
-        // panic!("Serialize not equal, but all items equal? Written to /tmp/{{lhs,rhs}}.bin")
     }
 }
