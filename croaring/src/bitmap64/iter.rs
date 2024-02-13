@@ -24,6 +24,7 @@ impl FromIterator<u64> for Bitmap64 {
         bitmap
     }
 }
+
 impl Extend<u64> for Bitmap64 {
     #[doc(alias = "roaring64_bitmap_add_bulk")]
     fn extend<T: IntoIterator<Item = u64>>(&mut self, iter: T) {
@@ -34,27 +35,21 @@ impl Extend<u64> for Bitmap64 {
     }
 }
 
-// TODO: is this needed: https://github.com/RoaringBitmap/CRoaring/pull/558#discussion_r1464188393
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Location {
-    BeforeStart,
-    AfterEnd,
-    Inside,
-}
-
 /// A cursor over a bitmap64
 ///
 /// A Cursor is like an iterator, except that it can freely seek back-and-forth.
 ///
 /// A cursor points at a single value in the bitmap, or at a "ghost" position,
 /// either one before the beginning of the bitmap, or one after the end of the bitmap.
+#[derive(Debug)]
 pub struct Bitmap64Cursor<'a> {
     raw: NonNull<ffi::roaring64_iterator_t>,
-    loc: Location,
+    has_value: bool,
     _bitmap: PhantomData<&'a Bitmap64>,
 }
 
 unsafe impl Send for Bitmap64Cursor<'_> {}
+
 unsafe impl Sync for Bitmap64Cursor<'_> {}
 
 impl Drop for Bitmap64Cursor<'_> {
@@ -66,24 +61,24 @@ impl Drop for Bitmap64Cursor<'_> {
 }
 
 impl<'a> Bitmap64Cursor<'a> {
-    fn at_first(bitmap: &'a Bitmap64) -> Self {
-        let raw = unsafe { ffi::roaring64_iterator_create(bitmap.raw.as_ptr()) };
+    fn from_raw(raw: *mut ffi::roaring64_iterator_t) -> Self {
         let raw = NonNull::new(raw).expect("Failed to allocate roaring64_iterator_t");
+        let has_value = unsafe { ffi::roaring64_iterator_has_value(raw.as_ptr()) };
         Self {
             raw,
-            loc: Location::Inside,
+            has_value,
             _bitmap: PhantomData,
         }
     }
 
+    fn at_first(bitmap: &'a Bitmap64) -> Self {
+        let raw = unsafe { ffi::roaring64_iterator_create(bitmap.raw.as_ptr()) };
+        Self::from_raw(raw)
+    }
+
     fn at_last(bitmap: &'a Bitmap64) -> Self {
         let raw = unsafe { ffi::roaring64_iterator_create_last(bitmap.raw.as_ptr()) };
-        let raw = NonNull::new(raw).expect("Failed to allocate roaring64_iterator_t");
-        Self {
-            raw,
-            loc: Location::Inside,
-            _bitmap: PhantomData,
-        }
+        Self::from_raw(raw)
     }
 
     /// Returns true if the cursor is pointing at a value in the bitmap.
@@ -106,7 +101,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// ```
     #[inline]
     pub fn has_value(&self) -> bool {
-        unsafe { ffi::roaring64_iterator_has_value(self.raw.as_ptr()) }
+        self.has_value
     }
 
     /// Returns the value at the cursor, if any.
@@ -153,7 +148,6 @@ impl<'a> Bitmap64Cursor<'a> {
     /// assert_eq!(cursor.current(), Some(1));
     /// cursor.move_prev();
     /// assert_eq!(cursor.current(), None);
-    /// // TODO: This doesn't work
     /// cursor.move_next();
     /// assert_eq!(cursor.current(), Some(1));
     /// cursor.move_next();
@@ -165,17 +159,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// ```
     #[inline]
     pub fn move_next(&mut self) {
-        match self.loc {
-            Location::BeforeStart => self.loc = Location::Inside,
-            Location::Inside => {}
-            Location::AfterEnd => return,
-        }
-
-        let has_value = unsafe { ffi::roaring64_iterator_advance(self.raw.as_ptr()) };
-
-        if !has_value {
-            self.loc = Location::AfterEnd;
-        }
+        self.has_value = unsafe { ffi::roaring64_iterator_advance(self.raw.as_ptr()) };
     }
 
     /// Moves the cursor to the next value in the bitmap, and returns the value (if any)
@@ -196,14 +180,7 @@ impl<'a> Bitmap64Cursor<'a> {
     #[inline]
     pub fn next(&mut self) -> Option<u64> {
         self.move_next();
-
-        // We know that `move_next` will have updated the location to either `Inside` or `AfterEnd`
-        // based on if the iterator has a value or not.
-        if self.loc != Location::AfterEnd {
-            Some(unsafe { self.current_unchecked() })
-        } else {
-            None
-        }
+        self.current()
     }
 
     /// Moves the cursor to the previous value in the bitmap
@@ -233,16 +210,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// ```
     #[inline]
     pub fn move_prev(&mut self) {
-        match self.loc {
-            Location::BeforeStart => return,
-            Location::Inside => {}
-            Location::AfterEnd => self.loc = Location::Inside,
-        }
-        let has_value = unsafe { ffi::roaring64_iterator_previous(self.raw.as_ptr()) };
-
-        if !has_value {
-            self.loc = Location::BeforeStart;
-        }
+        self.has_value = unsafe { ffi::roaring64_iterator_previous(self.raw.as_ptr()) };
     }
 
     /// Moves the cursor to the previous value in the bitmap, and returns the value (if any)
@@ -263,14 +231,7 @@ impl<'a> Bitmap64Cursor<'a> {
     #[inline]
     pub fn prev(&mut self) -> Option<u64> {
         self.move_prev();
-
-        // We know that `move_prev` will have updated the location to either `Inside` or `BeforeStart`
-        // based on if the iterator has a value or not.
-        if self.loc != Location::BeforeStart {
-            Some(unsafe { self.current_unchecked() })
-        } else {
-            None
-        }
+        self.current()
     }
 
     /// Resets this cursor to the first value in the bitmap.
@@ -296,11 +257,7 @@ impl<'a> Bitmap64Cursor<'a> {
         // Don't drop `self` and free the iterator
         let this = ManuallyDrop::new(self);
         unsafe { ffi::roaring64_iterator_reinit(bitmap.raw.as_ptr(), this.raw.as_ptr()) };
-        Bitmap64Cursor {
-            raw: this.raw,
-            loc: Location::Inside,
-            _bitmap: PhantomData,
-        }
+        Bitmap64Cursor::from_raw(this.raw.as_ptr())
     }
 
     /// Resets this cursor to the last value in the bitmap.
@@ -324,11 +281,7 @@ impl<'a> Bitmap64Cursor<'a> {
         // Don't drop `self` and free the iterator
         let this = ManuallyDrop::new(self);
         unsafe { ffi::roaring64_iterator_reinit_last(bitmap.raw.as_ptr(), this.raw.as_ptr()) };
-        Bitmap64Cursor {
-            raw: this.raw,
-            loc: Location::Inside,
-            _bitmap: PhantomData,
-        }
+        Bitmap64Cursor::from_raw(this.raw.as_ptr())
     }
 
     /// Attempt to read many values from the iterator into `dst`
@@ -393,9 +346,7 @@ impl<'a> Bitmap64Cursor<'a> {
         let result =
             unsafe { ffi::roaring64_iterator_read(self.raw.as_ptr(), dst.as_mut_ptr(), count) };
         debug_assert!(result <= count);
-        if !self.has_value() {
-            self.loc = Location::AfterEnd;
-        }
+        self.has_value = unsafe { ffi::roaring64_iterator_has_value(self.raw.as_ptr()) };
         result as usize
     }
 
@@ -425,13 +376,8 @@ impl<'a> Bitmap64Cursor<'a> {
     #[inline]
     #[doc(alias = "roaring64_iterator_move_equalorlarger")]
     pub fn reset_at_or_after(&mut self, val: u64) {
-        let has_value =
+        self.has_value =
             unsafe { ffi::roaring64_iterator_move_equalorlarger(self.raw.as_ptr(), val) };
-        if !has_value {
-            self.loc = Location::AfterEnd;
-        } else {
-            self.loc = Location::Inside;
-        }
     }
 }
 
@@ -441,47 +387,35 @@ impl<'a> From<Bitmap64Iterator<'a>> for Bitmap64Cursor<'a> {
     }
 }
 
+impl<'a> From<Bitmap64Cursor<'a>> for Bitmap64Iterator<'a> {
+    fn from(cursor: Bitmap64Cursor<'a>) -> Self {
+        Bitmap64Iterator { cursor }
+    }
+}
+
 impl<'a> Clone for Bitmap64Cursor<'a> {
     fn clone(&self) -> Self {
         let raw = unsafe { ffi::roaring64_iterator_copy(self.raw.as_ptr()) };
-        let raw = NonNull::new(raw).expect("Failed to allocate roaring64_iterator_t");
-        Self {
-            raw,
-            loc: self.loc,
-            _bitmap: self._bitmap,
-        }
+        Self::from_raw(raw)
     }
 }
 
 /// An iterator over the values in a bitmap
+#[derive(Debug, Clone)]
 pub struct Bitmap64Iterator<'a> {
-    raw: NonNull<ffi::roaring64_iterator_t>,
-    has_value: bool,
-    _bitmap: PhantomData<&'a Bitmap64>,
-}
-
-impl Drop for Bitmap64Iterator<'_> {
-    fn drop(&mut self) {
-        unsafe {
-            ffi::roaring64_iterator_free(self.raw.as_ptr());
-        }
-    }
+    cursor: Bitmap64Cursor<'a>,
 }
 
 impl<'a> Bitmap64Iterator<'a> {
     fn new(bitmap: &'a Bitmap64) -> Self {
-        let raw = unsafe { ffi::roaring64_iterator_create(bitmap.raw.as_ptr()) };
-        let raw = NonNull::new(raw).expect("Failed to allocate roaring64_iterator_t");
         Self {
-            raw,
-            has_value: unsafe { ffi::roaring64_iterator_has_value(raw.as_ptr()) },
-            _bitmap: PhantomData,
+            cursor: bitmap.cursor(),
         }
     }
 
     #[inline]
     fn advance(&mut self) {
-        self.has_value = unsafe { ffi::roaring64_iterator_advance(self.raw.as_ptr()) };
+        self.cursor.move_next();
     }
 
     /// Peek at the next value to be returned by the iterator (if any), without consuming it
@@ -497,11 +431,7 @@ impl<'a> Bitmap64Iterator<'a> {
     /// ```
     #[inline]
     pub fn peek(&self) -> Option<u64> {
-        if self.has_value {
-            Some(unsafe { ffi::roaring64_iterator_value(self.raw.as_ptr()) })
-        } else {
-            None
-        }
+        self.cursor.current()
     }
 
     /// Converts this iterator into a cursor
@@ -523,16 +453,7 @@ impl<'a> Bitmap64Iterator<'a> {
     /// assert_eq!(cursor.current(), Some(2));
     /// ```
     pub fn into_cursor(self) -> Bitmap64Cursor<'a> {
-        let this = ManuallyDrop::new(self);
-        Bitmap64Cursor {
-            raw: this.raw,
-            loc: if this.has_value {
-                Location::Inside
-            } else {
-                Location::AfterEnd
-            },
-            _bitmap: this._bitmap,
-        }
+        self.cursor
     }
 }
 
@@ -549,11 +470,6 @@ impl<'a> Iterator for Bitmap64Iterator<'a> {
             }
             None => None,
         }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let min_size = usize::from(self.has_value);
-        (min_size, None)
     }
 }
 
@@ -581,17 +497,5 @@ impl Bitmap64 {
     #[must_use]
     pub fn cursor_to_last(&self) -> Bitmap64Cursor {
         Bitmap64Cursor::at_last(self)
-    }
-}
-
-impl<'a> Clone for Bitmap64Iterator<'a> {
-    fn clone(&self) -> Self {
-        let raw = unsafe { ffi::roaring64_iterator_copy(self.raw.as_ptr()) };
-        let raw = NonNull::new(raw).expect("Failed to allocate roaring64_iterator_t");
-        Self {
-            raw,
-            has_value: self.has_value,
-            _bitmap: self._bitmap,
-        }
     }
 }
