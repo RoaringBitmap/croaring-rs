@@ -1,3 +1,4 @@
+use croaring::bitmap64::Bitmap64Cursor;
 use croaring::{Bitmap64, Portable, Treemap};
 use libfuzzer_sys::arbitrary::{self, Arbitrary, Unstructured};
 use std::mem;
@@ -106,6 +107,60 @@ pub enum BitmapCompOperation {
     AndNot,
 }
 
+#[derive(Arbitrary, Debug, Copy, Clone, PartialEq, Eq)]
+pub enum IteratorOp {
+    HasValue,
+    Current,
+    MoveNext,
+    Next,
+    MovePrev,
+    Prev,
+    ResetToFirst,
+    ResetToLast,
+    Clone,
+    ReadMany(Num),
+    ResetAtOrAfter(u64),
+}
+
+impl IteratorOp {
+    pub fn on_cursor<'a>(self, bitmap: &'a Bitmap64, cursor: &mut Bitmap64Cursor<'a>) {
+        match self {
+            IteratorOp::HasValue => {
+                _ = cursor.has_value();
+            }
+            IteratorOp::Current => {
+                _ = cursor.current();
+            }
+            IteratorOp::MoveNext => {
+                _ = cursor.move_next();
+            }
+            IteratorOp::Next => {
+                let v = cursor.next();
+                assert_eq!(v, cursor.current());
+            }
+            IteratorOp::MovePrev => {
+                _ = cursor.move_prev();
+            }
+            IteratorOp::Prev => {
+                let v = cursor.prev();
+                assert_eq!(v, cursor.current());
+            }
+            IteratorOp::ResetToFirst => *cursor = cursor.clone().reset_to_first(bitmap),
+            IteratorOp::ResetToLast => *cursor = cursor.clone().reset_to_last(bitmap),
+            IteratorOp::ReadMany(Num(n)) => {
+                let mut dst = vec![0; n as usize];
+                cursor.read_many(&mut dst);
+            }
+            IteratorOp::ResetAtOrAfter(n) => {
+                cursor.reset_at_or_after(n);
+            }
+            IteratorOp::Clone => {
+                *cursor = cursor.clone();
+            }
+        }
+    }
+}
+
 #[derive(Arbitrary, Debug, PartialEq, Eq, Hash)]
 pub enum ReadBitmapOp {
     ContainsRange(RangeInclusive<u64>),
@@ -115,10 +170,6 @@ pub enum ReadBitmapOp {
     ToVec,
     GetPortableSerializedSizeInBytes,
     PortableSerialize,
-    /*
-    GetNativeSerializedSizeInBytes,
-    GetFrozenSerializedSizeInBytes,
-     */
     IsEmpty,
     IntersectWithRange(RangeInclusive<u64>),
     Minimum,
@@ -434,7 +485,6 @@ pub fn assert_64_eq(lhs: &Bitmap64, rhs: &Treemap) {
     assert_eq!(lhs.cardinality(), rhs.cardinality());
     let lhs_ser = lhs.serialize::<Portable>();
     let rhs_ser = rhs.serialize::<Portable>();
-    assert_eq!(lhs_ser, rhs_ser);
     if lhs_ser != rhs_ser {
         let mut lhs_it = lhs.iter().enumerate();
         let mut rhs_it = rhs.iter();

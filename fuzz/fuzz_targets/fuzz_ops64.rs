@@ -32,6 +32,13 @@ fuzz_target!(|input: FuzzInput| {
         op.check_against_tree(&lhs64, &lhs_tree);
     }
 
+    {
+        let mut cursor = lhs64.cursor();
+        for op in input.iter_ops.iter() {
+            op.on_cursor(&lhs64, &mut cursor);
+        }
+    }
+
     assert_64_eq(&lhs64, &lhs_tree);
     assert_64_eq(&rhs64, &rhs_tree);
 });
@@ -42,5 +49,6 @@ struct FuzzInput<'a> {
     rhs_ops: Vec<MutableRhsBitmapOperation>,
     compares: HashSet<BitmapCompOperation>,
     view_ops: HashSet<ReadBitmapOp>,
+    iter_ops: Vec<IteratorOp>,
     initial_input: &'a [u8],
 }
