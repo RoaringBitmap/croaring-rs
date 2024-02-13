@@ -289,7 +289,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// The current value _is_ included in the output.
     ///
     /// Returns the number of items read from the iterator, may be `< dst.len()` iff
-    /// the iterator is exhausted or `dst.len() > u32::MAX`.
+    /// the iterator is exhausted or `dst.len() > u64::MAX`.
     ///
     /// This can be much more efficient than repeated iteration.
     ///
