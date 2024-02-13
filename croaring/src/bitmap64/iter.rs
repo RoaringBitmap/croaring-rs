@@ -349,21 +349,24 @@ impl<'a> Bitmap64Cursor<'a> {
     /// bitmap.add_range(0..100);
     /// bitmap.add(222);
     /// bitmap.add(555);
+    /// bitmap.add(999);
     ///
     /// let mut buf = [0; 100];
     /// let mut cursor = bitmap.cursor();
-    /// assert_eq!(cursor.next_many(&mut buf), 100);
+    /// assert_eq!(cursor.read_many(&mut buf), 100);
     /// // Get the first 100 items, from the original range added
     /// for (i, item) in buf.iter().enumerate() {
     ///     assert_eq!(*item, i as u64);
     /// }
     /// // Calls to next_many() can be interleaved with other cursor calls
-    /// assert_eq!(cursor.next(), Some(222));
-    /// assert_eq!(cursor.next_many(&mut buf), 1);
+    /// assert_eq!(cursor.current(), Some(222));
+    /// assert_eq!(cursor.next(), Some(555));
+    /// assert_eq!(cursor.read_many(&mut buf), 2);
     /// assert_eq!(buf[0], 555);
+    /// assert_eq!(buf[1], 999);
     ///
-    /// assert_eq!(cursor.next(), None);
-    /// assert_eq!(cursor.next_many(&mut buf), 0);
+    /// assert_eq!(cursor.current(), None);
+    /// assert_eq!(cursor.read_many(&mut buf), 0);
     /// ```
     ///
     /// ```
@@ -373,7 +376,7 @@ impl<'a> Bitmap64Cursor<'a> {
     ///     let mut buf = [0; 1024];
     ///     let mut iter = bitmap.cursor();
     ///     loop {
-    ///         let n = iter.next_many(&mut buf);
+    ///         let n = iter.read_many(&mut buf);
     ///         if n == 0 {
     ///             break;
     ///         }
@@ -385,7 +388,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// ```
     #[inline]
     #[doc(alias = "roaring64_iterator_read")]
-    pub fn next_many(&mut self, dst: &mut [u64]) -> usize {
+    pub fn read_many(&mut self, dst: &mut [u64]) -> usize {
         let count = u64::try_from(dst.len()).unwrap_or(u64::MAX);
         let result =
             unsafe { ffi::roaring64_iterator_read(self.raw.as_ptr(), dst.as_mut_ptr(), count) };
@@ -396,7 +399,6 @@ impl<'a> Bitmap64Cursor<'a> {
         result as usize
     }
 
-    // TODO: Can this move backward like the 32 bit version? https://github.com/RoaringBitmap/CRoaring/pull/558#issuecomment-1907301009
     /// Reset the iterator to the first value `>= val`
     ///
     /// This can move the iterator forwards or backwards.
@@ -405,19 +407,19 @@ impl<'a> Bitmap64Cursor<'a> {
     /// ```
     /// use croaring::Bitmap64;
     ///
-    /// let mut bitmap = Bitmap64::of(&[0, 1, 100, 1000, u64::MAX]);
+    /// let bitmap = Bitmap64::of(&[0, 1, 100, 1000, u64::MAX]);
     /// let mut cursor = bitmap.cursor();
     /// cursor.reset_at_or_after(0);
-    /// assert_eq!(cursor.next(), Some(0));
+    /// assert_eq!(cursor.current(), Some(0));
     /// cursor.reset_at_or_after(0);
-    /// assert_eq!(cursor.next(), Some(0));
+    /// assert_eq!(cursor.current(), Some(0));
     ///
     /// cursor.reset_at_or_after(101);
-    /// assert_eq!(cursor.next(), Some(1000));
+    /// assert_eq!(cursor.current(), Some(1000));
     /// assert_eq!(cursor.next(), Some(u64::MAX));
     /// assert_eq!(cursor.next(), None);
     /// cursor.reset_at_or_after(u64::MAX);
-    /// assert_eq!(cursor.next(), Some(u64::MAX));
+    /// assert_eq!(cursor.current(), Some(u64::MAX));
     /// assert_eq!(cursor.next(), None);
     /// ```
     #[inline]

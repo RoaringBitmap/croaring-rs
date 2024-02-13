@@ -554,7 +554,7 @@ impl Bitmap64 {
     /// let mut bitmap = bitmap.clone();
     /// bitmap.add(u64::MAX - 1);
     /// bitmap.add(u64::MAX);
-    /// assert!(bitmap.contains_range((u64::MAX - 1)..=u64::MAX))
+    /// assert!(bitmap.contains_range((u64::MAX - 1)..=u64::MAX));
     ///
     /// // Empty ranges are always contained
     /// assert!(bitmap.contains_range(10..0));

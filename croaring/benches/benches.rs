@@ -293,7 +293,7 @@ fn collect_bitmap64_to_vec(c: &mut Criterion) {
             |()| {
                 let mut vec = vec![0; bitmap.cardinality() as usize];
                 let mut iter = bitmap.cursor();
-                assert_eq!(iter.next_many(&mut vec), vec.len());
+                assert_eq!(iter.read_many(&mut vec), vec.len());
                 vec
             },
             BatchSize::LargeInput,

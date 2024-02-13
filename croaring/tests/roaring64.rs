@@ -28,3 +28,30 @@ fn test_portable_deserialize() {
     assert_eq!(bitmap, expected);
     assert!(bitmap.iter().eq(expected.iter()))
 }
+
+#[test]
+fn test_r64_contains_max() {
+    let mut bitmap = Bitmap64::new();
+    assert!(!bitmap.contains_range((u64::MAX - 1)..=u64::MAX));
+    bitmap.add(u64::MAX - 1);
+    bitmap.add(u64::MAX);
+    assert!(bitmap.contains_range((u64::MAX - 1)..=u64::MAX));
+}
+
+#[test]
+fn test_r64_cursor_reset() {
+    let bitmap = Bitmap64::of(&[0, 1, 100, 1000, u64::MAX]);
+    let mut cursor = bitmap.cursor();
+    cursor.reset_at_or_after(0);
+    assert_eq!(cursor.current(), Some(0));
+    cursor.reset_at_or_after(0);
+    assert_eq!(cursor.current(), Some(0));
+
+    cursor.reset_at_or_after(101);
+    assert_eq!(cursor.current(), Some(1000));
+    assert_eq!(cursor.next(), Some(u64::MAX));
+    assert_eq!(cursor.next(), None);
+    cursor.reset_at_or_after(u64::MAX);
+    assert_eq!(cursor.current(), Some(u64::MAX));
+    assert_eq!(cursor.next(), None);
+}

@@ -434,6 +434,7 @@ pub fn assert_64_eq(lhs: &Bitmap64, rhs: &Treemap) {
     assert_eq!(lhs.cardinality(), rhs.cardinality());
     let lhs_ser = lhs.serialize::<Portable>();
     let rhs_ser = rhs.serialize::<Portable>();
+    assert_eq!(lhs_ser, rhs_ser);
     if lhs_ser != rhs_ser {
         let mut lhs_it = lhs.iter().enumerate();
         let mut rhs_it = rhs.iter();
