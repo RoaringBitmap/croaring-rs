@@ -103,6 +103,34 @@ fn expected_serialized_bitmap() -> Bitmap {
 }
 
 #[test]
+fn empty_cursor() {
+    let bitmap = Bitmap::new();
+    let mut cursor = bitmap.cursor();
+    assert!(!cursor.has_value());
+    assert_eq!(cursor.current(), None);
+    assert_eq!(cursor.prev(), None);
+    assert_eq!(cursor.prev(), None);
+    assert_eq!(cursor.next(), None);
+    assert_eq!(cursor.next(), None);
+}
+
+#[test]
+fn cursor_return_from_the_edge() {
+    let mut bitmap = Bitmap::from([1, 2, u32::MAX]);
+    let mut cursor = bitmap.cursor_to_last();
+    assert_eq!(cursor.current(), Some(u32::MAX));
+    assert_eq!(cursor.next(), None);
+    assert_eq!(cursor.prev(), Some(u32::MAX));
+    assert_eq!(cursor.prev(), Some(2));
+    assert_eq!(cursor.prev(), Some(1));
+
+    assert_eq!(cursor.current(), Some(1));
+    assert_eq!(cursor.prev(), None);
+    assert_eq!(cursor.prev(), None);
+    assert_eq!(cursor.next(), Some(1));
+}
+
+#[test]
 fn test_portable_view() {
     let buffer = fs::read("tests/data/portable_bitmap.bin").unwrap();
     let bitmap = unsafe { BitmapView::deserialize::<Portable>(&buffer) };
