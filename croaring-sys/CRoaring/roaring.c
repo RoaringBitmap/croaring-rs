@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2024-03-20T03:56:45Z
+// Created by amalgamation.sh on 2024-04-02T13:42:32Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -259,8 +259,8 @@ PPDerived movable_CAST_HELPER(Base **ptr_to_ptr) {
 #endif /* INCLUDE_CONTAINERS_CONTAINER_DEFS_H_ */
 /* end file include/roaring/containers/container_defs.h */
 /* begin file include/roaring/array_util.h */
-#ifndef ARRAY_UTIL_H
-#define ARRAY_UTIL_H
+#ifndef CROARING_ARRAY_UTIL_H
+#define CROARING_ARRAY_UTIL_H
 
 #include <stddef.h>  // for size_t
 #include <stdint.h>
@@ -615,8 +615,8 @@ namespace roaring {
 #endif /* INCLUDE_UTILASM_H_ */
 /* end file include/roaring/utilasm.h */
 /* begin file include/roaring/bitset_util.h */
-#ifndef BITSET_UTIL_H
-#define BITSET_UTIL_H
+#ifndef CROARING_BITSET_UTIL_H
+#define CROARING_BITSET_UTIL_H
 
 #include <stdint.h>
 
@@ -998,7 +998,7 @@ inline static uint64_t avx2_harley_seal_popcount256(const __m256i *data,
 }
 CROARING_UNTARGET_AVX2
 
-#define AVXPOPCNTFNC(opname, avx_intrinsic)                                    \
+#define CROARING_AVXPOPCNTFNC(opname, avx_intrinsic)                           \
     static inline uint64_t avx2_harley_seal_popcount256_##opname(              \
         const __m256i *data1, const __m256i *data2, const uint64_t size) {     \
         __m256i total = _mm256_setzero_si256();                                \
@@ -1179,27 +1179,27 @@ CROARING_UNTARGET_AVX2
     }
 
 CROARING_TARGET_AVX2
-AVXPOPCNTFNC(or, _mm256_or_si256)
+CROARING_AVXPOPCNTFNC(or, _mm256_or_si256)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVXPOPCNTFNC(union, _mm256_or_si256)
+CROARING_AVXPOPCNTFNC(union, _mm256_or_si256)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVXPOPCNTFNC(and, _mm256_and_si256)
+CROARING_AVXPOPCNTFNC(and, _mm256_and_si256)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVXPOPCNTFNC(intersection, _mm256_and_si256)
+CROARING_AVXPOPCNTFNC(intersection, _mm256_and_si256)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVXPOPCNTFNC(xor, _mm256_xor_si256)
+CROARING_AVXPOPCNTFNC(xor, _mm256_xor_si256)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVXPOPCNTFNC(andnot, _mm256_andnot_si256)
+CROARING_AVXPOPCNTFNC(andnot, _mm256_andnot_si256)
 CROARING_UNTARGET_AVX2
 
 #define VPOPCNT_AND_ADD(ptr, i, accu)                                  \
@@ -1246,7 +1246,7 @@ static inline uint64_t avx512_vpopcount(const __m512i *data,
 CROARING_UNTARGET_AVX512
 #endif
 
-#define AVXPOPCNTFNC512(opname, avx_intrinsic)                                \
+#define CROARING_AVXPOPCNTFNC512(opname, avx_intrinsic)                       \
     static inline uint64_t avx512_harley_seal_popcount512_##opname(           \
         const __m512i *data1, const __m512i *data2, const uint64_t size) {    \
         __m512i total = _mm512_setzero_si512();                               \
@@ -1308,12 +1308,12 @@ CROARING_UNTARGET_AVX512
 
 #if CROARING_COMPILER_SUPPORTS_AVX512
 CROARING_TARGET_AVX512
-AVXPOPCNTFNC512(or, _mm512_or_si512)
-AVXPOPCNTFNC512(union, _mm512_or_si512)
-AVXPOPCNTFNC512(and, _mm512_and_si512)
-AVXPOPCNTFNC512(intersection, _mm512_and_si512)
-AVXPOPCNTFNC512(xor, _mm512_xor_si512)
-AVXPOPCNTFNC512(andnot, _mm512_andnot_si512)
+CROARING_AVXPOPCNTFNC512(or, _mm512_or_si512)
+CROARING_AVXPOPCNTFNC512(union, _mm512_or_si512)
+CROARING_AVXPOPCNTFNC512(and, _mm512_and_si512)
+CROARING_AVXPOPCNTFNC512(intersection, _mm512_and_si512)
+CROARING_AVXPOPCNTFNC512(xor, _mm512_xor_si512)
+CROARING_AVXPOPCNTFNC512(andnot, _mm512_andnot_si512)
 CROARING_UNTARGET_AVX512
 #endif
 /***
@@ -2406,10 +2406,10 @@ struct rle16_s {
 typedef struct rle16_s rle16_t;
 
 #ifdef __cplusplus
-#define MAKE_RLE16(val, len) \
+#define CROARING_MAKE_RLE16(val, len) \
     { (uint16_t)(val), (uint16_t)(len) }  // no tagged structs until c++20
 #else
-#define MAKE_RLE16(val, len) \
+#define CROARING_MAKE_RLE16(val, len) \
     (rle16_t) { .value = (uint16_t)(val), .length = (uint16_t)(len) }
 #endif
 
@@ -2721,7 +2721,7 @@ static inline void run_container_append_value(run_container_t *run,
                                               rle16_t *previousrl) {
     const uint32_t previousend = previousrl->value + previousrl->length;
     if (val > previousend + 1) {  // we add a new one
-        *previousrl = MAKE_RLE16(val, 0);
+        *previousrl = CROARING_MAKE_RLE16(val, 0);
         run->runs[run->n_runs] = *previousrl;
         run->n_runs++;
     } else if (val == previousend + 1) {  // we merge
@@ -2736,7 +2736,7 @@ static inline void run_container_append_value(run_container_t *run,
  */
 static inline rle16_t run_container_append_value_first(run_container_t *run,
                                                        uint16_t val) {
-    rle16_t newrle = MAKE_RLE16(val, 0);
+    rle16_t newrle = CROARING_MAKE_RLE16(val, 0);
     run->runs[run->n_runs] = newrle;
     run->n_runs++;
     return newrle;
@@ -9106,14 +9106,14 @@ CROARING_UNTARGET_AVX512
 #include <string.h>
 
 
-#define ART_NODE4_TYPE 0
-#define ART_NODE16_TYPE 1
-#define ART_NODE48_TYPE 2
-#define ART_NODE256_TYPE 3
-#define ART_NUM_TYPES 4
+#define CROARING_ART_NODE4_TYPE 0
+#define CROARING_ART_NODE16_TYPE 1
+#define CROARING_ART_NODE48_TYPE 2
+#define CROARING_ART_NODE256_TYPE 3
+#define CROARING_ART_NUM_TYPES 4
 
 // Node48 placeholder value to indicate no child is present at this key index.
-#define ART_NODE48_EMPTY_VAL 48
+#define CROARING_ART_NODE48_EMPTY_VAL 48
 
 // We use the least significant bit of node pointers to indicate whether a node
 // is a leaf or an inner node. This is never surfaced to the user.
@@ -9124,15 +9124,15 @@ CROARING_UNTARGET_AVX512
 // deallocation of the ART, we know not to free the leaves without having to
 // dereference the leaf pointers.
 //
-// All internal operations on leaves should use CAST_LEAF before using the leaf.
-// The only places that use SET_LEAF are locations where a field is directly
-// assigned to a leaf pointer. After using SET_LEAF, the leaf should be treated
-// as a node of unknown type.
-#define IS_LEAF(p) (((uintptr_t)(p) & 1))
-#define SET_LEAF(p) ((art_node_t *)((uintptr_t)(p) | 1))
-#define CAST_LEAF(p) ((art_leaf_t *)((void *)((uintptr_t)(p) & ~1)))
+// All internal operations on leaves should use CROARING_CAST_LEAF before using
+// the leaf. The only places that use CROARING_SET_LEAF are locations where a
+// field is directly assigned to a leaf pointer. After using CROARING_SET_LEAF,
+// the leaf should be treated as a node of unknown type.
+#define CROARING_IS_LEAF(p) (((uintptr_t)(p) & 1))
+#define CROARING_SET_LEAF(p) ((art_node_t *)((uintptr_t)(p) | 1))
+#define CROARING_CAST_LEAF(p) ((art_leaf_t *)((void *)((uintptr_t)(p) & ~1)))
 
-#define NODE48_AVAILABLE_CHILDREN_MASK ((UINT64_C(1) << 48) - 1)
+#define CROARING_NODE48_AVAILABLE_CHILDREN_MASK ((UINT64_C(1) << 48) - 1)
 
 #ifdef __cplusplus
 extern "C" {
@@ -9189,7 +9189,8 @@ typedef struct art_node16_s {
 } art_node16_t;
 
 // Node48: key[i] corresponds with children[key[i]] if key[i] !=
-// ART_NODE48_EMPTY_VAL. Keys are naturally sorted due to direct indexing.
+// CROARING_ART_NODE48_EMPTY_VAL. Keys are naturally sorted due to direct
+// indexing.
 typedef struct art_node48_s {
     art_inner_node_t base;
     uint8_t count;
@@ -9215,7 +9216,9 @@ typedef struct art_indexed_child_s {
     art_key_chunk_t key_chunk;
 } art_indexed_child_t;
 
-static inline bool art_is_leaf(const art_node_t *node) { return IS_LEAF(node); }
+static inline bool art_is_leaf(const art_node_t *node) {
+    return CROARING_IS_LEAF(node);
+}
 
 static void art_leaf_populate(art_leaf_t *leaf, const art_key_chunk_t key[]) {
     memcpy(leaf->key, key, ART_KEY_BYTES);
@@ -9259,7 +9262,8 @@ static art_node_t *art_node256_insert(art_node256_t *node, art_node_t *child,
 static art_node4_t *art_node4_create(const art_key_chunk_t prefix[],
                                      uint8_t prefix_size) {
     art_node4_t *node = (art_node4_t *)roaring_malloc(sizeof(art_node4_t));
-    art_init_inner_node(&node->base, ART_NODE4_TYPE, prefix, prefix_size);
+    art_init_inner_node(&node->base, CROARING_ART_NODE4_TYPE, prefix,
+                        prefix_size);
     node->count = 0;
     return node;
 }
@@ -9463,7 +9467,8 @@ static bool art_node4_internal_validate(const art_node4_t *node,
 static art_node16_t *art_node16_create(const art_key_chunk_t prefix[],
                                        uint8_t prefix_size) {
     art_node16_t *node = (art_node16_t *)roaring_malloc(sizeof(art_node16_t));
-    art_init_inner_node(&node->base, ART_NODE16_TYPE, prefix, prefix_size);
+    art_init_inner_node(&node->base, CROARING_ART_NODE16_TYPE, prefix,
+                        prefix_size);
     node->count = 0;
     return node;
 }
@@ -9646,18 +9651,19 @@ static bool art_node16_internal_validate(const art_node16_t *node,
 static art_node48_t *art_node48_create(const art_key_chunk_t prefix[],
                                        uint8_t prefix_size) {
     art_node48_t *node = (art_node48_t *)roaring_malloc(sizeof(art_node48_t));
-    art_init_inner_node(&node->base, ART_NODE48_TYPE, prefix, prefix_size);
+    art_init_inner_node(&node->base, CROARING_ART_NODE48_TYPE, prefix,
+                        prefix_size);
     node->count = 0;
-    node->available_children = NODE48_AVAILABLE_CHILDREN_MASK;
+    node->available_children = CROARING_NODE48_AVAILABLE_CHILDREN_MASK;
     for (size_t i = 0; i < 256; ++i) {
-        node->keys[i] = ART_NODE48_EMPTY_VAL;
+        node->keys[i] = CROARING_ART_NODE48_EMPTY_VAL;
     }
     return node;
 }
 
 static void art_free_node48(art_node48_t *node) {
     uint64_t used_children =
-        (node->available_children) ^ NODE48_AVAILABLE_CHILDREN_MASK;
+        (node->available_children) ^ CROARING_NODE48_AVAILABLE_CHILDREN_MASK;
     while (used_children != 0) {
         // We checked above that used_children is not zero
         uint8_t child_idx = roaring_trailing_zeroes(used_children);
@@ -9670,7 +9676,7 @@ static void art_free_node48(art_node48_t *node) {
 static inline art_node_t *art_node48_find_child(const art_node48_t *node,
                                                 art_key_chunk_t key) {
     uint8_t val_idx = node->keys[key];
-    if (val_idx != ART_NODE48_EMPTY_VAL) {
+    if (val_idx != CROARING_ART_NODE48_EMPTY_VAL) {
         return node->children[val_idx];
     }
     return NULL;
@@ -9692,7 +9698,7 @@ static art_node_t *art_node48_insert(art_node48_t *node, art_node_t *child,
         art_node256_create(node->base.prefix, node->base.prefix_size);
     for (size_t i = 0; i < 256; ++i) {
         uint8_t val_idx = node->keys[i];
-        if (val_idx != ART_NODE48_EMPTY_VAL) {
+        if (val_idx != CROARING_ART_NODE48_EMPTY_VAL) {
             art_node256_insert(new_node, node->children[val_idx], i);
         }
     }
@@ -9703,10 +9709,10 @@ static art_node_t *art_node48_insert(art_node48_t *node, art_node_t *child,
 static inline art_node_t *art_node48_erase(art_node48_t *node,
                                            uint8_t key_chunk) {
     uint8_t val_idx = node->keys[key_chunk];
-    if (val_idx == ART_NODE48_EMPTY_VAL) {
+    if (val_idx == CROARING_ART_NODE48_EMPTY_VAL) {
         return (art_node_t *)node;
     }
-    node->keys[key_chunk] = ART_NODE48_EMPTY_VAL;
+    node->keys[key_chunk] = CROARING_ART_NODE48_EMPTY_VAL;
     node->available_children |= UINT64_C(1) << val_idx;
     node->count--;
     if (node->count > 16) {
@@ -9717,7 +9723,7 @@ static inline art_node_t *art_node48_erase(art_node48_t *node,
         art_node16_create(node->base.prefix, node->base.prefix_size);
     for (size_t i = 0; i < 256; ++i) {
         val_idx = node->keys[i];
-        if (val_idx != ART_NODE48_EMPTY_VAL) {
+        if (val_idx != CROARING_ART_NODE48_EMPTY_VAL) {
             art_node16_insert(new_node, node->children[val_idx], i);
         }
     }
@@ -9729,7 +9735,7 @@ static inline void art_node48_replace(art_node48_t *node,
                                       art_key_chunk_t key_chunk,
                                       art_node_t *new_child) {
     uint8_t val_idx = node->keys[key_chunk];
-    assert(val_idx != ART_NODE48_EMPTY_VAL);
+    assert(val_idx != CROARING_ART_NODE48_EMPTY_VAL);
     node->children[val_idx] = new_child;
 }
 
@@ -9738,7 +9744,7 @@ static inline art_indexed_child_t art_node48_next_child(
     art_indexed_child_t indexed_child;
     index++;
     for (size_t i = index; i < 256; ++i) {
-        if (node->keys[i] != ART_NODE48_EMPTY_VAL) {
+        if (node->keys[i] != CROARING_ART_NODE48_EMPTY_VAL) {
             indexed_child.index = i;
             indexed_child.child = node->children[node->keys[i]];
             indexed_child.key_chunk = i;
@@ -9757,7 +9763,7 @@ static inline art_indexed_child_t art_node48_prev_child(
     index--;
     art_indexed_child_t indexed_child;
     for (int i = index; i >= 0; --i) {
-        if (node->keys[i] != ART_NODE48_EMPTY_VAL) {
+        if (node->keys[i] != CROARING_ART_NODE48_EMPTY_VAL) {
             indexed_child.index = i;
             indexed_child.child = node->children[node->keys[i]];
             indexed_child.key_chunk = i;
@@ -9785,7 +9791,7 @@ static inline art_indexed_child_t art_node48_lower_bound(
     art_node48_t *node, art_key_chunk_t key_chunk) {
     art_indexed_child_t indexed_child;
     for (size_t i = key_chunk; i < 256; ++i) {
-        if (node->keys[i] != ART_NODE48_EMPTY_VAL) {
+        if (node->keys[i] != CROARING_ART_NODE48_EMPTY_VAL) {
             indexed_child.index = i;
             indexed_child.child = node->children[node->keys[i]];
             indexed_child.key_chunk = i;
@@ -9807,7 +9813,7 @@ static bool art_node48_internal_validate(const art_node48_t *node,
     uint64_t used_children = 0;
     for (int i = 0; i < 256; ++i) {
         uint8_t child_idx = node->keys[i];
-        if (child_idx != ART_NODE48_EMPTY_VAL) {
+        if (child_idx != CROARING_ART_NODE48_EMPTY_VAL) {
             if (used_children & (UINT64_C(1) << child_idx)) {
                 return art_validate_fail(
                     &validator, "Node48 keys point to the same child index");
@@ -9821,7 +9827,7 @@ static bool art_node48_internal_validate(const art_node48_t *node,
         }
     }
     uint64_t expected_used_children =
-        (node->available_children) ^ NODE48_AVAILABLE_CHILDREN_MASK;
+        (node->available_children) ^ CROARING_NODE48_AVAILABLE_CHILDREN_MASK;
     if (used_children != expected_used_children) {
         return art_validate_fail(
             &validator,
@@ -9844,7 +9850,7 @@ static bool art_node48_internal_validate(const art_node48_t *node,
 
     validator.depth++;
     for (int i = 0; i < 256; ++i) {
-        if (node->keys[i] != ART_NODE48_EMPTY_VAL) {
+        if (node->keys[i] != CROARING_ART_NODE48_EMPTY_VAL) {
             validator.current_key[validator.depth - 1] = i;
             if (!art_internal_validate_at(node->children[node->keys[i]],
                                           validator)) {
@@ -9859,7 +9865,8 @@ static art_node256_t *art_node256_create(const art_key_chunk_t prefix[],
                                          uint8_t prefix_size) {
     art_node256_t *node =
         (art_node256_t *)roaring_malloc(sizeof(art_node256_t));
-    art_init_inner_node(&node->base, ART_NODE256_TYPE, prefix, prefix_size);
+    art_init_inner_node(&node->base, CROARING_ART_NODE256_TYPE, prefix,
+                        prefix_size);
     node->count = 0;
     for (size_t i = 0; i < 256; ++i) {
         node->children[i] = NULL;
@@ -10015,13 +10022,13 @@ static bool art_node256_internal_validate(const art_node256_t *node,
 static art_node_t *art_find_child(const art_inner_node_t *node,
                                   art_key_chunk_t key_chunk) {
     switch (art_get_type(node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             return art_node4_find_child((art_node4_t *)node, key_chunk);
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             return art_node16_find_child((art_node16_t *)node, key_chunk);
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             return art_node48_find_child((art_node48_t *)node, key_chunk);
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             return art_node256_find_child((art_node256_t *)node, key_chunk);
         default:
             assert(false);
@@ -10033,16 +10040,16 @@ static art_node_t *art_find_child(const art_inner_node_t *node,
 static void art_replace(art_inner_node_t *node, art_key_chunk_t key_chunk,
                         art_node_t *new_child) {
     switch (art_get_type(node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             art_node4_replace((art_node4_t *)node, key_chunk, new_child);
             break;
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             art_node16_replace((art_node16_t *)node, key_chunk, new_child);
             break;
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             art_node48_replace((art_node48_t *)node, key_chunk, new_child);
             break;
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             art_node256_replace((art_node256_t *)node, key_chunk, new_child);
             break;
         default:
@@ -10055,13 +10062,13 @@ static void art_replace(art_inner_node_t *node, art_key_chunk_t key_chunk,
 static art_node_t *art_node_erase(art_inner_node_t *node,
                                   art_key_chunk_t key_chunk) {
     switch (art_get_type(node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             return art_node4_erase((art_node4_t *)node, key_chunk);
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             return art_node16_erase((art_node16_t *)node, key_chunk);
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             return art_node48_erase((art_node48_t *)node, key_chunk);
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             return art_node256_erase((art_node256_t *)node, key_chunk);
         default:
             assert(false);
@@ -10074,15 +10081,15 @@ static art_node_t *art_node_erase(art_inner_node_t *node,
 static art_node_t *art_node_insert_leaf(art_inner_node_t *node,
                                         art_key_chunk_t key_chunk,
                                         art_leaf_t *leaf) {
-    art_node_t *child = (art_node_t *)(SET_LEAF(leaf));
+    art_node_t *child = (art_node_t *)(CROARING_SET_LEAF(leaf));
     switch (art_get_type(node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             return art_node4_insert((art_node4_t *)node, child, key_chunk);
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             return art_node16_insert((art_node16_t *)node, child, key_chunk);
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             return art_node48_insert((art_node48_t *)node, child, key_chunk);
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             return art_node256_insert((art_node256_t *)node, child, key_chunk);
         default:
             assert(false);
@@ -10097,16 +10104,16 @@ static void art_free_node(art_node_t *node) {
         return;
     }
     switch (art_get_type((art_inner_node_t *)node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             art_free_node4((art_node4_t *)node);
             break;
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             art_free_node16((art_node16_t *)node);
             break;
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             art_free_node48((art_node48_t *)node);
             break;
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             art_free_node256((art_node256_t *)node);
             break;
         default:
@@ -10124,13 +10131,13 @@ static art_indexed_child_t art_node_next_child(const art_node_t *node,
         return indexed_child;
     }
     switch (art_get_type((art_inner_node_t *)node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             return art_node4_next_child((art_node4_t *)node, index);
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             return art_node16_next_child((art_node16_t *)node, index);
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             return art_node48_next_child((art_node48_t *)node, index);
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             return art_node256_next_child((art_node256_t *)node, index);
         default:
             assert(false);
@@ -10148,13 +10155,13 @@ static art_indexed_child_t art_node_prev_child(const art_node_t *node,
         return indexed_child;
     }
     switch (art_get_type((art_inner_node_t *)node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             return art_node4_prev_child((art_node4_t *)node, index);
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             return art_node16_prev_child((art_node16_t *)node, index);
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             return art_node48_prev_child((art_node48_t *)node, index);
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             return art_node256_prev_child((art_node256_t *)node, index);
         default:
             assert(false);
@@ -10172,13 +10179,13 @@ static art_indexed_child_t art_node_child_at(const art_node_t *node,
         return indexed_child;
     }
     switch (art_get_type((art_inner_node_t *)node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             return art_node4_child_at((art_node4_t *)node, index);
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             return art_node16_child_at((art_node16_t *)node, index);
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             return art_node48_child_at((art_node48_t *)node, index);
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             return art_node256_child_at((art_node256_t *)node, index);
         default:
             assert(false);
@@ -10196,13 +10203,13 @@ static art_indexed_child_t art_node_lower_bound(const art_node_t *node,
         return indexed_child;
     }
     switch (art_get_type((art_inner_node_t *)node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             return art_node4_lower_bound((art_node4_t *)node, key_chunk);
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             return art_node16_lower_bound((art_node16_t *)node, key_chunk);
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             return art_node48_lower_bound((art_node48_t *)node, key_chunk);
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             return art_node256_lower_bound((art_node256_t *)node, key_chunk);
         default:
             assert(false);
@@ -10253,7 +10260,7 @@ static uint8_t art_common_prefix(const art_key_chunk_t key1[],
 static art_node_t *art_insert_at(art_node_t *node, const art_key_chunk_t key[],
                                  uint8_t depth, art_leaf_t *new_leaf) {
     if (art_is_leaf(node)) {
-        art_leaf_t *leaf = CAST_LEAF(node);
+        art_leaf_t *leaf = CROARING_CAST_LEAF(node);
         uint8_t common_prefix = art_common_prefix(
             leaf->key, depth, ART_KEY_BYTES, key, depth, ART_KEY_BYTES);
 
@@ -10333,7 +10340,7 @@ static art_erase_result_t art_erase_at(art_node_t *node,
     result.value_erased = NULL;
 
     if (art_is_leaf(node)) {
-        art_leaf_t *leaf = CAST_LEAF(node);
+        art_leaf_t *leaf = CROARING_CAST_LEAF(node);
         uint8_t common_prefix = art_common_prefix(leaf->key, 0, ART_KEY_BYTES,
                                                   key, 0, ART_KEY_BYTES);
         if (common_prefix != ART_KEY_BYTES) {
@@ -10398,7 +10405,7 @@ static art_val_t *art_find_at(const art_node_t *node,
         // Include both the prefix and the child key chunk in the depth.
         depth += inner_node->prefix_size + 1;
     }
-    art_leaf_t *leaf = CAST_LEAF(node);
+    art_leaf_t *leaf = CROARING_CAST_LEAF(node);
     if (depth >= ART_KEY_BYTES) {
         return (art_val_t *)leaf;
     }
@@ -10417,16 +10424,16 @@ size_t art_size_in_bytes_at(const art_node_t *node) {
     }
     size_t size = 0;
     switch (art_get_type((art_inner_node_t *)node)) {
-        case ART_NODE4_TYPE: {
+        case CROARING_ART_NODE4_TYPE: {
             size += sizeof(art_node4_t);
         } break;
-        case ART_NODE16_TYPE: {
+        case CROARING_ART_NODE16_TYPE: {
             size += sizeof(art_node16_t);
         } break;
-        case ART_NODE48_TYPE: {
+        case CROARING_ART_NODE48_TYPE: {
             size += sizeof(art_node48_t);
         } break;
-        case ART_NODE256_TYPE: {
+        case CROARING_ART_NODE256_TYPE: {
             size += sizeof(art_node256_t);
         } break;
         default:
@@ -10447,16 +10454,16 @@ static void art_node_print_type(const art_node_t *node) {
         return;
     }
     switch (art_get_type((art_inner_node_t *)node)) {
-        case ART_NODE4_TYPE:
+        case CROARING_ART_NODE4_TYPE:
             printf("Node4");
             return;
-        case ART_NODE16_TYPE:
+        case CROARING_ART_NODE16_TYPE:
             printf("Node16");
             return;
-        case ART_NODE48_TYPE:
+        case CROARING_ART_NODE48_TYPE:
             printf("Node48");
             return;
-        case ART_NODE256_TYPE:
+        case CROARING_ART_NODE256_TYPE:
             printf("Node256");
             return;
         default:
@@ -10468,7 +10475,7 @@ static void art_node_print_type(const art_node_t *node) {
 void art_node_printf(const art_node_t *node, uint8_t depth) {
     if (art_is_leaf(node)) {
         printf("{ type: Leaf, key: ");
-        art_leaf_t *leaf = CAST_LEAF(node);
+        art_leaf_t *leaf = CROARING_CAST_LEAF(node);
         for (size_t i = 0; i < ART_KEY_BYTES; ++i) {
             printf("%02x", leaf->key[i]);
         }
@@ -10495,7 +10502,7 @@ void art_node_printf(const art_node_t *node, uint8_t depth) {
     printf("\n");
 
     switch (art_get_type(inner_node)) {
-        case ART_NODE4_TYPE: {
+        case CROARING_ART_NODE4_TYPE: {
             art_node4_t *node4 = (art_node4_t *)node;
             for (uint8_t i = 0; i < node4->count; ++i) {
                 printf("%*s", depth, "");
@@ -10503,7 +10510,7 @@ void art_node_printf(const art_node_t *node, uint8_t depth) {
                 art_node_printf(node4->children[i], depth);
             }
         } break;
-        case ART_NODE16_TYPE: {
+        case CROARING_ART_NODE16_TYPE: {
             art_node16_t *node16 = (art_node16_t *)node;
             for (uint8_t i = 0; i < node16->count; ++i) {
                 printf("%*s", depth, "");
@@ -10511,10 +10518,10 @@ void art_node_printf(const art_node_t *node, uint8_t depth) {
                 art_node_printf(node16->children[i], depth);
             }
         } break;
-        case ART_NODE48_TYPE: {
+        case CROARING_ART_NODE48_TYPE: {
             art_node48_t *node48 = (art_node48_t *)node;
             for (int i = 0; i < 256; ++i) {
-                if (node48->keys[i] != ART_NODE48_EMPTY_VAL) {
+                if (node48->keys[i] != CROARING_ART_NODE48_EMPTY_VAL) {
                     printf("%*s", depth, "");
                     printf("key: %02x ", i);
                     printf("child: %02x ", node48->keys[i]);
@@ -10522,7 +10529,7 @@ void art_node_printf(const art_node_t *node, uint8_t depth) {
                 }
             }
         } break;
-        case ART_NODE256_TYPE: {
+        case CROARING_ART_NODE256_TYPE: {
             art_node256_t *node256 = (art_node256_t *)node;
             for (int i = 0; i < 256; ++i) {
                 if (node256->children[i] != NULL) {
@@ -10545,7 +10552,7 @@ void art_insert(art_t *art, const art_key_chunk_t *key, art_val_t *val) {
     art_leaf_t *leaf = (art_leaf_t *)val;
     art_leaf_populate(leaf, key);
     if (art->root == NULL) {
-        art->root = (art_node_t *)SET_LEAF(leaf);
+        art->root = (art_node_t *)CROARING_SET_LEAF(leaf);
         return;
     }
     art->root = art_insert_at(art->root, key, 0, leaf);
@@ -10603,7 +10610,7 @@ static inline art_node_t *art_iterator_node(art_iterator_t *iterator) {
 // true for convenience.
 static inline bool art_iterator_valid_loc(art_iterator_t *iterator,
                                           art_leaf_t *leaf) {
-    iterator->frames[iterator->frame].node = SET_LEAF(leaf);
+    iterator->frames[iterator->frame].node = CROARING_SET_LEAF(leaf);
     iterator->frames[iterator->frame].index_in_node = 0;
     memcpy(iterator->key, leaf->key, ART_KEY_BYTES);
     iterator->value = (art_val_t *)leaf;
@@ -10692,7 +10699,7 @@ static bool art_node_init_iterator(const art_node_t *node,
     // We're at a leaf.
     iterator->frames[iterator->frame].node = (art_node_t *)node;
     iterator->frames[iterator->frame].index_in_node = 0;  // Should not matter.
-    return art_iterator_valid_loc(iterator, CAST_LEAF(node));
+    return art_iterator_valid_loc(iterator, CROARING_CAST_LEAF(node));
 }
 
 bool art_iterator_move(art_iterator_t *iterator, bool forward) {
@@ -10752,7 +10759,7 @@ static bool art_node_iterator_lower_bound(const art_node_t *node,
         art_iterator_down(iterator, inner_node, indexed_child.index);
         node = indexed_child.child;
     }
-    art_leaf_t *leaf = CAST_LEAF(node);
+    art_leaf_t *leaf = CROARING_CAST_LEAF(node);
     if (art_compare_keys(leaf->key, key) >= 0) {
         // Leaf has an equal or larger key.
         return art_iterator_valid_loc(iterator, leaf);
@@ -10906,7 +10913,7 @@ static bool art_internal_validate_at(const art_node_t *node,
         return art_validate_fail(&validator, "node is null");
     }
     if (art_is_leaf(node)) {
-        art_leaf_t *leaf = CAST_LEAF(node);
+        art_leaf_t *leaf = CROARING_CAST_LEAF(node);
         if (art_compare_prefix(leaf->key, 0, validator.current_key, 0,
                                validator.depth) != 0) {
             return art_validate_fail(
@@ -10932,25 +10939,25 @@ static bool art_internal_validate_at(const art_node_t *node,
         validator.depth += inner_node->prefix_size;
 
         switch (inner_node->typecode) {
-            case ART_NODE4_TYPE:
+            case CROARING_ART_NODE4_TYPE:
                 if (!art_node4_internal_validate((art_node4_t *)inner_node,
                                                  validator)) {
                     return false;
                 }
                 break;
-            case ART_NODE16_TYPE:
+            case CROARING_ART_NODE16_TYPE:
                 if (!art_node16_internal_validate((art_node16_t *)inner_node,
                                                   validator)) {
                     return false;
                 }
                 break;
-            case ART_NODE48_TYPE:
+            case CROARING_ART_NODE48_TYPE:
                 if (!art_node48_internal_validate((art_node48_t *)inner_node,
                                                   validator)) {
                     return false;
                 }
                 break;
-            case ART_NODE256_TYPE:
+            case CROARING_ART_NODE256_TYPE:
                 if (!art_node256_internal_validate((art_node256_t *)inner_node,
                                                    validator)) {
                     return false;
@@ -11189,8 +11196,8 @@ size_t bitset_count(const bitset_t *bitset) {
     return card;
 }
 
-bool bitset_inplace_union(bitset_t *CBITSET_RESTRICT b1,
-                          const bitset_t *CBITSET_RESTRICT b2) {
+bool bitset_inplace_union(bitset_t *CROARING_CBITSET_RESTRICT b1,
+                          const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
     for (size_t k = 0; k < minlength; ++k) {
@@ -11256,8 +11263,8 @@ size_t bitset_maximum(const bitset_t *bitset) {
 /* Returns true if bitsets share no common elements, false otherwise.
  *
  * Performs early-out if common element found. */
-bool bitsets_disjoint(const bitset_t *CBITSET_RESTRICT b1,
-                      const bitset_t *CBITSET_RESTRICT b2) {
+bool bitsets_disjoint(const bitset_t *CROARING_CBITSET_RESTRICT b1,
+                      const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
 
@@ -11271,8 +11278,8 @@ bool bitsets_disjoint(const bitset_t *CBITSET_RESTRICT b1,
  * disjoint.
  *
  * Performs early-out if common element found. */
-bool bitsets_intersect(const bitset_t *CBITSET_RESTRICT b1,
-                       const bitset_t *CBITSET_RESTRICT b2) {
+bool bitsets_intersect(const bitset_t *CROARING_CBITSET_RESTRICT b1,
+                       const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
 
@@ -11296,8 +11303,8 @@ static bool any_bits_set(const bitset_t *b, size_t starting_loc) {
 /* Returns true if b1 has all of b2's bits set.
  *
  * Performs early out if a bit is found in b2 that is not found in b1. */
-bool bitset_contains_all(const bitset_t *CBITSET_RESTRICT b1,
-                         const bitset_t *CBITSET_RESTRICT b2) {
+bool bitset_contains_all(const bitset_t *CROARING_CBITSET_RESTRICT b1,
+                         const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t min_size = b1->arraysize;
     if (b1->arraysize > b2->arraysize) {
         min_size = b2->arraysize;
@@ -11314,8 +11321,8 @@ bool bitset_contains_all(const bitset_t *CBITSET_RESTRICT b1,
     return true;
 }
 
-size_t bitset_union_count(const bitset_t *CBITSET_RESTRICT b1,
-                          const bitset_t *CBITSET_RESTRICT b2) {
+size_t bitset_union_count(const bitset_t *CROARING_CBITSET_RESTRICT b1,
+                          const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t answer = 0;
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
@@ -11355,8 +11362,8 @@ size_t bitset_union_count(const bitset_t *CBITSET_RESTRICT b1,
     return answer;
 }
 
-void bitset_inplace_intersection(bitset_t *CBITSET_RESTRICT b1,
-                                 const bitset_t *CBITSET_RESTRICT b2) {
+void bitset_inplace_intersection(bitset_t *CROARING_CBITSET_RESTRICT b1,
+                                 const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
     size_t k = 0;
@@ -11368,8 +11375,8 @@ void bitset_inplace_intersection(bitset_t *CBITSET_RESTRICT b1,
     }
 }
 
-size_t bitset_intersection_count(const bitset_t *CBITSET_RESTRICT b1,
-                                 const bitset_t *CBITSET_RESTRICT b2) {
+size_t bitset_intersection_count(const bitset_t *CROARING_CBITSET_RESTRICT b1,
+                                 const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t answer = 0;
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
@@ -11379,8 +11386,8 @@ size_t bitset_intersection_count(const bitset_t *CBITSET_RESTRICT b1,
     return answer;
 }
 
-void bitset_inplace_difference(bitset_t *CBITSET_RESTRICT b1,
-                               const bitset_t *CBITSET_RESTRICT b2) {
+void bitset_inplace_difference(bitset_t *CROARING_CBITSET_RESTRICT b1,
+                               const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
     size_t k = 0;
@@ -11389,8 +11396,8 @@ void bitset_inplace_difference(bitset_t *CBITSET_RESTRICT b1,
     }
 }
 
-size_t bitset_difference_count(const bitset_t *CBITSET_RESTRICT b1,
-                               const bitset_t *CBITSET_RESTRICT b2) {
+size_t bitset_difference_count(const bitset_t *CROARING_CBITSET_RESTRICT b1,
+                               const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
     size_t k = 0;
@@ -11404,8 +11411,9 @@ size_t bitset_difference_count(const bitset_t *CBITSET_RESTRICT b1,
     return answer;
 }
 
-bool bitset_inplace_symmetric_difference(bitset_t *CBITSET_RESTRICT b1,
-                                         const bitset_t *CBITSET_RESTRICT b2) {
+bool bitset_inplace_symmetric_difference(
+    bitset_t *CROARING_CBITSET_RESTRICT b1,
+    const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
     size_t k = 0;
@@ -11421,8 +11429,9 @@ bool bitset_inplace_symmetric_difference(bitset_t *CBITSET_RESTRICT b1,
     return true;
 }
 
-size_t bitset_symmetric_difference_count(const bitset_t *CBITSET_RESTRICT b1,
-                                         const bitset_t *CBITSET_RESTRICT b2) {
+size_t bitset_symmetric_difference_count(
+    const bitset_t *CROARING_CBITSET_RESTRICT b1,
+    const bitset_t *CROARING_CBITSET_RESTRICT b2) {
     size_t minlength =
         b1->arraysize < b2->arraysize ? b1->arraysize : b2->arraysize;
     size_t k = 0;
@@ -13453,8 +13462,8 @@ bool bitset_container_intersect(const bitset_container_t *src_1,
 }
 
 #if CROARING_IS_X64
-#ifndef WORDS_IN_AVX2_REG
-#define WORDS_IN_AVX2_REG sizeof(__m256i) / sizeof(uint64_t)
+#ifndef CROARING_WORDS_IN_AVX2_REG
+#define CROARING_WORDS_IN_AVX2_REG sizeof(__m256i) / sizeof(uint64_t)
 #endif
 #ifndef WORDS_IN_AVX512_REG
 #define WORDS_IN_AVX512_REG sizeof(__m512i) / sizeof(uint64_t)
@@ -13485,7 +13494,7 @@ int bitset_container_compute_cardinality(const bitset_container_t *bitset) {
         if (support & ROARING_SUPPORTS_AVX2) {
             return (int)avx2_harley_seal_popcount256(
                 (const __m256i *)bitset->words,
-                BITSET_CONTAINER_SIZE_IN_WORDS / (WORDS_IN_AVX2_REG));
+                BITSET_CONTAINER_SIZE_IN_WORDS / (CROARING_WORDS_IN_AVX2_REG));
         } else {
             return _scalar_bitset_container_compute_cardinality(bitset);
         }
@@ -13534,7 +13543,7 @@ int bitset_container_compute_cardinality(const bitset_container_t *bitset) {
 
 #if CROARING_IS_X64
 
-#define BITSET_CONTAINER_FN_REPEAT 8
+#define CROARING_BITSET_CONTAINER_FN_REPEAT 8
 #ifndef WORDS_IN_AVX512_REG
 #define WORDS_IN_AVX512_REG sizeof(__m512i) / sizeof(uint64_t)
 #endif  // WORDS_IN_AVX512_REG
@@ -13542,7 +13551,7 @@ int bitset_container_compute_cardinality(const bitset_container_t *bitset) {
 /* Computes a binary operation (eg union) on bitset1 and bitset2 and write the
    result to bitsetout */
 // clang-format off
-#define AVX512_BITSET_CONTAINER_FN1(before, opname, opsymbol, avx_intrinsic,   \
+#define CROARING_AVX512_BITSET_CONTAINER_FN1(before, opname, opsymbol, avx_intrinsic,   \
                                 neon_intrinsic, after)                         \
   static inline int _avx512_bitset_container_##opname##_nocard(                \
       const bitset_container_t *src_1, const bitset_container_t *src_2,        \
@@ -13596,7 +13605,7 @@ int bitset_container_compute_cardinality(const bitset_container_t *bitset) {
     return dst->cardinality;                                            \
   }
 
-#define AVX512_BITSET_CONTAINER_FN2(before, opname, opsymbol, avx_intrinsic,           \
+#define CROARING_AVX512_BITSET_CONTAINER_FN2(before, opname, opsymbol, avx_intrinsic,           \
                                 neon_intrinsic, after)                                 \
   /* next, a version that updates cardinality*/                                        \
   static inline int _avx512_bitset_container_##opname(const bitset_container_t *src_1, \
@@ -13610,7 +13619,7 @@ int bitset_container_compute_cardinality(const bitset_container_t *bitset) {
     return dst->cardinality;                                                            \
   }
 
-#define AVX512_BITSET_CONTAINER_FN3(before, opname, opsymbol, avx_intrinsic,            \
+#define CROARING_AVX512_BITSET_CONTAINER_FN3(before, opname, opsymbol, avx_intrinsic,            \
                                 neon_intrinsic, after)                                  \
   /* next, a version that just computes the cardinality*/                               \
   static inline int _avx512_bitset_container_##opname##_justcard(                       \
@@ -13625,85 +13634,85 @@ int bitset_container_compute_cardinality(const bitset_container_t *bitset) {
 // we duplicate the function because other containers use the "or" term, makes API more consistent
 #if CROARING_COMPILER_SUPPORTS_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, or,    |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, or,    |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, union, |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, union, |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 // we duplicate the function because other containers use the "intersection" term, makes API more consistent
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, and,          &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, and,          &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, intersection, &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, intersection, &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, xor,    ^,  _mm512_xor_si512,    veorq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, xor,    ^,  _mm512_xor_si512,    veorq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, andnot, &~, _mm512_andnot_si512, vbicq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX512, andnot, &~, _mm512_andnot_si512, vbicq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 // we duplicate the function because other containers use the "or" term, makes API more consistent
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, or,    |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, or,    |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, union, |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, union, |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 // we duplicate the function because other containers use the "intersection" term, makes API more consistent
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, and,          &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, and,          &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, intersection, &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, intersection, &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, xor,    ^,  _mm512_xor_si512,    veorq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, xor,    ^,  _mm512_xor_si512,    veorq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, andnot, &~, _mm512_andnot_si512, vbicq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX512, andnot, &~, _mm512_andnot_si512, vbicq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 // we duplicate the function because other containers use the "or" term, makes API more consistent
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, or,    |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, or,    |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, union, |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, union, |, _mm512_or_si512, vorrq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 // we duplicate the function because other containers use the "intersection" term, makes API more consistent
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, and,          &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, and,          &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, intersection, &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, intersection, &, _mm512_and_si512, vandq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, xor,    ^,  _mm512_xor_si512,    veorq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, xor,    ^,  _mm512_xor_si512,    veorq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 CROARING_TARGET_AVX512
-AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, andnot, &~, _mm512_andnot_si512, vbicq_u64, CROARING_UNTARGET_AVX512)
+CROARING_AVX512_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX512, andnot, &~, _mm512_andnot_si512, vbicq_u64, CROARING_UNTARGET_AVX512)
 CROARING_UNTARGET_AVX512
 #endif // CROARING_COMPILER_SUPPORTS_AVX512
 
-#ifndef WORDS_IN_AVX2_REG
-#define WORDS_IN_AVX2_REG sizeof(__m256i) / sizeof(uint64_t)
-#endif // WORDS_IN_AVX2_REG
-#define LOOP_SIZE                    \
+#ifndef CROARING_WORDS_IN_AVX2_REG
+#define CROARING_WORDS_IN_AVX2_REG sizeof(__m256i) / sizeof(uint64_t)
+#endif // CROARING_WORDS_IN_AVX2_REG
+#define CROARING_LOOP_SIZE                    \
     BITSET_CONTAINER_SIZE_IN_WORDS / \
-        ((WORDS_IN_AVX2_REG)*BITSET_CONTAINER_FN_REPEAT)
+        ((CROARING_WORDS_IN_AVX2_REG)*CROARING_BITSET_CONTAINER_FN_REPEAT)
 
 /* Computes a binary operation (eg union) on bitset1 and bitset2 and write the
    result to bitsetout */
 // clang-format off
-#define AVX_BITSET_CONTAINER_FN1(before, opname, opsymbol, avx_intrinsic,               \
+#define CROARING_AVX_BITSET_CONTAINER_FN1(before, opname, opsymbol, avx_intrinsic,               \
                                 neon_intrinsic, after)                                \
   static inline int _avx2_bitset_container_##opname##_nocard(                                \
       const bitset_container_t *src_1, const bitset_container_t *src_2,        \
@@ -13714,7 +13723,7 @@ CROARING_UNTARGET_AVX512
     uint8_t *out = (uint8_t *)dst->words;                                      \
     const int innerloop = 8;                                                   \
     for (size_t i = 0;                                                         \
-         i < BITSET_CONTAINER_SIZE_IN_WORDS / (WORDS_IN_AVX2_REG);             \
+         i < BITSET_CONTAINER_SIZE_IN_WORDS / (CROARING_WORDS_IN_AVX2_REG);             \
          i += innerloop) {                                                     \
       __m256i A1, A2, AO;                                                      \
       A1 = _mm256_lddqu_si256((const __m256i *)(words_1));                     \
@@ -13757,7 +13766,7 @@ CROARING_UNTARGET_AVX512
     return dst->cardinality;                                                   \
   }
 
-#define AVX_BITSET_CONTAINER_FN2(before, opname, opsymbol, avx_intrinsic,               \
+#define CROARING_AVX_BITSET_CONTAINER_FN2(before, opname, opsymbol, avx_intrinsic,               \
                                 neon_intrinsic, after)                                \
   /* next, a version that updates cardinality*/                                \
   static inline int _avx2_bitset_container_##opname(const bitset_container_t *src_1,         \
@@ -13768,11 +13777,11 @@ CROARING_UNTARGET_AVX512
     __m256i *out = (__m256i *)dst->words;                                      \
     dst->cardinality = (int32_t)avx2_harley_seal_popcount256andstore_##opname( \
         words_2, words_1, out,                                                 \
-        BITSET_CONTAINER_SIZE_IN_WORDS / (WORDS_IN_AVX2_REG));                 \
+        BITSET_CONTAINER_SIZE_IN_WORDS / (CROARING_WORDS_IN_AVX2_REG));                 \
     return dst->cardinality;                                                   \
   }                                                                            \
 
-#define AVX_BITSET_CONTAINER_FN3(before, opname, opsymbol, avx_intrinsic,               \
+#define CROARING_AVX_BITSET_CONTAINER_FN3(before, opname, opsymbol, avx_intrinsic,               \
                                 neon_intrinsic, after)                                \
   /* next, a version that just computes the cardinality*/                      \
   static inline int _avx2_bitset_container_##opname##_justcard(                              \
@@ -13780,77 +13789,77 @@ CROARING_UNTARGET_AVX512
     const __m256i *__restrict__ data1 = (const __m256i *)src_1->words;         \
     const __m256i *__restrict__ data2 = (const __m256i *)src_2->words;         \
     return (int)avx2_harley_seal_popcount256_##opname(                         \
-        data2, data1, BITSET_CONTAINER_SIZE_IN_WORDS / (WORDS_IN_AVX2_REG));   \
+        data2, data1, BITSET_CONTAINER_SIZE_IN_WORDS / (CROARING_WORDS_IN_AVX2_REG));   \
   }
 
 
 // we duplicate the function because other containers use the "or" term, makes API more consistent
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, or,    |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, or,    |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, union, |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, union, |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 // we duplicate the function because other containers use the "intersection" term, makes API more consistent
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, and,          &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, and,          &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, intersection, &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, intersection, &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, xor,    ^,  _mm256_xor_si256,    veorq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, xor,    ^,  _mm256_xor_si256,    veorq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, andnot, &~, _mm256_andnot_si256, vbicq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN1(CROARING_TARGET_AVX2, andnot, &~, _mm256_andnot_si256, vbicq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 // we duplicate the function because other containers use the "or" term, makes API more consistent
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, or,    |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, or,    |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, union, |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, union, |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 // we duplicate the function because other containers use the "intersection" term, makes API more consistent
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, and,          &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, and,          &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, intersection, &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, intersection, &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, xor,    ^,  _mm256_xor_si256,    veorq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, xor,    ^,  _mm256_xor_si256,    veorq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, andnot, &~, _mm256_andnot_si256, vbicq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN2(CROARING_TARGET_AVX2, andnot, &~, _mm256_andnot_si256, vbicq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 // we duplicate the function because other containers use the "or" term, makes API more consistent
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, or,    |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, or,    |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, union, |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, union, |, _mm256_or_si256, vorrq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 // we duplicate the function because other containers use the "intersection" term, makes API more consistent
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, and,          &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, and,          &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, intersection, &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, intersection, &, _mm256_and_si256, vandq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, xor,    ^,  _mm256_xor_si256,    veorq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, xor,    ^,  _mm256_xor_si256,    veorq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 CROARING_TARGET_AVX2
-AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, andnot, &~, _mm256_andnot_si256, vbicq_u64, CROARING_UNTARGET_AVX2)
+CROARING_AVX_BITSET_CONTAINER_FN3(CROARING_TARGET_AVX2, andnot, &~, _mm256_andnot_si256, vbicq_u64, CROARING_UNTARGET_AVX2)
 CROARING_UNTARGET_AVX2
 
 
@@ -13912,7 +13921,7 @@ SCALAR_BITSET_CONTAINER_FN(xor,    ^,  _mm256_xor_si256,    veorq_u64)
 SCALAR_BITSET_CONTAINER_FN(andnot, &~, _mm256_andnot_si256, vbicq_u64)
 
 #if CROARING_COMPILER_SUPPORTS_AVX512
-#define BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)   \
+#define CROARING_BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)   \
   int bitset_container_##opname(const bitset_container_t *src_1,               \
                                 const bitset_container_t *src_2,               \
                                 bitset_container_t *dst) {                     \
@@ -13955,7 +13964,7 @@ SCALAR_BITSET_CONTAINER_FN(andnot, &~, _mm256_andnot_si256, vbicq_u64)
 #else // CROARING_COMPILER_SUPPORTS_AVX512
 
 
-#define BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)   \
+#define CROARING_BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)   \
   int bitset_container_##opname(const bitset_container_t *src_1,               \
                                 const bitset_container_t *src_2,               \
                                 bitset_container_t *dst) {                     \
@@ -13987,7 +13996,7 @@ SCALAR_BITSET_CONTAINER_FN(andnot, &~, _mm256_andnot_si256, vbicq_u64)
 
 #elif defined(CROARING_USENEON)
 
-#define BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)  \
+#define CROARING_BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)  \
 int bitset_container_##opname(const bitset_container_t *src_1,                \
                               const bitset_container_t *src_2,                \
                               bitset_container_t *dst) {                      \
@@ -14075,7 +14084,7 @@ int bitset_container_##opname##_justcard(const bitset_container_t *src_1,     \
 
 #else
 
-#define BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)  \
+#define CROARING_BITSET_CONTAINER_FN(opname, opsymbol, avx_intrinsic, neon_intrinsic)  \
 int bitset_container_##opname(const bitset_container_t *src_1,            \
                               const bitset_container_t *src_2,            \
                               bitset_container_t *dst) {                  \
@@ -14123,15 +14132,15 @@ int bitset_container_##opname##_justcard(const bitset_container_t *src_1, \
 #endif // CROARING_IS_X64
 
 // we duplicate the function because other containers use the "or" term, makes API more consistent
-BITSET_CONTAINER_FN(or,    |, _mm256_or_si256, vorrq_u64)
-BITSET_CONTAINER_FN(union, |, _mm256_or_si256, vorrq_u64)
+CROARING_BITSET_CONTAINER_FN(or,    |, _mm256_or_si256, vorrq_u64)
+CROARING_BITSET_CONTAINER_FN(union, |, _mm256_or_si256, vorrq_u64)
 
 // we duplicate the function because other containers use the "intersection" term, makes API more consistent
-BITSET_CONTAINER_FN(and,          &, _mm256_and_si256, vandq_u64)
-BITSET_CONTAINER_FN(intersection, &, _mm256_and_si256, vandq_u64)
+CROARING_BITSET_CONTAINER_FN(and,          &, _mm256_and_si256, vandq_u64)
+CROARING_BITSET_CONTAINER_FN(intersection, &, _mm256_and_si256, vandq_u64)
 
-BITSET_CONTAINER_FN(xor,    ^,  _mm256_xor_si256,    veorq_u64)
-BITSET_CONTAINER_FN(andnot, &~, _mm256_andnot_si256, vbicq_u64)
+CROARING_BITSET_CONTAINER_FN(xor,    ^,  _mm256_xor_si256,    veorq_u64)
+CROARING_BITSET_CONTAINER_FN(andnot, &~, _mm256_andnot_si256, vbicq_u64)
 // clang-format On
 
 
@@ -15874,7 +15883,7 @@ int run_array_container_andnot(const run_container_t *src_1,
             if (end <= xstart) {
                 // output the first run
                 answer->runs[answer->n_runs++] =
-                    MAKE_RLE16(start, end - start - 1);
+                    CROARING_MAKE_RLE16(start, end - start - 1);
                 rlepos++;
                 if (rlepos < src_1->n_runs) {
                     start = src_1->runs[rlepos].value;
@@ -15889,7 +15898,7 @@ int run_array_container_andnot(const run_container_t *src_1,
             } else {
                 if (start < xstart) {
                     answer->runs[answer->n_runs++] =
-                        MAKE_RLE16(start, xstart - start - 1);
+                        CROARING_MAKE_RLE16(start, xstart - start - 1);
                 }
                 if (xstart + 1 < end) {
                     start = xstart + 1;
@@ -15903,7 +15912,8 @@ int run_array_container_andnot(const run_container_t *src_1,
             }
         }
         if (rlepos < src_1->n_runs) {
-            answer->runs[answer->n_runs++] = MAKE_RLE16(start, end - start - 1);
+            answer->runs[answer->n_runs++] =
+                CROARING_MAKE_RLE16(start, end - start - 1);
             rlepos++;
             if (rlepos < src_1->n_runs) {
                 memcpy(answer->runs + answer->n_runs, src_1->runs + rlepos,
@@ -16853,7 +16863,7 @@ int run_container_negation_range_inplace(run_container_t *src,
     }
 
     // as with Java implementation, use locals to give self a buffer of depth 1
-    rle16_t buffered = MAKE_RLE16(0, 0);
+    rle16_t buffered = CROARING_MAKE_RLE16(0, 0);
     rle16_t next = buffered;
     if (k < my_nbr_runs) buffered = src->runs[k];
 
@@ -18372,7 +18382,8 @@ void run_container_andnot(const run_container_t *src_1,
     while ((rlepos1 < src_1->n_runs) && (rlepos2 < src_2->n_runs)) {
         if (end <= start2) {
             // output the first run
-            dst->runs[dst->n_runs++] = MAKE_RLE16(start, end - start - 1);
+            dst->runs[dst->n_runs++] =
+                CROARING_MAKE_RLE16(start, end - start - 1);
             rlepos1++;
             if (rlepos1 < src_1->n_runs) {
                 start = src_1->runs[rlepos1].value;
@@ -18388,7 +18399,7 @@ void run_container_andnot(const run_container_t *src_1,
         } else {
             if (start < start2) {
                 dst->runs[dst->n_runs++] =
-                    MAKE_RLE16(start, start2 - start - 1);
+                    CROARING_MAKE_RLE16(start, start2 - start - 1);
             }
             if (end2 < end) {
                 start = end2;
@@ -18402,7 +18413,7 @@ void run_container_andnot(const run_container_t *src_1,
         }
     }
     if (rlepos1 < src_1->n_runs) {
-        dst->runs[dst->n_runs++] = MAKE_RLE16(start, end - start - 1);
+        dst->runs[dst->n_runs++] = CROARING_MAKE_RLE16(start, end - start - 1);
         rlepos1++;
         if (rlepos1 < src_1->n_runs) {
             memcpy(dst->runs + dst->n_runs, src_1->runs + rlepos1,
@@ -18604,7 +18615,7 @@ void run_container_smart_append_exclusive(run_container_t *src,
 
     if (!src->n_runs ||
         (start > (old_end = last_run->value + last_run->length + 1))) {
-        *appended_last_run = MAKE_RLE16(start, length);
+        *appended_last_run = CROARING_MAKE_RLE16(start, length);
         src->n_runs++;
         return;
     }
@@ -18618,10 +18629,10 @@ void run_container_smart_append_exclusive(run_container_t *src,
     if (start == last_run->value) {
         // wipe out previous
         if (new_end < old_end) {
-            *last_run = MAKE_RLE16(new_end, old_end - new_end - 1);
+            *last_run = CROARING_MAKE_RLE16(new_end, old_end - new_end - 1);
             return;
         } else if (new_end > old_end) {
-            *last_run = MAKE_RLE16(old_end, new_end - old_end - 1);
+            *last_run = CROARING_MAKE_RLE16(old_end, new_end - old_end - 1);
             return;
         } else {
             src->n_runs--;
@@ -18630,10 +18641,12 @@ void run_container_smart_append_exclusive(run_container_t *src,
     }
     last_run->length = start - last_run->value - 1;
     if (new_end < old_end) {
-        *appended_last_run = MAKE_RLE16(new_end, old_end - new_end - 1);
+        *appended_last_run =
+            CROARING_MAKE_RLE16(new_end, old_end - new_end - 1);
         src->n_runs++;
     } else if (new_end > old_end) {
-        *appended_last_run = MAKE_RLE16(old_end, new_end - old_end - 1);
+        *appended_last_run =
+            CROARING_MAKE_RLE16(old_end, new_end - old_end - 1);
         src->n_runs++;
     }
 }
@@ -18832,6 +18845,7 @@ int run_container_cardinality(const run_container_t *run) {
 #else
 
 /* Get the cardinality of `run'. Requires an actual computation. */
+ALLOW_UNALIGNED
 int run_container_cardinality(const run_container_t *run) {
     const int32_t n_runs = run->n_runs;
     const rle16_t *runs = run->runs;
@@ -24276,7 +24290,7 @@ void roaring64_bitmap_flip_closed_inplace(roaring64_bitmap_t *r, uint64_t min,
 static inline uint64_t count_high32(const roaring64_bitmap_t *r) {
     art_iterator_t it = art_init_iterator(&r->art, /*first=*/true);
     uint64_t high32_count = 0;
-    uint32_t prev_high32;
+    uint32_t prev_high32 = 0;
     while (it.value != NULL) {
         uint32_t current_high32 = (uint32_t)(combine_key(it.key, 0) >> 32);
         if (high32_count == 0 || prev_high32 != current_high32) {
@@ -24304,7 +24318,7 @@ size_t roaring64_bitmap_portable_size_in_bytes(const roaring64_bitmap_t *r) {
     size += sizeof(high32_count);
 
     art_iterator_t it = art_init_iterator(&r->art, /*first=*/true);
-    uint32_t prev_high32;
+    uint32_t prev_high32 = 0;
     roaring_bitmap_t *bitmap32 = NULL;
 
     // Iterate through buckets ordered by increasing keys.
@@ -24369,7 +24383,7 @@ size_t roaring64_bitmap_portable_serialize(const roaring64_bitmap_t *r,
     buf += sizeof(high32_count);
 
     art_iterator_t it = art_init_iterator(&r->art, /*first=*/true);
-    uint32_t prev_high32;
+    uint32_t prev_high32 = 0;
     roaring_bitmap_t *bitmap32 = NULL;
 
     // Iterate through buckets ordered by increasing keys.
