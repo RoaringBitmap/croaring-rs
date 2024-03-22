@@ -116,7 +116,7 @@ fn empty_cursor() {
 
 #[test]
 fn cursor_return_from_the_edge() {
-    let mut bitmap = Bitmap::from([1, 2, u32::MAX]);
+    let bitmap = Bitmap::from([1, 2, u32::MAX]);
     let mut cursor = bitmap.cursor_to_last();
     assert_eq!(cursor.current(), Some(u32::MAX));
     assert_eq!(cursor.next(), None);

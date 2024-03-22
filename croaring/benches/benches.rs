@@ -228,7 +228,7 @@ fn random_iter(c: &mut Criterion) {
         // Super simple LCG iterator
         let mut z = 20170705; // seed
         std::iter::from_fn(move || {
-            z = (MULTIPLIER * z) % MODULUS;
+            z = (MULTIPLIER.wrapping_mul(z)) % MODULUS;
             Some(z % MAX)
         })
     };

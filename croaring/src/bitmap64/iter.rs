@@ -381,12 +381,46 @@ impl<'a> Bitmap64Cursor<'a> {
     }
 }
 
+/// Converts this iterator into a cursor
+///
+/// The cursor's current value will be the the item which would have been returned by the next call to `next()`
+/// or one past the end of the bitmap if the iterator is exhausted.
+///
+/// # Examples
+///
+/// ```
+/// use croaring::bitmap64::{Bitmap64, Bitmap64Cursor};
+/// let mut bitmap = Bitmap64::of(&[1, 2, 3]);
+/// let mut iter = bitmap.iter();
+/// assert_eq!(iter.peek(), Some(1));
+/// assert_eq!(iter.next(), Some(1));
+///
+/// assert_eq!(iter.peek(), Some(2));
+/// let mut cursor: Bitmap64Cursor = iter.into();
+/// assert_eq!(cursor.current(), Some(2));
+/// ```
 impl<'a> From<Bitmap64Iterator<'a>> for Bitmap64Cursor<'a> {
     fn from(iter: Bitmap64Iterator<'a>) -> Self {
-        iter.into_cursor()
+        iter.cursor
     }
 }
 
+/// Converts this cursor into an iterator
+///
+/// The next value returned by the iterator will be the current value of the cursor (if any).
+///
+/// # Examples
+///
+/// ```
+/// use croaring::bitmap64::{Bitmap64, Bitmap64Iterator};
+///
+/// let mut bitmap = Bitmap64::of(&[1, 2, 3]);
+/// let mut cursor = bitmap.cursor();
+/// assert_eq!(cursor.current(), Some(1));
+///
+/// let mut iter = Bitmap64Iterator::from(cursor);
+/// assert_eq!(iter.next(), Some(1));
+/// ```
 impl<'a> From<Bitmap64Cursor<'a>> for Bitmap64Iterator<'a> {
     fn from(cursor: Bitmap64Cursor<'a>) -> Self {
         Bitmap64Iterator { cursor }
@@ -418,6 +452,91 @@ impl<'a> Bitmap64Iterator<'a> {
         self.cursor.move_next();
     }
 
+    /// Attempt to read many values from the iterator into `dst`
+    ///
+    /// Returns the number of items read from the iterator, may be `< dst.len()` iff
+    /// the iterator is exhausted or `dst.len() > u64::MAX`.
+    ///
+    /// This can be much more efficient than repeated iteration.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let mut bitmap: Bitmap64 = Bitmap64::new();
+    /// bitmap.add_range(0..100);
+    /// bitmap.add(222);
+    /// bitmap.add(555);
+    ///
+    /// let mut buf = [0; 100];
+    /// let mut iter = bitmap.iter();
+    /// assert_eq!(iter.next_many(&mut buf), 100);
+    /// // Get the first 100 items, from the original range added
+    /// for (i, item) in buf.iter().enumerate() {
+    ///     assert_eq!(*item, i as u64);
+    /// }
+    /// // Calls to next_many() can be interleaved with calls to next()
+    /// assert_eq!(iter.next(), Some(222));
+    /// assert_eq!(iter.next_many(&mut buf), 1);
+    /// assert_eq!(buf[0], 555);
+    ///
+    /// assert_eq!(iter.next(), None);
+    /// assert_eq!(iter.next_many(&mut buf), 0);
+    /// ```
+    ///
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// fn print_by_chunks(bitmap: &Bitmap64) {
+    ///     let mut buf = [0; 1024];
+    ///     let mut iter = bitmap.iter();
+    ///     loop {
+    ///         let n = iter.next_many(&mut buf);
+    ///         if n == 0 {
+    ///             break;
+    ///         }
+    ///         println!("{:?}", &buf[..n]);
+    ///     }
+    /// }
+    ///
+    /// # print_by_chunks(&Bitmap64::of(&[1, 2, 8, 20, 1000]));
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_iterator_read")]
+    pub fn next_many(&mut self, dst: &mut [u64]) -> usize {
+        self.cursor.read_many(dst)
+    }
+
+    /// Reset the iterator to the first value `>= val`
+    ///
+    /// This can move the iterator forwards or backwards.
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let mut bitmap = Bitmap64::of(&[0, 1, 100, 1000, u64::MAX]);
+    /// let mut iter = bitmap.iter();
+    /// iter.reset_at_or_after(0);
+    /// assert_eq!(iter.next(), Some(0));
+    /// iter.reset_at_or_after(0);
+    /// assert_eq!(iter.next(), Some(0));
+    ///
+    /// iter.reset_at_or_after(101);
+    /// assert_eq!(iter.next(), Some(1000));
+    /// assert_eq!(iter.next(), Some(u64::MAX));
+    /// assert_eq!(iter.next(), None);
+    /// iter.reset_at_or_after(u64::MAX);
+    /// assert_eq!(iter.next(), Some(u64::MAX));
+    /// assert_eq!(iter.next(), None);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_iterator_move_equalorlarger")]
+    pub fn reset_at_or_after(&mut self, val: u64) {
+        self.cursor.reset_at_or_after(val);
+    }
+
     /// Peek at the next value to be returned by the iterator (if any), without consuming it
     ///
     /// # Examples
@@ -432,28 +551,6 @@ impl<'a> Bitmap64Iterator<'a> {
     #[inline]
     pub fn peek(&self) -> Option<u64> {
         self.cursor.current()
-    }
-
-    /// Converts this iterator into a cursor
-    ///
-    /// The cursor's current value will be the the item which would have been returned by the next call to `next()`
-    /// or one past the end of the bitmap if the iterator is exhausted.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use croaring::Bitmap64;
-    /// let mut bitmap = Bitmap64::of(&[1, 2, 3]);
-    /// let mut iter = bitmap.iter();
-    /// assert_eq!(iter.peek(), Some(1));
-    /// assert_eq!(iter.next(), Some(1));
-    ///
-    /// assert_eq!(iter.peek(), Some(2));
-    /// let mut cursor = iter.into_cursor();
-    /// assert_eq!(cursor.current(), Some(2));
-    /// ```
-    pub fn into_cursor(self) -> Bitmap64Cursor<'a> {
-        self.cursor
     }
 }
 

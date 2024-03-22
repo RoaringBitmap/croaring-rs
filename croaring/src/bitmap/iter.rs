@@ -10,7 +10,7 @@ use super::Bitmap;
 ///
 /// A cursor points at a single value in the bitmap, or at a "ghost" position,
 /// either one before the beginning of the bitmap, or one after the end of the bitmap.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct BitmapCursor<'a> {
     raw: ffi::roaring_uint32_iterator_t,
     _bitmap: PhantomData<&'a Bitmap>,
@@ -403,7 +403,7 @@ impl<'a> BitmapIterator<'a> {
     /// # print_by_chunks(&Bitmap::of(&[1, 2, 8, 20, 1000]));
     /// ```
     #[inline]
-    #[doc(alias = "roaring_read_uint32_iterator")]
+    #[doc(alias = "roaring_uint32_iterator_read")]
     pub fn next_many(&mut self, dst: &mut [u32]) -> usize {
         self.cursor.read_many(dst)
     }
@@ -432,9 +432,25 @@ impl<'a> BitmapIterator<'a> {
     /// assert_eq!(iter.next(), None);
     /// ```
     #[inline]
-    #[doc(alias = "roaring_move_uint32_iterator_equalorlarger")]
+    #[doc(alias = "roaring_uint32_iterator_move_equalorlarger")]
     pub fn reset_at_or_after(&mut self, val: u32) {
         self.cursor.reset_at_or_after(val);
+    }
+
+    /// Peek at the next value to be returned by the iterator (if any), without consuming it
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    /// let mut bitmap = Bitmap::of(&[1, 2, 3]);
+    /// let mut iter = bitmap.iter();
+    /// assert_eq!(iter.peek(), Some(1));
+    /// assert_eq!(iter.next(), Some(1));
+    /// ```
+    #[inline]
+    pub fn peek(&self) -> Option<u32> {
+        self.cursor.current()
     }
 }
 
@@ -499,12 +515,46 @@ impl Bitmap {
     }
 }
 
+/// Converts this iterator into a cursor
+///
+/// The cursor's current value will be the the item which would have been returned by the next call to `next()`
+/// or one past the end of the bitmap if the iterator is exhausted.
+///
+/// # Examples
+///
+/// ```
+/// use croaring::bitmap::{Bitmap, BitmapCursor};
+/// let mut bitmap = Bitmap::of(&[1, 2, 3]);
+/// let mut iter = bitmap.iter();
+/// assert_eq!(iter.peek(), Some(1));
+/// assert_eq!(iter.next(), Some(1));
+///
+/// assert_eq!(iter.peek(), Some(2));
+/// let mut cursor: BitmapCursor = iter.into();
+/// assert_eq!(cursor.current(), Some(2));
+/// ```
 impl<'a> From<BitmapIterator<'a>> for BitmapCursor<'a> {
     fn from(iterator: BitmapIterator<'a>) -> Self {
         iterator.cursor
     }
 }
 
+/// Converts this cursor into an iterator
+///
+/// The next value returned by the iterator will be the current value of the cursor (if any).
+///
+/// # Examples
+///
+/// ```
+/// use croaring::bitmap::{Bitmap, BitmapIterator};
+///
+/// let mut bitmap = Bitmap::of(&[1, 2, 3]);
+/// let mut cursor = bitmap.cursor();
+/// assert_eq!(cursor.current(), Some(1));
+///
+/// let mut iter = BitmapIterator::from(cursor);
+/// assert_eq!(iter.next(), Some(1));
+/// ```
 impl<'a> From<BitmapCursor<'a>> for BitmapIterator<'a> {
     fn from(cursor: BitmapCursor<'a>) -> Self {
         BitmapIterator { cursor }
