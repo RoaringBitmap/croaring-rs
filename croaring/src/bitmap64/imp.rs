@@ -1040,10 +1040,8 @@ impl Bitmap64 {
             end,
             needs_max,
         } = exclusive_range;
-        if needs_max {
-            if self.contains(u64::MAX) {
-                return true;
-            }
+        if needs_max && self.contains(u64::MAX) {
+            return true;
         }
         unsafe { ffi::roaring64_bitmap_intersect_with_range(self.raw.as_ptr(), start, end) }
     }

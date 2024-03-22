@@ -1,6 +1,5 @@
 use crate::Bitset;
 use ffi::roaring_bitmap_t;
-use std::convert::TryInto;
 use std::ffi::{c_void, CStr};
 use std::ops::{Bound, RangeBounds};
 use std::{mem, ptr};

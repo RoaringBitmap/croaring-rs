@@ -178,6 +178,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// assert_eq!(cursor.next(), None);
     /// ```
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<u64> {
         self.move_next();
         self.current()
@@ -253,7 +254,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// bitmap1.add(100);
     /// ```
     #[must_use]
-    pub fn reset_to_first<'b>(self, bitmap: &'b Bitmap64) -> Bitmap64Cursor<'b> {
+    pub fn reset_to_first(self, bitmap: &Bitmap64) -> Bitmap64Cursor<'_> {
         // Don't drop `self` and free the iterator
         let this = ManuallyDrop::new(self);
         unsafe { ffi::roaring64_iterator_reinit(bitmap.raw.as_ptr(), this.raw.as_ptr()) };
@@ -277,7 +278,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// assert_eq!(cursor.current(), Some(6));
     /// ```
     #[must_use]
-    pub fn reset_to_last<'b>(self, bitmap: &'b Bitmap64) -> Bitmap64Cursor<'b> {
+    pub fn reset_to_last(self, bitmap: &Bitmap64) -> Bitmap64Cursor<'_> {
         // Don't drop `self` and free the iterator
         let this = ManuallyDrop::new(self);
         unsafe { ffi::roaring64_iterator_reinit_last(bitmap.raw.as_ptr(), this.raw.as_ptr()) };

@@ -1,4 +1,3 @@
-use std::iter::{FromIterator, IntoIterator};
 use std::marker::PhantomData;
 use std::mem::MaybeUninit;
 
@@ -134,6 +133,7 @@ impl<'a> BitmapCursor<'a> {
     /// assert_eq!(cursor.next(), None);
     /// ```
     #[inline]
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> Option<u32> {
         self.move_next();
         self.current()
@@ -209,7 +209,7 @@ impl<'a> BitmapCursor<'a> {
     /// bitmap1.add(100);
     /// ```
     #[must_use]
-    pub fn reset_to_first<'b>(self, bitmap: &'b Bitmap) -> BitmapCursor<'b> {
+    pub fn reset_to_first(self, bitmap: &Bitmap) -> BitmapCursor<'_> {
         BitmapCursor::at_first(bitmap)
     }
 
@@ -230,7 +230,7 @@ impl<'a> BitmapCursor<'a> {
     /// assert_eq!(cursor.current(), Some(6));
     /// ```
     #[must_use]
-    pub fn reset_to_last<'b>(self, bitmap: &'b Bitmap) -> BitmapCursor<'b> {
+    pub fn reset_to_last(self, bitmap: &Bitmap) -> BitmapCursor<'_> {
         BitmapCursor::at_last(bitmap)
     }
 

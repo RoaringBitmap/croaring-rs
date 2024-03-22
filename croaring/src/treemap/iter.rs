@@ -2,7 +2,7 @@ use super::util;
 use crate::bitmap::BitmapIterator;
 use crate::{Bitmap, Treemap};
 use std::collections::btree_map;
-use std::iter::{self, FromIterator};
+use std::iter;
 
 struct To64Iter<'a> {
     key: u32,
