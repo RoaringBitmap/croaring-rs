@@ -329,6 +329,23 @@ impl Bitmap64 {
         unsafe { ffi::roaring64_bitmap_remove_range_closed(self.raw.as_ptr(), start, end) }
     }
 
+    /// Empty the bitmap
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let mut bitmap = Bitmap64::from([1, 2, 3]);
+    /// assert!(!bitmap.is_empty());
+    /// bitmap.clear();
+    /// assert!(bitmap.is_empty());
+    /// ```
+    #[inline]
+    pub fn clear(&mut self) {
+        self.remove_range(..);
+    }
+
     /// Returns the number of values in the bitmap
     ///
     /// # Examples

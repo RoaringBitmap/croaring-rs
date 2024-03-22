@@ -4,6 +4,12 @@ use std::mem::MaybeUninit;
 
 use super::Bitmap;
 
+/// A cusrsr over the values of a bitmap
+///
+/// A Cursor is like an iterator, except that it can freely seek back-and-forth.
+///
+/// A cursor points at a single value in the bitmap, or at a "ghost" position,
+/// either one before the beginning of the bitmap, or one after the end of the bitmap.
 #[derive(Clone)]
 pub struct BitmapCursor<'a> {
     raw: ffi::roaring_uint32_iterator_t,

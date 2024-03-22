@@ -6,9 +6,9 @@ use std::num::NonZeroUsize;
 pub trait Serializer {
     /// Serialize a bitmap into bytes, using the provided vec buffer to store the serialized data
     ///
-    /// Note that some serializers ([Frozen]) may require that the bitmap is aligned specially,
-    /// this method will ensure that the returned slice of bytes is aligned correctly, by adding
-    /// additional padding before the serialized data if required.
+    /// Note that some serializers ([Frozen][crate::Frozen]) may require that the
+    /// bitmap is aligned specially, this method will ensure that the returned slice of bytes is
+    /// aligned correctly, by adding additional padding before the serialized data if required.
     ///
     /// The contents of the provided vec buffer will not be overwritten: only new data will be
     /// appended to the end of the buffer. If the buffer has enough capacity, and the current
@@ -41,7 +41,7 @@ pub trait Deserializer {
     ///
     /// # Safety
     ///
-    /// Unlike its safe counterpart, [`try_deserialize`], this function assumes the data is valid,
+    /// Unlike its safe counterpart, [`Self::try_deserialize`], this function assumes the data is valid,
     /// passing data which does not contain/start with a bitmap serialized with this format will
     /// result in undefined behavior.
     unsafe fn try_deserialize_unchecked(buffer: &[u8]) -> Bitmap64;
