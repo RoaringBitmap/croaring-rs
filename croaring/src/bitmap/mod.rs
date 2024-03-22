@@ -89,6 +89,6 @@ mod ops;
 mod serialization;
 mod view;
 
-pub use self::iter::BitmapIterator;
+pub use self::iter::{BitmapCursor, BitmapIterator};
 pub use self::lazy::LazyBitmap;
 pub use self::serialization::{Deserializer, Serializer, ViewDeserializer};

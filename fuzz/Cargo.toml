@@ -28,6 +28,12 @@ test = false
 doc = false
 
 [[bin]]
+name = "fuzz_ops64"
+path = "fuzz_targets/fuzz_ops64.rs"
+test = false
+doc = false
+
+[[bin]]
 name = "against_bitvec"
 path = "fuzz_targets/against_bitvec.rs"
 test = false
@@ -36,5 +42,11 @@ doc = false
 [[bin]]
 name = "deserialize"
 path = "fuzz_targets/deserialize.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "deserialize64"
+path = "fuzz_targets/deserialize64.rs"
 test = false
 doc = false

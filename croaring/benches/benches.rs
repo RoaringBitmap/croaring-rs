@@ -1,8 +1,9 @@
 use criterion::{
     black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput,
 };
+use std::ops::ControlFlow;
 
-use croaring::{Bitmap, Portable};
+use croaring::{Bitmap, Bitmap64, Portable};
 
 fn new(c: &mut Criterion) {
     c.bench_function("new", |b| b.iter(Bitmap::new));
@@ -227,7 +228,7 @@ fn random_iter(c: &mut Criterion) {
         // Super simple LCG iterator
         let mut z = 20170705; // seed
         std::iter::from_fn(move || {
-            z = (MULTIPLIER * z) % MODULUS;
+            z = (MULTIPLIER.wrapping_mul(z)) % MODULUS;
             Some(z % MAX)
         })
     };
@@ -252,6 +253,96 @@ fn random_iter(c: &mut Criterion) {
     });
 }
 
+fn collect_bitmap64_to_vec(c: &mut Criterion) {
+    const N: u64 = 1_000_000;
+
+    let mut group = c.benchmark_group("collect_bitmap64_to_vec");
+    group.throughput(Throughput::Elements(N.into()));
+    let bitmap = Bitmap64::from_range(0..N);
+    group.bench_function("to_vec", |b| {
+        b.iter_batched(|| (), |()| bitmap.to_vec(), BatchSize::LargeInput);
+    });
+    group.bench_function("foreach", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                let mut vec = Vec::with_capacity(bitmap.cardinality() as usize);
+                bitmap.for_each(|item| -> ControlFlow<()> {
+                    vec.push(item);
+                    ControlFlow::Continue(())
+                });
+                vec
+            },
+            BatchSize::LargeInput,
+        );
+    });
+    group.bench_function("iter", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                let mut vec = Vec::with_capacity(bitmap.cardinality() as usize);
+                vec.extend(bitmap.iter());
+                vec
+            },
+            BatchSize::LargeInput,
+        );
+    });
+    group.bench_function("iter_many", |b| {
+        b.iter_batched(
+            || (),
+            |()| {
+                let mut vec = vec![0; bitmap.cardinality() as usize];
+                let mut iter = bitmap.cursor();
+                assert_eq!(iter.read_many(&mut vec), vec.len());
+                vec
+            },
+            BatchSize::LargeInput,
+        );
+    });
+
+    group.finish();
+}
+
+fn iterate_bitmap64(c: &mut Criterion) {
+    const N: u64 = 1_000_000;
+    const END_ITER: u64 = N - 100;
+
+    let mut group = c.benchmark_group("bitmap64_iterate");
+    group.throughput(Throughput::Elements(N.into()));
+    let bitmap = Bitmap64::from_range(0..N);
+    group.bench_function("iter", |b| {
+        b.iter(|| {
+            for x in bitmap.iter() {
+                if x == END_ITER {
+                    break;
+                }
+            }
+        })
+    });
+    group.bench_function("cursor", |b| {
+        b.iter(|| {
+            let mut cursor = bitmap.cursor();
+            while let Some(x) = cursor.next() {
+                if x == END_ITER {
+                    break;
+                }
+            }
+        })
+    });
+    group.bench_function("for_each", |b| {
+        b.iter(|| {
+            bitmap.for_each(|x| -> ControlFlow<()> {
+                if x == END_ITER {
+                    return ControlFlow::Break(());
+                }
+                ControlFlow::Continue(())
+            })
+        })
+    });
+
+    group.finish();
+}
+
 criterion_group!(
     benches,
     new,
@@ -270,5 +361,7 @@ criterion_group!(
     deserialize,
     bulk_new,
     random_iter,
+    collect_bitmap64_to_vec,
+    iterate_bitmap64,
 );
 criterion_main!(benches);

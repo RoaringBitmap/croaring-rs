@@ -1,6 +1,5 @@
 use crate::Bitset;
 use ffi::roaring_bitmap_t;
-use std::convert::TryInto;
 use std::ffi::{c_void, CStr};
 use std::ops::{Bound, RangeBounds};
 use std::{mem, ptr};
@@ -21,7 +20,7 @@ impl Bitmap {
         // (it can be moved safely), and can be freed with `free`, without freeing the underlying
         // containers and auxiliary data. Ensure this is still valid every time we update
         // the version of croaring.
-        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 2 && ffi::ROARING_VERSION_MINOR == 0);
+        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 3 && ffi::ROARING_VERSION_MINOR == 0);
         ffi::roaring_free(p.cast::<c_void>());
         result
     }
@@ -277,6 +276,29 @@ impl Bitmap {
     #[doc(alias = "roaring_bitmap_remove_checked")]
     pub fn remove_checked(&mut self, element: u32) -> bool {
         unsafe { ffi::roaring_bitmap_remove_checked(&mut self.bitmap, element) }
+    }
+
+    /// Remove many values from the bitmap
+    ///
+    /// This should be faster than calling `remove` multiple times.
+    ///
+    /// In order to exploit this optimization, the caller should attempt to keep values with the same high 48 bits of
+    /// the value as consecutive elements in `vals`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    /// let mut bitmap = Bitmap::of(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    /// bitmap.remove_many(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    /// assert_eq!(bitmap.to_vec(), vec![9]);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_bitmap_remove_many")]
+    pub fn remove_many(&mut self, elements: &[u32]) {
+        unsafe {
+            ffi::roaring_bitmap_remove_many(&mut self.bitmap, elements.len(), elements.as_ptr())
+        }
     }
 
     /// Contains returns true if the integer element is contained in the bitmap
@@ -922,6 +944,13 @@ impl Bitmap {
     /// // Exclusive ranges still step from the start, but do not include it
     /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(10), Bound::Included(30)), 10);
     /// assert_eq!(bitmap.to_vec(), [20, 30]);
+    ///
+    /// // Ranges including max value
+    /// let bitmap = Bitmap::from_range_with_step((u32::MAX - 1)..=u32::MAX, 1);
+    /// assert_eq!(bitmap.to_vec(), vec![u32::MAX - 1, u32::MAX]);
+    ///
+    /// let bitmap = Bitmap::from_range_with_step((u32::MAX - 1)..=u32::MAX, 3);
+    /// assert_eq!(bitmap.to_vec(), vec![u32::MAX - 1]);
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
