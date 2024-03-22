@@ -279,6 +279,29 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_remove_checked(&mut self.bitmap, element) }
     }
 
+    /// Remove many values from the bitmap
+    ///
+    /// This should be faster than calling `remove` multiple times.
+    ///
+    /// In order to exploit this optimization, the caller should attempt to keep values with the same high 48 bits of
+    /// the value as consecutive elements in `vals`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    /// let mut bitmap = Bitmap::of(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    /// bitmap.remove_many(&[1, 2, 3, 4, 5, 6, 7, 8]);
+    /// assert_eq!(bitmap.to_vec(), vec![9]);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_bitmap_remove_many")]
+    pub fn remove_many(&mut self, elements: &[u32]) {
+        unsafe {
+            ffi::roaring_bitmap_remove_many(&mut self.bitmap, elements.len(), elements.as_ptr())
+        }
+    }
+
     /// Contains returns true if the integer element is contained in the bitmap
     ///
     /// # Examples
