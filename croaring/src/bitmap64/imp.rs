@@ -1,11 +1,11 @@
 use crate::bitmap64::Bitmap64;
 use crate::bitmap64::{Deserializer, Serializer};
-use std::any::Any;
+use crate::callback::CallbackWrapper;
 use std::collections::Bound;
 use std::ffi::CStr;
 use std::mem::MaybeUninit;
 use std::ops::{ControlFlow, RangeBounds};
-use std::panic::{self, AssertUnwindSafe};
+use std::panic;
 use std::ptr;
 use std::ptr::NonNull;
 
@@ -910,43 +910,12 @@ impl Bitmap64 {
     where
         F: FnMut(u64) -> ControlFlow<O>,
     {
-        struct State<F, O> {
-            f: F,
-            result: Result<ControlFlow<O>, Box<dyn Any + Send + 'static>>,
-        }
-
-        unsafe extern "C" fn callback<F, O>(value: u64, arg: *mut std::ffi::c_void) -> bool
-        where
-            F: FnMut(u64) -> ControlFlow<O>,
-        {
-            let state: &mut State<F, O> = unsafe { &mut *arg.cast::<State<F, O>>() };
-            let mut f = AssertUnwindSafe(&mut state.f);
-            let result = panic::catch_unwind(move || f(value));
-            match result {
-                Ok(ControlFlow::Continue(())) => true,
-                Ok(ControlFlow::Break(val)) => {
-                    state.result = Ok(ControlFlow::Break(val));
-                    false
-                }
-                Err(e) => {
-                    state.result = Err(e);
-                    false
-                }
-            }
-        }
-
-        let mut state = State {
-            f,
-            result: Ok(ControlFlow::Continue(())),
-        };
+        let mut callback_wrapper = CallbackWrapper::new(f);
+        let (callback, context) = callback_wrapper.callback_and_ctx();
         unsafe {
-            ffi::roaring64_bitmap_iterate(
-                self.raw.as_ptr(),
-                Some(callback::<F, O>),
-                ptr::addr_of_mut!(state).cast(),
-            );
+            ffi::roaring64_bitmap_iterate(self.raw.as_ptr(), Some(callback), context);
         }
-        match state.result {
+        match callback_wrapper.result() {
             Ok(cf) => cf,
             Err(e) => panic::resume_unwind(e),
         }

@@ -131,9 +131,24 @@ fn flip(c: &mut Criterion) {
 }
 
 fn to_vec(c: &mut Criterion) {
-    c.bench_function("to_vec", |b| {
-        let bitmap = Bitmap::of(&[1, 2, 3]);
+    const N: usize = 100_000;
+    let bitmap: Bitmap = random_iter().take(N).collect();
+    let mut g = c.benchmark_group("collect");
+    g.bench_function("to_vec", |b| {
         b.iter(|| bitmap.to_vec());
+    });
+    g.bench_function("via_iter", |b| {
+        b.iter(|| bitmap.iter().collect::<Vec<_>>());
+    });
+    g.bench_function("foreach", |b| {
+        b.iter(|| {
+            let mut vec = Vec::with_capacity(bitmap.cardinality() as usize);
+            bitmap.for_each(|item| -> ControlFlow<()> {
+                vec.push(item);
+                ControlFlow::Continue(())
+            });
+            vec
+        });
     });
 }
 
@@ -214,7 +229,27 @@ fn bulk_new(c: &mut Criterion) {
     group.finish();
 }
 
-fn random_iter(c: &mut Criterion) {
+#[derive(Clone)]
+struct RandomIter {
+    x: u32,
+}
+
+impl Iterator for RandomIter {
+    type Item = u32;
+
+    fn next(&mut self) -> Option<u32> {
+        const MULTIPLIER: u32 = 742938285;
+        const MODULUS: u32 = (1 << 31) - 1;
+        self.x = (MULTIPLIER.wrapping_mul(self.x)) % MODULUS;
+        Some(self.x)
+    }
+}
+
+fn random_iter() -> RandomIter {
+    RandomIter { x: 20170705 }
+}
+
+fn create_random(c: &mut Criterion) {
     const N: u32 = 5_000;
     // Clamp values so we get some re-use of containers
     const MAX: u32 = 8 * (u16::MAX as u32 + 1);
@@ -222,16 +257,7 @@ fn random_iter(c: &mut Criterion) {
     let mut group = c.benchmark_group("random_iter");
     group.throughput(Throughput::Elements(N.into()));
 
-    let rand_iter = {
-        const MULTIPLIER: u32 = 742938285;
-        const MODULUS: u32 = (1 << 31) - 1;
-        // Super simple LCG iterator
-        let mut z = 20170705; // seed
-        std::iter::from_fn(move || {
-            z = (MULTIPLIER.wrapping_mul(z)) % MODULUS;
-            Some(z % MAX)
-        })
-    };
+    let rand_iter = random_iter();
 
     group.bench_function("random_adds", |b| {
         b.iter(|| {
@@ -360,7 +386,7 @@ criterion_group!(
     serialize,
     deserialize,
     bulk_new,
-    random_iter,
+    create_random,
     collect_bitmap64_to_vec,
     iterate_bitmap64,
 );

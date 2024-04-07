@@ -1,8 +1,9 @@
+use crate::callback::CallbackWrapper;
 use crate::Bitset;
 use ffi::roaring_bitmap_t;
 use std::ffi::{c_void, CStr};
-use std::ops::{Bound, RangeBounds};
-use std::{mem, ptr};
+use std::ops::{Bound, ControlFlow, RangeBounds};
+use std::{mem, panic, ptr};
 
 use super::serialization::{Deserializer, Serializer};
 use super::{Bitmap, Statistics};
@@ -741,6 +742,49 @@ impl Bitmap {
     pub fn flip_inplace<R: RangeBounds<u32>>(&mut self, range: R) {
         let (start, end) = range_to_exclusive(range);
         unsafe { ffi::roaring_bitmap_flip_inplace(&mut self.bitmap, start, end) }
+    }
+
+    /// Iterate over the values in the bitmap in sorted order
+    ///
+    /// If `f` returns `Break`, iteration will stop and the value will be returned,
+    /// Otherwise, iteration continues. If `f` never returns break, `None` is returned after all values are visited.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    /// use std::ops::ControlFlow;
+    ///
+    /// let bitmap = Bitmap::of(&[1, 2, 3, 14, 20, 21, 100]);
+    /// let mut even_nums_under_50 = vec![];
+    ///
+    /// let first_over_50 = bitmap.for_each(|value| {
+    ///     if value > 50 {
+    ///        return ControlFlow::Break(value);
+    ///     }
+    ///     if value % 2 == 0 {
+    ///         even_nums_under_50.push(value);
+    ///     }
+    ///     ControlFlow::Continue(())
+    /// });
+    ///
+    /// assert_eq!(even_nums_under_50, vec![2, 14, 20]);
+    /// assert_eq!(first_over_50, ControlFlow::Break(100));
+    /// ```
+    #[inline]
+    pub fn for_each<F, O>(&self, f: F) -> ControlFlow<O>
+    where
+        F: FnMut(u32) -> ControlFlow<O>,
+    {
+        let mut callback_wrapper = CallbackWrapper::new(f);
+        let (callback, context) = callback_wrapper.callback_and_ctx();
+        unsafe {
+            ffi::roaring_iterate(&self.bitmap, Some(callback), context);
+        }
+        match callback_wrapper.result() {
+            Ok(cf) => cf,
+            Err(e) => panic::resume_unwind(e),
+        }
     }
 
     /// Returns a vector containing all of the integers stored in the Bitmap

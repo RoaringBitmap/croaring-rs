@@ -8,6 +8,7 @@ pub mod bitmap64;
 pub mod bitset;
 pub mod treemap;
 
+mod callback;
 mod serialization;
 
 pub use serialization::*;
