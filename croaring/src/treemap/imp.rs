@@ -3,6 +3,7 @@ use crate::Treemap;
 
 use super::util;
 use crate::treemap::{Deserializer, Serializer};
+use std::cmp::Ordering;
 use std::collections::btree_map::Entry;
 use std::collections::BTreeMap;
 use std::ops::{Bound, RangeBounds};
@@ -1220,19 +1221,23 @@ where
     loop {
         let (key, bitmap) = match (lhs_next, rhs_next) {
             (Some((&lhs_key, lhs_bitmap)), Some((&rhs_key, rhs_bitmap))) => {
-                if lhs_key == rhs_key {
-                    let bitmap = f(BinopArgs::Both(lhs_bitmap, rhs_bitmap));
-                    lhs_next = lhs_iter.next();
-                    rhs_next = rhs_iter.next();
-                    (lhs_key, bitmap)
-                } else if lhs_key < rhs_key {
-                    let bitmap = f(BinopArgs::Lhs(lhs_bitmap));
-                    lhs_next = lhs_iter.next();
-                    (lhs_key, bitmap)
-                } else {
-                    let bitmap = f(BinopArgs::Rhs(rhs_bitmap));
-                    rhs_next = rhs_iter.next();
-                    (rhs_key, bitmap)
+                match lhs_key.cmp(&rhs_key) {
+                    Ordering::Equal => {
+                        let bitmap = f(BinopArgs::Both(lhs_bitmap, rhs_bitmap));
+                        lhs_next = lhs_iter.next();
+                        rhs_next = rhs_iter.next();
+                        (lhs_key, bitmap)
+                    }
+                    Ordering::Less => {
+                        let bitmap = f(BinopArgs::Lhs(lhs_bitmap));
+                        lhs_next = lhs_iter.next();
+                        (lhs_key, bitmap)
+                    }
+                    Ordering::Greater => {
+                        let bitmap = f(BinopArgs::Rhs(rhs_bitmap));
+                        rhs_next = rhs_iter.next();
+                        (rhs_key, bitmap)
+                    }
                 }
             }
             (Some((&lhs_key, lhs_bitmap)), None) => {

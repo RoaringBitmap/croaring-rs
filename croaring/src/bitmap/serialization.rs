@@ -42,9 +42,9 @@ pub trait Deserializer {
     ///
     /// # Safety
     ///
-    /// Unlike its safe counterpart, [`try_deserialize`], this function assumes the data is valid,
-    /// passing data which does not contain/start with a bitmap serialized with this format will
-    /// result in undefined behavior.
+    /// Unlike its safe counterpart ([`Self::try_deserialize`]) this function assumes the data is
+    /// valid, passing data which does not contain/start with a bitmap serialized with this format
+    /// will result in undefined behavior.
     unsafe fn try_deserialize_unchecked(buffer: &[u8]) -> Bitmap;
 }
 
