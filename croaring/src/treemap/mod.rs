@@ -20,7 +20,7 @@
 //! assert_eq!(treemap.cardinality(), 3);
 //! ```
 use crate::Bitmap;
-use std::collections::BTreeMap;
+use alloc::collections::BTreeMap;
 
 mod imp;
 mod iter;

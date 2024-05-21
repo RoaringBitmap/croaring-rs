@@ -1,5 +1,5 @@
-use std::marker::PhantomData;
-use std::mem::MaybeUninit;
+use core::marker::PhantomData;
+use core::mem::MaybeUninit;
 
 use super::Bitmap;
 

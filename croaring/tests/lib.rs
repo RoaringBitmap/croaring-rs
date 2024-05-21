@@ -1,8 +1,10 @@
-use std::collections::BTreeMap;
 use std::{fs, iter, u32};
 
-use croaring::{Bitmap, BitmapView, Frozen, JvmLegacy, Native, Portable, Treemap};
+use croaring::{Bitmap, BitmapView, Frozen, Native, Portable};
 use proptest::prelude::*;
+
+#[cfg(feature = "alloc")]
+use croaring::{JvmLegacy, Treemap};
 
 // borrowed and adapted from https://github.com/Nemo157/roaring-rs/blob/5089f180ca7e17db25f5c58023f4460d973e747f/tests/lib.rs#L7-L37
 #[test]
@@ -68,8 +70,6 @@ fn smoke2() {
     rb3.add(5);
     rb3.or_inplace(&rb1);
 
-    let mut rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
-
     rb1.and_inplace(&rb2);
     println!("{:?}", rb1);
 
@@ -81,13 +81,17 @@ fn smoke2() {
     rb3.add(5);
     rb3.or_inplace(&rb1);
 
-    println!("{:?}", rb3.to_vec());
     println!("{:?}", rb3);
-    println!("{:?}", rb4);
 
-    rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
+    #[cfg(feature = "alloc")]
+    {
+        println!("{:?}", rb3.to_vec());
+        let mut rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
+        println!("{:?}", rb4);
 
-    println!("{:?}", rb4);
+        rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
+        println!("{:?}", rb4);
+    }
 }
 
 fn expected_serialized_bitmap() -> Bitmap {
@@ -163,6 +167,7 @@ fn test_frozen_view() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn test_treemap_deserialize_cpp() {
     match fs::read("tests/data/testcpp.bin") {
         Ok(buffer) => {
@@ -180,6 +185,7 @@ fn test_treemap_deserialize_cpp() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn test_treemap_deserialize_jvm() {
     match fs::read("tests/data/testjvm.bin") {
         Ok(buffer) => {
@@ -197,6 +203,7 @@ fn test_treemap_deserialize_jvm() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn test_treemap_max_andnot_empty() {
     let single_max = Treemap::of(&[std::u64::MAX]);
     let empty = Treemap::new();
@@ -209,6 +216,7 @@ fn test_treemap_max_andnot_empty() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn treemap_remove_big_range() {
     let mut treemap = Treemap::new();
     let value = 0xFFFFFFFFFFFF038D;
@@ -222,7 +230,10 @@ fn treemap_remove_big_range() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn treemap_run_optimized() {
+    use std::collections::BTreeMap;
+
     let mut initial = Bitmap::new();
     initial.add(1);
     initial.add(2);
@@ -258,29 +269,85 @@ fn treemap_run_optimized() {
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn serialize_into_existing_vec_frozen() {
     let mut buffer = vec![0; 13];
     let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
 
-    let data = bitmap.serialize_into::<Frozen>(&mut buffer);
+    let data = bitmap.serialize_into_vec::<Frozen>(&mut buffer);
     assert_eq!(unsafe { BitmapView::deserialize::<Frozen>(data) }, bitmap);
     assert!(unsafe { data.as_ptr().offset_from(buffer.as_ptr()) } >= 13);
 }
 
 #[test]
+#[cfg(feature = "alloc")]
+fn serialize_into_existing_vec_norealloc_frozen() {
+    let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+    let mut buffer = Vec::with_capacity(
+        13 + Frozen::REQUIRED_ALIGNMENT - 1 + bitmap.get_serialized_size_in_bytes::<Frozen>(),
+    );
+    buffer.resize(13, 1);
+    let cap_range = buffer.spare_capacity_mut().as_ptr_range();
+    let orig_cap = buffer.capacity();
+
+    let data = bitmap.serialize_into_vec::<Frozen>(&mut buffer);
+    assert_eq!(unsafe { BitmapView::deserialize::<Frozen>(data) }, bitmap);
+    assert!(cap_range.contains(&data.as_ptr().cast()));
+    assert!(unsafe { data.as_ptr().offset_from(cap_range.start.cast()) } < 32);
+    assert!(buffer[..13].iter().all(|&b| b == 1));
+    assert_eq!(buffer.capacity(), orig_cap);
+    assert!(buffer.len() > 13);
+}
+
+#[test]
+fn serialize_into_existing_slice_presized_aligned_frozen() {
+    const SERIALIZED_SIZE: usize = 19;
+
+    #[repr(align(32))]
+    struct OverAlign;
+
+    #[repr(C)]
+    struct AlignedData {
+        _align: OverAlign,
+        data: [u8; SERIALIZED_SIZE],
+    }
+
+    let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+    let mut buffer = AlignedData {
+        _align: OverAlign,
+        data: [0; SERIALIZED_SIZE],
+    };
+    assert_eq!(
+        buffer
+            .data
+            .as_ptr()
+            .align_offset(Frozen::REQUIRED_ALIGNMENT),
+        0
+    );
+
+    let data = bitmap
+        .try_serialize_into::<Frozen>(&mut buffer.data)
+        .unwrap();
+    assert_eq!(unsafe { BitmapView::deserialize::<Frozen>(data) }, bitmap);
+    assert_eq!(data.as_ptr_range(), buffer.data.as_ptr_range());
+}
+
+#[test]
+#[cfg(feature = "alloc")]
 fn serialize_into_existing_vec_portable() {
     let mut buffer = vec![0; 13];
     let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
-    let data = bitmap.serialize_into::<Portable>(&mut buffer);
+    let data = bitmap.serialize_into_vec::<Portable>(&mut buffer);
     assert_eq!(Bitmap::try_deserialize::<Portable>(data).unwrap(), bitmap);
     assert!(unsafe { data.as_ptr().offset_from(buffer.as_ptr()) } >= 13);
 }
 
 #[test]
+#[cfg(feature = "alloc")]
 fn serialize_into_existing_vec_native() {
     let mut buffer = vec![0; 13];
     let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
-    let data = bitmap.serialize_into::<Native>(&mut buffer);
+    let data = bitmap.serialize_into_vec::<Native>(&mut buffer);
     assert_eq!(Bitmap::try_deserialize::<Native>(data).unwrap(), bitmap);
     assert!(unsafe { data.as_ptr().offset_from(buffer.as_ptr()) } >= 13);
 }
@@ -298,6 +365,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn treemap_cardinality_roundtrip(
         indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
     ) {
@@ -309,6 +377,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn test_bitmap_serialization_roundtrip(
         indices in prop::collection::vec(proptest::num::u32::ANY, 1..3000)
     ) {
@@ -322,6 +391,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn test_treemap_native_serialization_roundtrip(
         indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
     ) {
@@ -335,6 +405,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn test_treemap_jvm_serialization_roundtrip(
         indices in prop::collection::vec(proptest::num::u64::ANY, 1..3000)
     ) {
@@ -350,6 +421,7 @@ proptest! {
 
 proptest! {
     #[test]
+    #[cfg(feature = "alloc")]
     fn frozen_bitmap_portable_roundtrip(
         indices in prop::collection::vec(proptest::num::u32::ANY, 0..3000)
     ) {
@@ -363,6 +435,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn native_bitmap_roundtrip(
         indices in prop::collection::vec(proptest::num::u32::ANY, 0..3000)
     ) {
@@ -376,6 +449,7 @@ proptest! {
     }
 
     #[test]
+    #[cfg(feature = "alloc")]
     fn frozen_bitmap_roundtrip(
         indices in prop::collection::vec(proptest::num::u32::ANY, 0..3000)
     ) {
@@ -383,7 +457,7 @@ proptest! {
 
         let original = Bitmap::of(&indices);
         let mut buf = Vec::new();
-        let serialized: &[u8] = original.serialize_into::<Frozen>(&mut buf);
+        let serialized: &[u8] = original.serialize_into_vec::<Frozen>(&mut buf);
         let deserialized = unsafe { BitmapView::deserialize::<Frozen>(serialized) };
         assert_eq!(&original, &*deserialized);
         assert!(original.iter().eq(deserialized.iter()));

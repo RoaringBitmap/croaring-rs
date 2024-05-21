@@ -1,12 +1,24 @@
 use crate::Bitmap64;
+use core::fmt;
+use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 use ffi::roaring64_bitmap_copy;
-use std::fmt;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
 impl fmt::Debug for Bitmap64 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.cardinality() < 32 {
-            write!(f, "Bitmap64<{:?}>", self.to_vec())
+            write!(f, "Bitmap64<[")?;
+            let mut first = true;
+            for value in self.iter() {
+                let prefix = if first {
+                    first = false;
+                    ""
+                } else {
+                    ", "
+                };
+                write!(f, "{prefix}{value}")?;
+            }
+            write!(f, "]>")?;
+            Ok(())
         } else {
             write!(
                 f,

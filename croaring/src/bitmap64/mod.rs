@@ -11,7 +11,7 @@ pub use self::serialization::{Deserializer, Serializer};
 
 /// A Bitmap which can hold 64-bit integers
 pub struct Bitmap64 {
-    raw: std::ptr::NonNull<ffi::roaring64_bitmap_t>,
+    raw: core::ptr::NonNull<ffi::roaring64_bitmap_t>,
 }
 unsafe impl Sync for Bitmap64 {}
 unsafe impl Send for Bitmap64 {}

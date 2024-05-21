@@ -39,14 +39,14 @@ impl<'a> LazyBitmap<'a> {
     }
 }
 
-impl<'a> std::ops::BitOrAssign<&Bitmap> for LazyBitmap<'a> {
+impl<'a> core::ops::BitOrAssign<&Bitmap> for LazyBitmap<'a> {
     #[inline]
     fn bitor_assign(&mut self, other: &Bitmap) {
         self.or_inplace(other, false);
     }
 }
 
-impl<'a> std::ops::BitXorAssign<&Bitmap> for LazyBitmap<'a> {
+impl<'a> core::ops::BitXorAssign<&Bitmap> for LazyBitmap<'a> {
     #[inline]
     fn bitxor_assign(&mut self, other: &Bitmap) {
         self.xor_inplace(other);
@@ -87,7 +87,7 @@ impl Bitmap {
     ///     bitmap2 ^= b;
     /// }
     /// assert_eq!(bitmap, bitmap2);
-    /// assert_eq!(bitmap.to_vec(), [2, 10, 30, 99, 100, 1000, 1001]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), [2, 10, 30, 99, 100, 1000, 1001]);
     /// ```
     ///
     /// The result the passed closure is returned from `lazy_batch`

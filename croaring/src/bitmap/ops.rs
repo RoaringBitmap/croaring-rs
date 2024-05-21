@@ -1,13 +1,25 @@
 use crate::BitmapView;
-use std::fmt;
-use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
+use core::fmt;
+use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 
 use super::Bitmap;
 
 impl fmt::Debug for Bitmap {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         if self.cardinality() < 32 {
-            write!(f, "Bitmap<{:?}>", self.to_vec())
+            write!(f, "Bitmap<[")?;
+            let mut first = true;
+            for value in self.iter() {
+                let prefix = if first {
+                    first = false;
+                    ""
+                } else {
+                    ", "
+                };
+                write!(f, "{prefix}{value}")?;
+            }
+            write!(f, "]>")?;
+            Ok(())
         } else {
             write!(
                 f,

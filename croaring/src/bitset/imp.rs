@@ -1,5 +1,5 @@
 use super::Bitset;
-use std::{mem, ptr};
+use core::{mem, ptr};
 
 impl Bitset {
     #[inline]
@@ -21,7 +21,7 @@ impl Bitset {
         if self.bitset.arraysize == 0 {
             &[]
         } else {
-            unsafe { std::slice::from_raw_parts(self.bitset.array, self.bitset.arraysize) }
+            unsafe { core::slice::from_raw_parts(self.bitset.array, self.bitset.arraysize) }
         }
     }
 
@@ -31,7 +31,7 @@ impl Bitset {
         if self.bitset.arraysize == 0 {
             &mut []
         } else {
-            unsafe { std::slice::from_raw_parts_mut(self.bitset.array, self.bitset.arraysize) }
+            unsafe { core::slice::from_raw_parts_mut(self.bitset.array, self.bitset.arraysize) }
         }
     }
 

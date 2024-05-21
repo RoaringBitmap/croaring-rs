@@ -3,11 +3,12 @@ use crate::Treemap;
 
 use super::util;
 use crate::treemap::{Deserializer, Serializer};
-use std::cmp::Ordering;
-use std::collections::btree_map::Entry;
-use std::collections::BTreeMap;
-use std::ops::{Bound, RangeBounds};
-use std::{io, u64};
+use alloc::collections::btree_map::Entry;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use core::cmp::Ordering;
+use core::ops::{Bound, RangeBounds};
+use core::prelude::v1::*;
 
 impl Treemap {
     /// Creates an empty `Treemap`.
@@ -1080,10 +1081,11 @@ impl Treemap {
     ///
     /// assert_eq!(treemap, deserialized_treemap);
     /// ```
-    pub fn serialize_into_writer<S: Serializer, W: io::Write>(
+    #[cfg(feature = "std")]
+    pub fn serialize_into_writer<S: Serializer, W: std::io::Write>(
         &self,
         writer: W,
-    ) -> io::Result<usize> {
+    ) -> std::io::Result<usize> {
         S::serialize_into_writer(self, writer)
     }
 

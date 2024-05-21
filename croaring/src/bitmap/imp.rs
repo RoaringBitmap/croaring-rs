@@ -1,12 +1,15 @@
-use crate::callback::CallbackWrapper;
-use crate::Bitset;
-use ffi::roaring_bitmap_t;
-use std::ffi::{c_void, CStr};
-use std::ops::{Bound, ControlFlow, RangeBounds};
-use std::{mem, panic, ptr};
-
 use super::serialization::{Deserializer, Serializer};
 use super::{Bitmap, Statistics};
+use crate::Bitset;
+use core::ffi::c_void;
+use core::mem;
+use core::ops::{Bound, ControlFlow, RangeBounds};
+use ffi::roaring_bitmap_t;
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
+use core::ffi::CStr;
+use core::prelude::v1::*;
 
 impl Bitmap {
     #[inline]
@@ -292,7 +295,7 @@ impl Bitmap {
     /// use croaring::Bitmap;
     /// let mut bitmap = Bitmap::of(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
     /// bitmap.remove_many(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    /// assert_eq!(bitmap.to_vec(), vec![9]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![9]);
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_remove_many")]
@@ -331,11 +334,11 @@ impl Bitmap {
     ///
     /// let bitmap1 = Bitmap::of(&[0, 1, 1000, u32::MAX]);
     /// let shifted_down = bitmap1.add_offset(-1);
-    /// assert_eq!(shifted_down.to_vec(), [0, 999, u32::MAX - 1]);
+    /// assert_eq!(shifted_down.iter().collect::<Vec<_>>(), [0, 999, u32::MAX - 1]);
     /// let shifted_up = bitmap1.add_offset(1);
-    /// assert_eq!(shifted_up.to_vec(), [1, 2, 1001]);
+    /// assert_eq!(shifted_up.iter().collect::<Vec<_>>(), [1, 2, 1001]);
     /// let big_shifted = bitmap1.add_offset(i64::from(u32::MAX) + 1);
-    /// assert_eq!(big_shifted.to_vec(), []);
+    /// assert_eq!(big_shifted.iter().collect::<Vec<_>>(), []);
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_add_offset")]
@@ -513,10 +516,11 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_or_many")]
     #[must_use]
+    #[cfg(feature = "alloc")]
     pub fn fast_or(bitmaps: &[&Bitmap]) -> Self {
         let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps
             .iter()
-            .map(|item| ptr::addr_of!(item.bitmap))
+            .map(|item| core::ptr::addr_of!(item.bitmap))
             .collect();
 
         unsafe { Self::take_heap(ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr())) }
@@ -544,10 +548,11 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_or_many_heap")]
     #[must_use]
+    #[cfg(feature = "alloc")]
     pub fn fast_or_heap(bitmaps: &[&Bitmap]) -> Self {
         let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps
             .iter()
-            .map(|item| ptr::addr_of!(item.bitmap))
+            .map(|item| core::ptr::addr_of!(item.bitmap))
             .collect();
 
         let count = u32::try_from(bms.len()).expect("can only or up to 2^32 bitmaps");
@@ -624,10 +629,11 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_xor_many")]
     #[must_use]
+    #[cfg(feature = "alloc")]
     pub fn fast_xor(bitmaps: &[&Bitmap]) -> Self {
         let mut bms: Vec<*const ffi::roaring_bitmap_s> = bitmaps
             .iter()
-            .map(|item| ptr::addr_of!(item.bitmap))
+            .map(|item| core::ptr::addr_of!(item.bitmap))
             .collect();
 
         unsafe { Self::take_heap(ffi::roaring_bitmap_xor_many(bms.len(), bms.as_mut_ptr())) }
@@ -707,7 +713,7 @@ impl Bitmap {
     /// assert!(bitmap2.contains(4));
     ///
     /// let bitmap3 = bitmap1.flip(1..=5);
-    /// assert_eq!(bitmap3.to_vec(), [1, 2, 3, 5])
+    /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), [1, 2, 3, 5])
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_flip")]
@@ -735,7 +741,7 @@ impl Bitmap {
     /// assert!(!bitmap1.contains(3));
     /// assert!(bitmap1.contains(4));
     /// bitmap1.flip_inplace(4..=4);
-    /// assert_eq!(bitmap1.to_vec(), [1, 2]);
+    /// assert_eq!(bitmap1.iter().collect::<Vec<_>>(), [1, 2]);
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_flip_inplace")]
@@ -776,14 +782,22 @@ impl Bitmap {
     where
         F: FnMut(u32) -> ControlFlow<O>,
     {
-        let mut callback_wrapper = CallbackWrapper::new(f);
-        let (callback, context) = callback_wrapper.callback_and_ctx();
-        unsafe {
-            ffi::roaring_iterate(&self.bitmap, Some(callback), context);
+        // If we have std, we can use `roaring_iterate` with a closure, and capture any panics
+        #[cfg(feature = "std")]
+        {
+            let mut callback_wrapper = crate::callback::CallbackWrapper::new(f);
+            let (callback, context) = callback_wrapper.callback_and_ctx();
+            unsafe {
+                ffi::roaring_iterate(&self.bitmap, Some(callback), context);
+            }
+            match callback_wrapper.result() {
+                Ok(cf) => cf,
+                Err(e) => std::panic::resume_unwind(e),
+            }
         }
-        match callback_wrapper.result() {
-            Ok(cf) => cf,
-            Err(e) => panic::resume_unwind(e),
+        #[cfg(not(feature = "std"))]
+        {
+            self.iter().try_for_each(f)
         }
     }
 
@@ -800,6 +814,7 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_to_uint32_array")]
     #[must_use]
+    #[cfg(feature = "alloc")]
     pub fn to_vec(&self) -> Vec<u32> {
         let bitmap_size: usize = self.cardinality().try_into().unwrap();
 
@@ -820,6 +835,8 @@ impl Bitmap {
 
     /// Serializes a bitmap to a slice of bytes in format `S`.
     ///
+    /// This function cannot be used with formats that require alignment, such as [`crate::Frozen`].
+    ///
     /// # Examples
     ///
     /// ```
@@ -833,11 +850,23 @@ impl Bitmap {
     ///
     /// assert_eq!(original_bitmap, deserialized_bitmap);
     /// ```
+    ///
+    /// ```compile_fail
+    /// use croaring::{Bitmap, Frozen};
+    ///
+    /// let original_bitmap = Bitmap::of(&[1, 2, 3]);
+    /// // This will not compile, as `Frozen` requires alignment, and we can't guarantee that the
+    /// // start of the vec is aligned correctly
+    /// let serialized_buffer = original_bitmap.serialize::<Frozen>();
+    /// ```
+    ///
     #[inline]
     #[must_use]
-    pub fn serialize<S: Serializer>(&self) -> Vec<u8> {
+    #[cfg(feature = "alloc")]
+    pub fn serialize<S: Serializer + crate::serialization::NoAlign>(&self) -> Vec<u8> {
         let mut dst = Vec::new();
-        self.serialize_into::<S>(&mut dst);
+        let res = self.serialize_into_vec::<S>(&mut dst);
+        debug_assert_eq!(res.as_ptr(), dst.as_ptr());
         dst
     }
 
@@ -857,14 +886,29 @@ impl Bitmap {
     /// let mut data = Vec::new();
     /// for bitmap in [original_bitmap_1, original_bitmap_2] {
     ///     data.clear();
-    ///     bitmap.serialize_into::<Portable>(&mut data);
+    ///     bitmap.try_serialize_into::<Portable>(&mut data);
     ///     // do something with data
     /// }
     /// ```
     #[inline]
-    #[doc(alias = "roaring_bitmap_portable_serialize")]
-    pub fn serialize_into<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        S::serialize_into(self, dst)
+    #[cfg(feature = "alloc")]
+    pub fn serialize_into_vec<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a mut [u8] {
+        S::serialize_into_vec(self, dst)
+    }
+
+    /// Serializes a bitmap to a slice of bytes in format `S`
+    ///
+    /// Returns the serialized data if the buffer was large enough, otherwise None.
+    ///
+    /// See [`Self::get_serialized_size_in_bytes`] to determine the required buffer size.
+    /// Note also that some ([`crate::Frozen`]) formats require alignment, so the buffer size may need to
+    /// be larger than the serialized size.
+    ///
+    /// See also [`Self::serialize_into_vec`] for a version that uses a Vec instead, or, for
+    /// advanced use-cases, see [`Serializer::try_serialize_into`].
+    #[inline]
+    pub fn try_serialize_into<'a, S: Serializer>(&self, dst: &'a mut [u8]) -> Option<&'a mut [u8]> {
+        S::try_serialize_into_aligned(self, dst)
     }
 
     /// Given a serialized bitmap as slice of bytes in format `S`, returns a `Bitmap` instance.
@@ -875,6 +919,8 @@ impl Bitmap {
     /// # Examples
     ///
     /// ```
+    /// # #[cfg(feature = "alloc")]
+    /// # {
     /// use croaring::{Bitmap, Portable};
     ///
     /// let original_bitmap: Bitmap = (1..5).collect();
@@ -886,6 +932,7 @@ impl Bitmap {
     /// let invalid_buffer: Vec<u8> = vec![3];
     /// let deserialized_bitmap = Bitmap::try_deserialize::<Portable>(&invalid_buffer);
     /// assert!(deserialized_bitmap.is_none());
+    /// # }
     /// ```
     #[inline]
     #[must_use]
@@ -943,13 +990,13 @@ impl Bitmap {
     /// use croaring::Bitmap;
     ///
     /// let bitmap1 = Bitmap::from_range(5..10);
-    /// assert_eq!(bitmap1.to_vec(), [5, 6, 7, 8, 9]);
+    /// assert_eq!(bitmap1.iter().collect::<Vec<_>>(), [5, 6, 7, 8, 9]);
     ///
     /// let bitmap2 = Bitmap::from_range(5..=7);
-    /// assert_eq!(bitmap2.to_vec(), [5, 6, 7]);
+    /// assert_eq!(bitmap2.iter().collect::<Vec<_>>(), [5, 6, 7]);
     ///
     /// let bitmap3 = Bitmap::from_range((Bound::Excluded(2), Bound::Excluded(6)));
-    /// assert_eq!(bitmap3.to_vec(), [3, 4, 5]);
+    /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), [3, 4, 5]);
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
     pub fn from_range<R: RangeBounds<u32>>(range: R) -> Self {
@@ -970,7 +1017,7 @@ impl Bitmap {
     /// use croaring::Bitmap;
     ///
     /// let bitmap = Bitmap::from_range_with_step(0..10, 3);
-    /// assert_eq!(bitmap.to_vec(), [0, 3, 6, 9]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), [0, 3, 6, 9]);
     ///
     /// // empty ranges
     /// assert_eq!(Bitmap::from_range_with_step(0..0, 1), Bitmap::new());
@@ -987,14 +1034,14 @@ impl Bitmap {
     ///
     /// // Exclusive ranges still step from the start, but do not include it
     /// let bitmap = Bitmap::from_range_with_step((Bound::Excluded(10), Bound::Included(30)), 10);
-    /// assert_eq!(bitmap.to_vec(), [20, 30]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), [20, 30]);
     ///
     /// // Ranges including max value
     /// let bitmap = Bitmap::from_range_with_step((u32::MAX - 1)..=u32::MAX, 1);
-    /// assert_eq!(bitmap.to_vec(), vec![u32::MAX - 1, u32::MAX]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![u32::MAX - 1, u32::MAX]);
     ///
     /// let bitmap = Bitmap::from_range_with_step((u32::MAX - 1)..=u32::MAX, 3);
-    /// assert_eq!(bitmap.to_vec(), vec![u32::MAX - 1]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![u32::MAX - 1]);
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
@@ -1512,7 +1559,7 @@ impl Bitmap {
     #[doc(alias = "roaring_bitmap_statistics")]
     #[must_use]
     pub fn statistics(&self) -> Statistics {
-        let mut statistics: ffi::roaring_statistics_s = unsafe { ::std::mem::zeroed() };
+        let mut statistics: ffi::roaring_statistics_s = unsafe { mem::zeroed() };
 
         unsafe { ffi::roaring_bitmap_statistics(&self.bitmap, &mut statistics) };
 
@@ -1563,17 +1610,17 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_bitmap_internal_validate")]
     #[doc(hidden)]
-    pub fn internal_validate(&self) -> Result<(), String> {
-        let mut error_str = ptr::null();
+    pub fn internal_validate(&self) -> Result<(), &'static str> {
+        let mut error_str = core::ptr::null();
         let valid = unsafe { ffi::roaring_bitmap_internal_validate(&self.bitmap, &mut error_str) };
         if valid {
             Ok(())
         } else {
             if error_str.is_null() {
-                return Err(String::from("Unknown error"));
+                return Err("Unknown error");
             }
             let reason = unsafe { CStr::from_ptr(error_str) };
-            Err(reason.to_string_lossy().into_owned())
+            Err(reason.to_str().unwrap_or("Invalid UTF-8 in error"))
         }
     }
 }

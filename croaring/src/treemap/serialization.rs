@@ -1,12 +1,11 @@
 use crate::serialization::{Frozen, Native, Portable};
 use crate::{bitmap, Treemap};
 use crate::{Bitmap, JvmLegacy};
-use std::collections::BTreeMap;
-use std::io;
-use std::io::Write as _;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use core::prelude::v1::*;
 
-use byteorder::{BigEndian, NativeEndian, ReadBytesExt, WriteBytesExt};
-use std::mem::size_of;
+use core::mem::size_of;
 
 /// Trait for different formats of treemap deserialization
 pub trait Serializer {
@@ -18,9 +17,10 @@ pub trait Serializer {
     /// reading: this method does not perform any extra alignment. See [`Self::serialize_into`]
     /// for a method which will return a slice of bytes which are guaranteed to be aligned correctly
     /// in memory
-    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> io::Result<usize>
+    #[cfg(feature = "std")]
+    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> std::io::Result<usize>
     where
-        W: io::Write;
+        W: std::io::Write;
 
     /// Serialize a treemap into bytes, using the provided vec buffer to store the serialized data
     ///
@@ -58,7 +58,7 @@ pub trait Deserializer {
 
 fn serialize_impl<'a, S>(treemap: &Treemap, dst: &'a mut Vec<u8>) -> &'a [u8]
 where
-    S: bitmap::Serializer,
+    S: bitmap::Serializer + crate::serialization::NoAlign,
 {
     let start_idx = dst.len();
     let map_len = u64::try_from(treemap.map.len()).unwrap();
@@ -67,7 +67,7 @@ where
     treemap.map.iter().for_each(|(&key, bitmap)| {
         dst.extend_from_slice(&key.to_ne_bytes());
         let prev_len = dst.len();
-        let serialized_slice = bitmap.serialize_into::<S>(dst);
+        let serialized_slice = bitmap.serialize_into_vec::<S>(dst);
         let serialized_len = serialized_slice.len();
         let serialized_range = serialized_slice.as_ptr_range();
         // Serialization should only append the data, no padding can be allowed for this implementation
@@ -77,21 +77,24 @@ where
     &dst[start_idx..]
 }
 
-fn serialize_writer_impl<S, W>(treemap: &Treemap, dst: W) -> io::Result<usize>
+#[cfg(feature = "std")]
+fn serialize_writer_impl<S, W>(treemap: &Treemap, dst: W) -> std::io::Result<usize>
 where
     S: bitmap::Serializer,
-    W: io::Write,
+    W: std::io::Write,
 {
+    use std::io::Write;
+
     let mut dst = OffsetTrackingWriter::new(dst);
     let map_len = u64::try_from(treemap.map.len()).unwrap();
-    dst.write_u64::<NativeEndian>(map_len)?;
+    dst.write_all(&map_len.to_ne_bytes())?;
 
     let mut buf = Vec::new();
 
     for (&key, bitmap) in &treemap.map {
-        dst.write_u32::<NativeEndian>(key)?;
+        dst.write_all(&key.to_ne_bytes())?;
 
-        let bitmap_serialized = bitmap.serialize_into::<S>(&mut buf);
+        let bitmap_serialized = bitmap.serialize_into_vec::<S>(&mut buf);
         dst.write_all(bitmap_serialized)?;
         buf.clear();
     }
@@ -111,15 +114,18 @@ where
     overhead + total_sizes
 }
 
-fn deserialize_impl<S>(mut buffer: &[u8]) -> Option<(Treemap, usize)>
+fn deserialize_impl<S>(buffer: &[u8]) -> Option<(Treemap, usize)>
 where
     S: bitmap::Serializer + bitmap::Deserializer,
 {
     let start_len = buffer.len();
-    let map_len = buffer.read_u64::<NativeEndian>().ok()?;
+    let (map_len_bytes, mut buffer) = buffer.split_first_chunk()?;
+    let map_len = u64::from_ne_bytes(*map_len_bytes);
     let mut map = BTreeMap::new();
     for _ in 0..map_len {
-        let key = buffer.read_u32::<NativeEndian>().ok()?;
+        let (key_bytes, rest) = buffer.split_first_chunk()?;
+        buffer = rest;
+        let key = u32::from_ne_bytes(*key_bytes);
         let bitmap = Bitmap::try_deserialize::<S>(buffer)?;
         buffer = &buffer[bitmap.get_serialized_size_in_bytes::<S>()..];
         map.insert(key, bitmap);
@@ -130,9 +136,10 @@ where
 impl Serializer for Portable {
     /// Serializes a Treemap to a writer in portable format.
     /// See [`Treemap::serialize_into_writer`] for examples.
-    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> io::Result<usize>
+    #[cfg(feature = "std")]
+    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> std::io::Result<usize>
     where
-        W: io::Write,
+        W: std::io::Write,
     {
         serialize_writer_impl::<Self, W>(treemap, dst)
     }
@@ -159,9 +166,10 @@ impl Deserializer for Portable {
 impl Serializer for Native {
     /// Serializes a Treemap to a writer in native format.
     /// See [`Treemap::serialize_into_writer`] for examples.
-    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> io::Result<usize>
+    #[cfg(feature = "std")]
+    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> std::io::Result<usize>
     where
-        W: io::Write,
+        W: std::io::Write,
     {
         serialize_writer_impl::<Self, W>(treemap, dst)
     }
@@ -190,11 +198,15 @@ const FROZEN_BITMAP_METADATA_SIZE: usize = size_of::<usize>() + size_of::<u32>()
 impl Serializer for Frozen {
     /// Serializes a Treemap to a writer in frozen format.
     /// See [`Treemap::serialize_into_writer`] for examples.
-    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> io::Result<usize>
+    #[cfg(feature = "std")]
+    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> std::io::Result<usize>
     where
-        W: io::Write,
+        W: std::io::Write,
     {
-        const FULL_PADDING: [u8; Frozen::MAX_PADDING] = [0; Frozen::MAX_PADDING];
+        use std::io::Write;
+
+        const FULL_PADDING: [u8; Frozen::REQUIRED_ALIGNMENT - 1] =
+            [0; Frozen::REQUIRED_ALIGNMENT - 1];
 
         let mut dst = OffsetTrackingWriter::new(dst);
 
@@ -203,9 +215,9 @@ impl Serializer for Frozen {
 
         let mut buf = Vec::new();
         for (&key, bitmap) in &treemap.map {
-            let bitmap_serialized = bitmap.serialize_into::<Self>(&mut buf);
+            let bitmap_serialized = bitmap.serialize_into_vec::<Self>(&mut buf);
             let required_padding =
-                Self::required_padding(dst.bytes_written + FROZEN_BITMAP_METADATA_SIZE);
+                required_padding(dst.bytes_written + FROZEN_BITMAP_METADATA_SIZE);
 
             dst.write_all(&FULL_PADDING[..required_padding])?;
             dst.write_all(&usize::to_ne_bytes(bitmap_serialized.len()))?;
@@ -224,12 +236,22 @@ impl Serializer for Frozen {
     /// See [`Treemap::serialize_into`] for examples.
     fn serialize_into<'a>(treemap: &Treemap, dst: &'a mut Vec<u8>) -> &'a [u8] {
         let len = Self::get_serialized_size_in_bytes(treemap);
+        let max_padding = Self::REQUIRED_ALIGNMENT - 1;
+
         let mut offset = dst.len();
-        if dst.capacity() < dst.len() + len
-            || Self::required_padding(dst.as_ptr() as usize + offset) != 0
-        {
-            dst.reserve(len.checked_add(Self::MAX_PADDING).unwrap());
-            let extra_offset = Self::required_padding(dst.as_ptr() as usize + offset);
+        let extra_align_required = |slice: &[u8]| {
+            slice
+                .as_ptr_range()
+                .end
+                .align_offset(Self::REQUIRED_ALIGNMENT)
+        };
+        if dst.capacity() < dst.len() + len + extra_align_required(dst) {
+            dst.reserve(len.checked_add(max_padding).unwrap());
+        }
+        // Need to recompute offset after reserve, as the buffer may have been reallocated and
+        // the end of the buffer may be somewhere else
+        let extra_offset = extra_align_required(dst);
+        if extra_offset != 0 {
             offset = offset.checked_add(extra_offset).unwrap();
             // we must initialize up to offset
             dst.resize(offset, 0);
@@ -242,7 +264,7 @@ impl Serializer for Frozen {
 
         treemap.map.iter().for_each(|(&key, bitmap)| {
             let end_with_metadata = dst.as_ptr_range().end as usize + FROZEN_BITMAP_METADATA_SIZE;
-            let extra_padding = Self::required_padding(end_with_metadata);
+            let extra_padding = required_padding(end_with_metadata);
             dst.resize(dst.len() + extra_padding, 0);
 
             let frozen_size_in_bytes: usize = bitmap.get_serialized_size_in_bytes::<Self>();
@@ -250,7 +272,7 @@ impl Serializer for Frozen {
             dst.extend_from_slice(&key.to_ne_bytes());
 
             let before_bitmap_serialize = dst.as_ptr_range().end;
-            let serialized_slice = bitmap.serialize_into::<Self>(dst);
+            let serialized_slice = bitmap.serialize_into_vec::<Self>(dst);
             // We pre-calculated padding, so there should be no padding added
             debug_assert_eq!(before_bitmap_serialize, serialized_slice.as_ptr());
             debug_assert_eq!(serialized_slice.as_ptr_range().end, dst.as_ptr_range().end);
@@ -265,7 +287,7 @@ impl Serializer for Frozen {
         let mut result = size_of::<u64>();
         for bitmap in treemap.map.values() {
             result += FROZEN_BITMAP_METADATA_SIZE;
-            result += Self::required_padding(result);
+            result += required_padding(result);
             result += bitmap.get_serialized_size_in_bytes::<Self>();
         }
         result
@@ -273,21 +295,24 @@ impl Serializer for Frozen {
 }
 
 impl Serializer for JvmLegacy {
-    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> io::Result<usize>
+    #[cfg(feature = "std")]
+    fn serialize_into_writer<W>(treemap: &Treemap, dst: W) -> std::io::Result<usize>
     where
-        W: io::Write,
+        W: std::io::Write,
     {
+        use std::io::Write;
+
         let mut dst = OffsetTrackingWriter::new(dst);
         // Push a boolean false indicating that the values are not signed
-        dst.write_u8(0)?;
+        dst.write_all(&[0])?;
 
         let bitmap_count: u32 = treemap.map.len().try_into().unwrap();
-        dst.write_u32::<BigEndian>(bitmap_count)?;
+        dst.write_all(&bitmap_count.to_be_bytes())?;
 
         let mut buf = Vec::new();
         for (&key, bitmap) in &treemap.map {
-            dst.write_u32::<BigEndian>(key)?;
-            let bitmap_serialized = bitmap.serialize_into::<Portable>(&mut buf);
+            dst.write_all(&key.to_be_bytes())?;
+            let bitmap_serialized = bitmap.serialize_into_vec::<Portable>(&mut buf);
             dst.write_all(bitmap_serialized)?;
             buf.clear();
         }
@@ -298,13 +323,13 @@ impl Serializer for JvmLegacy {
     fn serialize_into<'a>(treemap: &Treemap, dst: &'a mut Vec<u8>) -> &'a [u8] {
         let start_idx = dst.len();
         // Push a boolean false indicating that the values are not signed
-        dst.write_u8(0).unwrap();
+        dst.push(0);
 
         let bitmap_count: u32 = treemap.map.len().try_into().unwrap();
-        dst.write_u32::<BigEndian>(bitmap_count).unwrap();
+        dst.extend_from_slice(&bitmap_count.to_be_bytes());
         treemap.map.iter().for_each(|(&key, bitmap)| {
-            dst.write_u32::<BigEndian>(key).unwrap();
-            bitmap.serialize_into::<Portable>(dst);
+            dst.extend_from_slice(&key.to_be_bytes());
+            bitmap.serialize_into_vec::<Portable>(dst);
         });
 
         &dst[start_idx..]
@@ -322,15 +347,18 @@ impl Serializer for JvmLegacy {
 }
 
 impl Deserializer for JvmLegacy {
-    fn try_deserialize(mut buffer: &[u8]) -> Option<(Treemap, usize)> {
+    fn try_deserialize(buffer: &[u8]) -> Option<(Treemap, usize)> {
         let start_len = buffer.len();
         // Ignored, we assume that the values are not signed
-        let _is_signed = buffer.read_u8().ok()?;
+        let (_is_signed, buffer) = buffer.split_first()?;
 
-        let bitmap_count = buffer.read_u32::<BigEndian>().ok()?;
+        let (bitmap_count_bytes, mut buffer) = buffer.split_first_chunk()?;
+        let bitmap_count = u32::from_be_bytes(*bitmap_count_bytes);
         let mut map = BTreeMap::new();
         for _ in 0..bitmap_count {
-            let key = buffer.read_u32::<BigEndian>().ok()?;
+            let (key_bytes, rest) = buffer.split_first_chunk()?;
+            buffer = rest;
+            let key = u32::from_be_bytes(*key_bytes);
             let bitmap = Bitmap::try_deserialize::<Portable>(buffer)?;
             buffer = &buffer[bitmap.get_serialized_size_in_bytes::<Portable>()..];
             map.insert(key, bitmap);
@@ -340,11 +368,21 @@ impl Deserializer for JvmLegacy {
     }
 }
 
+#[inline]
+const fn required_padding(x: usize) -> usize {
+    match x % Frozen::REQUIRED_ALIGNMENT {
+        0 => 0,
+        r => Frozen::REQUIRED_ALIGNMENT - r,
+    }
+}
+
+#[cfg(feature = "std")]
 struct OffsetTrackingWriter<W> {
     writer: W,
     bytes_written: usize,
 }
 
+#[cfg(feature = "std")]
 impl<W> OffsetTrackingWriter<W> {
     pub fn new(writer: W) -> Self {
         Self {
@@ -354,18 +392,19 @@ impl<W> OffsetTrackingWriter<W> {
     }
 }
 
-impl<W: io::Write> io::Write for OffsetTrackingWriter<W> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+#[cfg(feature = "std")]
+impl<W: std::io::Write> std::io::Write for OffsetTrackingWriter<W> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         let written = self.writer.write(buf)?;
         self.bytes_written += written;
         Ok(written)
     }
 
-    fn flush(&mut self) -> io::Result<()> {
+    fn flush(&mut self) -> std::io::Result<()> {
         self.writer.flush()
     }
 
-    fn write_all(&mut self, buf: &[u8]) -> io::Result<()> {
+    fn write_all(&mut self, buf: &[u8]) -> std::io::Result<()> {
         self.writer.write_all(buf)?;
         self.bytes_written += buf.len();
         Ok(())
@@ -388,12 +427,15 @@ mod tests {
         let serialized = treemap.serialize_into::<S>(&mut buf);
         assert_eq!(serialized.len(), expected_len);
 
-        let mut writer = Vec::new();
-        assert_eq!(
-            treemap.serialize_into_writer::<S, _>(&mut writer).unwrap(),
-            expected_len,
-        );
-        assert_eq!(serialized, writer);
+        #[cfg(feature = "std")]
+        {
+            let mut writer = Vec::new();
+            assert_eq!(
+                treemap.serialize_into_writer::<S, _>(&mut writer).unwrap(),
+                expected_len,
+            );
+            assert_eq!(serialized, writer);
+        }
     }
 
     #[test]

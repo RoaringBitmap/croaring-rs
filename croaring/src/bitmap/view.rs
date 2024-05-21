@@ -1,9 +1,9 @@
 use super::serialization::ViewDeserializer;
 use super::{Bitmap, BitmapView};
+use core::marker::PhantomData;
+use core::ops::Deref;
+use core::{fmt, mem};
 use ffi::roaring_bitmap_t;
-use std::marker::PhantomData;
-use std::ops::Deref;
-use std::{fmt, mem};
 
 #[inline]
 const fn original_bitmap_ptr(bitmap: &roaring_bitmap_t) -> *const roaring_bitmap_t {
@@ -48,8 +48,9 @@ impl<'a> BitmapView<'a> {
     /// ```
     /// use croaring::{Bitmap, BitmapView, Portable};
     /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
-    /// let data: Vec<u8> = orig_bitmap.serialize::<Portable>();
-    /// let view = unsafe { BitmapView::deserialize::<Portable>(&data) };
+    /// let mut buf = [0; 1024];
+    /// let data: &[u8] = orig_bitmap.try_serialize_into::<Portable>(&mut buf).unwrap();
+    /// let view = unsafe { BitmapView::deserialize::<Portable>(data) };
     /// assert!(view.contains_range(1..=4));
     /// assert_eq!(orig_bitmap, view);
     /// ```
@@ -70,8 +71,9 @@ impl<'a> BitmapView<'a> {
     /// use croaring::{Bitmap, BitmapView, Portable};
     ///
     /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
-    /// let data = orig_bitmap.serialize::<Portable>();
-    /// let view: BitmapView = unsafe { BitmapView::deserialize::<Portable>(&data) };
+    /// let mut buf = [0; 1024];
+    /// let data: &[u8] = orig_bitmap.try_serialize_into::<Portable>(&mut buf).unwrap();
+    /// let view: BitmapView = unsafe { BitmapView::deserialize::<Portable>(data) };
     /// # assert_eq!(view, orig_bitmap);
     /// let mut mutable_bitmap: Bitmap = view.to_bitmap();
     /// assert_eq!(view, mutable_bitmap);
