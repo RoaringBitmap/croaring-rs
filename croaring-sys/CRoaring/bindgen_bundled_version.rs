@@ -4,25 +4,25 @@ pub const ROARING_VERSION: &[u8; 6] = b"3.0.1\0";
 pub const ROARING_VERSION_MAJOR: _bindgen_ty_1 = 3;
 pub const ROARING_VERSION_MINOR: _bindgen_ty_1 = 0;
 pub const ROARING_VERSION_REVISION: _bindgen_ty_1 = 1;
-pub type _bindgen_ty_1 = ::std::os::raw::c_uint;
+pub type _bindgen_ty_1 = ::core::ffi::c_uint;
 #[doc = " Roaring arrays are array-based key-value pairs having containers as values\n and 16-bit integer keys. A roaring bitmap  might be implemented as such."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct roaring_array_s {
     pub size: i32,
     pub allocation_size: i32,
-    pub containers: *mut *mut ::std::os::raw::c_void,
+    pub containers: *mut *mut ::core::ffi::c_void,
     pub keys: *mut u16,
     pub typecodes: *mut u8,
     pub flags: u8,
 }
 #[doc = " Roaring arrays are array-based key-value pairs having containers as values\n and 16-bit integer keys. A roaring bitmap  might be implemented as such."]
 pub type roaring_array_t = roaring_array_s;
-pub type roaring_iterator = ::std::option::Option<
-    unsafe extern "C" fn(value: u32, param: *mut ::std::os::raw::c_void) -> bool,
+pub type roaring_iterator = ::core::option::Option<
+    unsafe extern "C" fn(value: u32, param: *mut ::core::ffi::c_void) -> bool,
 >;
-pub type roaring_iterator64 = ::std::option::Option<
-    unsafe extern "C" fn(value: u64, param: *mut ::std::os::raw::c_void) -> bool,
+pub type roaring_iterator64 = ::core::option::Option<
+    unsafe extern "C" fn(value: u64, param: *mut ::core::ffi::c_void) -> bool,
 >;
 #[doc = "  (For advanced users.)\n The roaring_statistics_t can be used to collect detailed statistics about\n the composition of a roaring bitmap."]
 #[repr(C)]
@@ -55,12 +55,11 @@ pub struct roaring_container_iterator_s {
 pub type roaring_container_iterator_t = roaring_container_iterator_s;
 extern "C" {
     #[doc = " result might be undefined when input_num is zero"]
-    pub fn roaring_trailing_zeroes(input_num: ::std::os::raw::c_ulonglong)
-        -> ::std::os::raw::c_int;
+    pub fn roaring_trailing_zeroes(input_num: ::core::ffi::c_ulonglong) -> ::core::ffi::c_int;
 }
 extern "C" {
     #[doc = " result might be undefined when input_num is zero"]
-    pub fn roaring_leading_zeroes(input_num: ::std::os::raw::c_ulonglong) -> ::std::os::raw::c_int;
+    pub fn roaring_leading_zeroes(input_num: ::core::ffi::c_ulonglong) -> ::core::ffi::c_int;
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -174,14 +173,14 @@ extern "C" {
         startfrom: *mut usize,
     ) -> usize;
 }
-pub type bitset_iterator = ::std::option::Option<
-    unsafe extern "C" fn(value: usize, param: *mut ::std::os::raw::c_void) -> bool,
+pub type bitset_iterator = ::core::option::Option<
+    unsafe extern "C" fn(value: usize, param: *mut ::core::ffi::c_void) -> bool,
 >;
 extern "C" {
     pub fn bitset_for_each(
         b: *const bitset_t,
         iterator: bitset_iterator,
-        ptr: *mut ::std::os::raw::c_void,
+        ptr: *mut ::core::ffi::c_void,
     ) -> bool;
 }
 extern "C" {
@@ -372,8 +371,8 @@ extern "C" {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct roaring_bulk_context_s {
-    pub container: *mut ::std::os::raw::c_void,
-    pub idx: ::std::os::raw::c_int,
+    pub container: *mut ::core::ffi::c_void,
+    pub idx: ::core::ffi::c_int,
     pub key: u16,
     pub typecode: u8,
 }
@@ -500,17 +499,17 @@ extern "C" {
     #[doc = " Write the bitmap to an output pointer, this output buffer should refer to\n at least `roaring_bitmap_size_in_bytes(r)` allocated bytes.\n\n See `roaring_bitmap_portable_serialize()` if you want a format that's\n compatible with Java and Go implementations.  This format can sometimes be\n more space efficient than the portable form, e.g. when the data is sparse.\n\n Returns how many bytes written, should be `roaring_bitmap_size_in_bytes(r)`.\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring_bitmap_serialize(
         r: *const roaring_bitmap_t,
-        buf: *mut ::std::os::raw::c_char,
+        buf: *mut ::core::ffi::c_char,
     ) -> usize;
 }
 extern "C" {
     #[doc = " Use with `roaring_bitmap_serialize()`.\n\n (See `roaring_bitmap_portable_deserialize()` if you want a format that's\n compatible with Java and Go implementations).\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
-    pub fn roaring_bitmap_deserialize(buf: *const ::std::os::raw::c_void) -> *mut roaring_bitmap_t;
+    pub fn roaring_bitmap_deserialize(buf: *const ::core::ffi::c_void) -> *mut roaring_bitmap_t;
 }
 extern "C" {
     #[doc = " Use with `roaring_bitmap_serialize()`.\n\n (See `roaring_bitmap_portable_deserialize_safe()` if you want a format that's\n compatible with Java and Go implementations).\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems.\n\n The difference with `roaring_bitmap_deserialize()` is that this function\n checks that the input buffer is a valid bitmap.  If the buffer is too small,\n NULL is returned."]
     pub fn roaring_bitmap_deserialize_safe(
-        buf: *const ::std::os::raw::c_void,
+        buf: *const ::core::ffi::c_void,
         maxbytes: usize,
     ) -> *mut roaring_bitmap_t;
 }
@@ -521,26 +520,26 @@ extern "C" {
 extern "C" {
     #[doc = " Read bitmap from a serialized buffer.\n In case of failure, NULL is returned.\n\n This function is unsafe in the sense that if there is no valid serialized\n bitmap at the pointer, then many bytes could be read, possibly causing a\n buffer overflow.  See also roaring_bitmap_portable_deserialize_safe().\n\n This is meant to be compatible with the Java and Go versions:\n https://github.com/RoaringBitmap/RoaringFormatSpec\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring_bitmap_portable_deserialize(
-        buf: *const ::std::os::raw::c_char,
+        buf: *const ::core::ffi::c_char,
     ) -> *mut roaring_bitmap_t;
 }
 extern "C" {
     #[doc = " Read bitmap from a serialized buffer safely (reading up to maxbytes).\n In case of failure, NULL is returned.\n\n This is meant to be compatible with the Java and Go versions:\n https://github.com/RoaringBitmap/RoaringFormatSpec\n\n The function itself is safe in the sense that it will not cause buffer\n overflows. However, for correct operations, it is assumed that the bitmap\n read was once serialized from a valid bitmap (i.e., it follows the format\n specification). If you provided an incorrect input (garbage), then the bitmap\n read may not be in a valid state and following operations may not lead to\n sensible results. In particular, the serialized array containers need to be\n in sorted order, and the run containers should be in sorted non-overlapping\n order. This is is guaranteed to happen when serializing an existing bitmap,\n but not for random inputs.\n\n You may use roaring_bitmap_internal_validate to check the validity of the\n bitmap prior to using it. You may also use other strategies to check for\n corrupted inputs (e.g., checksums).\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring_bitmap_portable_deserialize_safe(
-        buf: *const ::std::os::raw::c_char,
+        buf: *const ::core::ffi::c_char,
         maxbytes: usize,
     ) -> *mut roaring_bitmap_t;
 }
 extern "C" {
     #[doc = " Read bitmap from a serialized buffer.\n In case of failure, NULL is returned.\n\n Bitmap returned by this function can be used in all readonly contexts.\n Bitmap must be freed as usual, by calling roaring_bitmap_free().\n Underlying buffer must not be freed or modified while it backs any bitmaps.\n\n The function is unsafe in the following ways:\n 1) It may execute unaligned memory accesses.\n 2) A buffer overflow may occur if buf does not point to a valid serialized\n    bitmap.\n\n This is meant to be compatible with the Java and Go versions:\n https://github.com/RoaringBitmap/RoaringFormatSpec\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring_bitmap_portable_deserialize_frozen(
-        buf: *const ::std::os::raw::c_char,
+        buf: *const ::core::ffi::c_char,
     ) -> *mut roaring_bitmap_t;
 }
 extern "C" {
     #[doc = " Check how many bytes would be read (up to maxbytes) at this pointer if there\n is a bitmap, returns zero if there is no valid bitmap.\n\n This is meant to be compatible with the Java and Go versions:\n https://github.com/RoaringBitmap/RoaringFormatSpec"]
     pub fn roaring_bitmap_portable_deserialize_size(
-        buf: *const ::std::os::raw::c_char,
+        buf: *const ::core::ffi::c_char,
         maxbytes: usize,
     ) -> usize;
 }
@@ -552,7 +551,7 @@ extern "C" {
     #[doc = " Write a bitmap to a char buffer.  The output buffer should refer to at least\n `roaring_bitmap_portable_size_in_bytes(r)` bytes of allocated memory.\n\n Returns how many bytes were written which should match\n `roaring_bitmap_portable_size_in_bytes(r)`.\n\n This is meant to be compatible with the Java and Go versions:\n https://github.com/RoaringBitmap/RoaringFormatSpec\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring_bitmap_portable_serialize(
         r: *const roaring_bitmap_t,
-        buf: *mut ::std::os::raw::c_char,
+        buf: *mut ::core::ffi::c_char,
     ) -> usize;
 }
 extern "C" {
@@ -563,13 +562,13 @@ extern "C" {
     #[doc = " Serializes bitmap using frozen format.\n Buffer size must be at least roaring_bitmap_frozen_size_in_bytes().\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring_bitmap_frozen_serialize(
         r: *const roaring_bitmap_t,
-        buf: *mut ::std::os::raw::c_char,
+        buf: *mut ::core::ffi::c_char,
     );
 }
 extern "C" {
     #[doc = " Creates constant bitmap that is a view of a given buffer.\n Buffer data should have been written by `roaring_bitmap_frozen_serialize()`\n Its beginning must also be aligned by 32 bytes.\n Length must be equal exactly to `roaring_bitmap_frozen_size_in_bytes()`.\n In case of failure, NULL is returned.\n\n Bitmap returned by this function can be used in all readonly contexts.\n Bitmap must be freed as usual, by calling roaring_bitmap_free().\n Underlying buffer must not be freed or modified while it backs any bitmaps.\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring_bitmap_frozen_view(
-        buf: *const ::std::os::raw::c_char,
+        buf: *const ::core::ffi::c_char,
         length: usize,
     ) -> *const roaring_bitmap_t;
 }
@@ -578,7 +577,7 @@ extern "C" {
     pub fn roaring_iterate(
         r: *const roaring_bitmap_t,
         iterator: roaring_iterator,
-        ptr: *mut ::std::os::raw::c_void,
+        ptr: *mut ::core::ffi::c_void,
     ) -> bool;
 }
 extern "C" {
@@ -586,7 +585,7 @@ extern "C" {
         r: *const roaring_bitmap_t,
         iterator: roaring_iterator64,
         high_bits: u64,
-        ptr: *mut ::std::os::raw::c_void,
+        ptr: *mut ::core::ffi::c_void,
     ) -> bool;
 }
 extern "C" {
@@ -687,7 +686,7 @@ extern "C" {
     #[doc = " Perform internal consistency checks. Returns true if the bitmap is\n consistent. It may be useful to call this after deserializing bitmaps from\n untrusted sources. If roaring_bitmap_internal_validate returns true, then the\n bitmap should be consistent and can be trusted not to cause crashes or memory\n corruption.\n\n Note that some operations intentionally leave bitmaps in an inconsistent\n state temporarily, for example, `roaring_bitmap_lazy_*` functions, until\n `roaring_bitmap_repair_after_lazy` is called.\n\n If reason is non-null, it will be set to a string describing the first\n inconsistency found if any."]
     pub fn roaring_bitmap_internal_validate(
         r: *const roaring_bitmap_t,
-        reason: *mut *const ::std::os::raw::c_char,
+        reason: *mut *const ::core::ffi::c_char,
     ) -> bool;
 }
 #[doc = " A struct used to keep iterator state. Users should only access\n `current_value` and `has_value`, the rest of the type should be treated as\n opaque."]
@@ -695,7 +694,7 @@ extern "C" {
 #[derive(Debug, Copy, Clone)]
 pub struct roaring_uint32_iterator_s {
     pub parent: *const roaring_bitmap_t,
-    pub container: *const ::std::os::raw::c_void,
+    pub container: *const ::core::ffi::c_void,
     pub typecode: u8,
     pub container_index: i32,
     pub highbits: u32,
@@ -753,23 +752,20 @@ extern "C" {
     ) -> u32;
 }
 pub type roaring_malloc_p =
-    ::std::option::Option<unsafe extern "C" fn(arg1: usize) -> *mut ::std::os::raw::c_void>;
-pub type roaring_realloc_p = ::std::option::Option<
-    unsafe extern "C" fn(
-        arg1: *mut ::std::os::raw::c_void,
-        arg2: usize,
-    ) -> *mut ::std::os::raw::c_void,
+    ::core::option::Option<unsafe extern "C" fn(arg1: usize) -> *mut ::core::ffi::c_void>;
+pub type roaring_realloc_p = ::core::option::Option<
+    unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void, arg2: usize) -> *mut ::core::ffi::c_void,
 >;
-pub type roaring_calloc_p = ::std::option::Option<
-    unsafe extern "C" fn(arg1: usize, arg2: usize) -> *mut ::std::os::raw::c_void,
+pub type roaring_calloc_p = ::core::option::Option<
+    unsafe extern "C" fn(arg1: usize, arg2: usize) -> *mut ::core::ffi::c_void,
 >;
 pub type roaring_free_p =
-    ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>;
-pub type roaring_aligned_malloc_p = ::std::option::Option<
-    unsafe extern "C" fn(arg1: usize, arg2: usize) -> *mut ::std::os::raw::c_void,
+    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
+pub type roaring_aligned_malloc_p = ::core::option::Option<
+    unsafe extern "C" fn(arg1: usize, arg2: usize) -> *mut ::core::ffi::c_void,
 >;
 pub type roaring_aligned_free_p =
-    ::std::option::Option<unsafe extern "C" fn(arg1: *mut ::std::os::raw::c_void)>;
+    ::core::option::Option<unsafe extern "C" fn(arg1: *mut ::core::ffi::c_void)>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct roaring_memory_s {
@@ -785,25 +781,23 @@ extern "C" {
     pub fn roaring_init_memory_hook(memory_hook: roaring_memory_t);
 }
 extern "C" {
-    pub fn roaring_malloc(arg1: usize) -> *mut ::std::os::raw::c_void;
+    pub fn roaring_malloc(arg1: usize) -> *mut ::core::ffi::c_void;
 }
 extern "C" {
-    pub fn roaring_realloc(
-        arg1: *mut ::std::os::raw::c_void,
-        arg2: usize,
-    ) -> *mut ::std::os::raw::c_void;
+    pub fn roaring_realloc(arg1: *mut ::core::ffi::c_void, arg2: usize)
+        -> *mut ::core::ffi::c_void;
 }
 extern "C" {
-    pub fn roaring_calloc(arg1: usize, arg2: usize) -> *mut ::std::os::raw::c_void;
+    pub fn roaring_calloc(arg1: usize, arg2: usize) -> *mut ::core::ffi::c_void;
 }
 extern "C" {
-    pub fn roaring_free(arg1: *mut ::std::os::raw::c_void);
+    pub fn roaring_free(arg1: *mut ::core::ffi::c_void);
 }
 extern "C" {
-    pub fn roaring_aligned_malloc(arg1: usize, arg2: usize) -> *mut ::std::os::raw::c_void;
+    pub fn roaring_aligned_malloc(arg1: usize, arg2: usize) -> *mut ::core::ffi::c_void;
 }
 extern "C" {
-    pub fn roaring_aligned_free(arg1: *mut ::std::os::raw::c_void);
+    pub fn roaring_aligned_free(arg1: *mut ::core::ffi::c_void);
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -983,7 +977,7 @@ extern "C" {
     #[doc = " Perform internal consistency checks.\n\n Returns true if the bitmap is consistent. It may be useful to call this\n after deserializing bitmaps from untrusted sources. If\n roaring64_bitmap_internal_validate returns true, then the bitmap is\n consistent and can be trusted not to cause crashes or memory corruption.\n\n If reason is non-null, it will be set to a string describing the first\n inconsistency found if any."]
     pub fn roaring64_bitmap_internal_validate(
         r: *const roaring64_bitmap_t,
-        reason: *mut *const ::std::os::raw::c_char,
+        reason: *mut *const ::core::ffi::c_char,
     ) -> bool;
 }
 extern "C" {
@@ -1136,20 +1130,20 @@ extern "C" {
     #[doc = " Write a bitmap to a buffer. The output buffer should refer to at least\n `roaring64_bitmap_portable_size_in_bytes(r)` bytes of allocated memory.\n\n Returns how many bytes were written, which should match\n `roaring64_bitmap_portable_size_in_bytes(r)`.\n\n This is meant to be compatible with other languages:\n https://github.com/RoaringBitmap/RoaringFormatSpec#extension-for-64-bit-implementations\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring64_bitmap_portable_serialize(
         r: *const roaring64_bitmap_t,
-        buf: *mut ::std::os::raw::c_char,
+        buf: *mut ::core::ffi::c_char,
     ) -> usize;
 }
 extern "C" {
     #[doc = " Check how many bytes would be read (up to maxbytes) at this pointer if there\n is a valid bitmap, returns zero if there is no valid bitmap.\n\n This is meant to be compatible with other languages\n https://github.com/RoaringBitmap/RoaringFormatSpec#extension-for-64-bit-implementations"]
     pub fn roaring64_bitmap_portable_deserialize_size(
-        buf: *const ::std::os::raw::c_char,
+        buf: *const ::core::ffi::c_char,
         maxbytes: usize,
     ) -> usize;
 }
 extern "C" {
     #[doc = " Read a bitmap from a serialized buffer safely (reading up to maxbytes).\n In case of failure, NULL is returned.\n\n This is meant to be compatible with other languages\n https://github.com/RoaringBitmap/RoaringFormatSpec#extension-for-64-bit-implementations\n\n The function itself is safe in the sense that it will not cause buffer\n overflows. However, for correct operations, it is assumed that the bitmap\n read was once serialized from a valid bitmap (i.e., it follows the format\n specification). If you provided an incorrect input (garbage), then the bitmap\n read may not be in a valid state and following operations may not lead to\n sensible results. In particular, the serialized array containers need to be\n in sorted order, and the run containers should be in sorted non-overlapping\n order. This is is guaranteed to happen when serializing an existing bitmap,\n but not for random inputs.\n\n This function is endian-sensitive. If you have a big-endian system (e.g., a\n mainframe IBM s390x), the data format is going to be big-endian and not\n compatible with little-endian systems."]
     pub fn roaring64_bitmap_portable_deserialize_safe(
-        buf: *const ::std::os::raw::c_char,
+        buf: *const ::core::ffi::c_char,
         maxbytes: usize,
     ) -> *mut roaring64_bitmap_t;
 }
@@ -1158,7 +1152,7 @@ extern "C" {
     pub fn roaring64_bitmap_iterate(
         r: *const roaring64_bitmap_t,
         iterator: roaring_iterator64,
-        ptr: *mut ::std::os::raw::c_void,
+        ptr: *mut ::core::ffi::c_void,
     ) -> bool;
 }
 extern "C" {
