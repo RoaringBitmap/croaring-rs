@@ -13,9 +13,6 @@ documentation = "https://docs.rs/croaring"
 
 [features]
 default = ["std"]
-# This feature is now a no-op, but we keep it for backwards compatibility
-# pre-built bindgen is _always_ used
-buildtime_bindgen = []
 # Include alloc to get features that depend on an allocator (treemap, serializing to vec, etc)
 # enabled by default
 alloc = []

@@ -13,9 +13,6 @@ categories = ["no-std::no-alloc", "external-ffi-bindings", "data-structures"]
 
 [features]
 default = []
-# This feature is now a no-op, but we keep it for backwards compatibility
-# pre-built bindgen is _always_ used
-buildtime_bindgen = []
 
 [lib]
 doctest = false
