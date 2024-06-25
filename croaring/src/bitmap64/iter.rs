@@ -1,7 +1,7 @@
 use crate::Bitmap64;
-use std::marker::PhantomData;
-use std::mem::{ManuallyDrop, MaybeUninit};
-use std::ptr::NonNull;
+use core::marker::PhantomData;
+use core::mem::{ManuallyDrop, MaybeUninit};
+use core::ptr::NonNull;
 
 impl FromIterator<u64> for Bitmap64 {
     /// Convenience method for creating bitmap from iterator.

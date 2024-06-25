@@ -24,18 +24,19 @@ pub enum Frozen {}
 impl Frozen {
     /// The frozen format requires bitmaps are aligned to 32 bytes.
     pub const REQUIRED_ALIGNMENT: usize = 32;
-
-    // The most padding required to get 32 byte alignment is 31 bytes.
-    pub(crate) const MAX_PADDING: usize = Self::REQUIRED_ALIGNMENT - 1;
-
-    #[inline]
-    pub(crate) const fn required_padding(x: usize) -> usize {
-        match x % Self::REQUIRED_ALIGNMENT {
-            0 => 0,
-            r => Self::REQUIRED_ALIGNMENT - r,
-        }
-    }
 }
+
+mod private {
+    use crate::{Native, Portable};
+
+    #[allow(unused)]
+    pub trait NoAlign: crate::sealed::Sealed {}
+    impl NoAlign for Native {}
+    impl NoAlign for Portable {}
+}
+
+#[allow(unused)]
+pub(crate) use private::NoAlign;
 
 /// The `JvmLegacy` format is meant to be compatible with the original Java implementation of `Roaring64NavigableMap`
 ///
@@ -43,3 +44,33 @@ impl Frozen {
 ///
 /// See <https://github.com/RoaringBitmap/RoaringBitmap/blob/2669c4f5a49ee7da5ff4cd70e18ee5520018d6a5/RoaringBitmap/src/main/java/org/roaringbitmap/longlong/Roaring64NavigableMap.java#L1215-L1238>
 pub enum JvmLegacy {}
+
+#[cfg(feature = "alloc")]
+pub(crate) fn get_aligned_spare_capacity(
+    dst: &mut alloc::vec::Vec<u8>,
+    align: usize,
+    required_len: usize,
+) -> &mut [core::mem::MaybeUninit<u8>] {
+    let max_padding = align - 1;
+    let extra_align_required =
+        |v: &mut alloc::vec::Vec<u8>| v.spare_capacity_mut().as_ptr().align_offset(align);
+    let mut extra_offset = extra_align_required(dst);
+    if dst.spare_capacity_mut().len() < required_len + extra_offset {
+        dst.reserve(required_len.checked_add(max_padding).unwrap());
+        // Need to recompute offset after reserve, as the buffer may have been reallocated and
+        // the end of the buffer may be somewhere else
+        extra_offset = extra_align_required(dst);
+    }
+    let mut data_start = dst.len();
+    if extra_offset != 0 {
+        data_start = data_start.checked_add(extra_offset).unwrap();
+        // we must initialize up to offset
+        dst.resize(data_start, 0);
+    }
+    debug_assert_eq!(dst.len(), data_start);
+    let spare_capacity = dst.spare_capacity_mut();
+    debug_assert!(spare_capacity.len() >= required_len);
+    debug_assert_eq!(spare_capacity.as_ptr().align_offset(align), 0);
+
+    &mut spare_capacity[..required_len]
+}

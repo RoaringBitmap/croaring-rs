@@ -31,7 +31,10 @@
 //! rb3.add(5);
 //! rb3.or_inplace(&rb1);
 //!
+//! # #[cfg(feature = "alloc")]
 //! let mut rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
+//! # #[cfg(not(feature = "alloc"))]
+//! # let mut rb4 = Bitmap::new();
 //!
 //! rb1.and_inplace(&rb2);
 //! println!("{:?}", rb1);
@@ -44,16 +47,20 @@
 //! rb3.add(5);
 //! rb3.or_inplace(&rb1);
 //!
+//! # #[cfg(feature = "alloc")]
 //! println!("{:?}", rb3.to_vec());
 //! println!("{:?}", rb3);
 //! println!("{:?}", rb4);
 //!
+//! # #[cfg(feature = "alloc")]
+//! # {
 //! rb4 = Bitmap::fast_or(&[&rb1, &rb2, &rb3]);
+//! # }
 //!
 //! println!("{:?}", rb4);
 //! ```
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
 
 /// A compressed bitmap
 // Must be repr(transparent) and match BitmapView, to allow safe transmute between
@@ -91,4 +98,4 @@ mod view;
 
 pub use self::iter::{BitmapCursor, BitmapIterator};
 pub use self::lazy::LazyBitmap;
-pub use self::serialization::{Deserializer, Serializer, ViewDeserializer};
+pub use self::serialization::{Deserializer, Serializer};

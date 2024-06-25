@@ -1,13 +1,12 @@
 use crate::bitmap64::Bitmap64;
 use crate::bitmap64::{Deserializer, Serializer};
-use crate::callback::CallbackWrapper;
-use std::collections::Bound;
-use std::ffi::CStr;
-use std::mem::MaybeUninit;
-use std::ops::{ControlFlow, RangeBounds};
-use std::panic;
-use std::ptr;
-use std::ptr::NonNull;
+use core::mem::MaybeUninit;
+use core::ops::{Bound, RangeBounds};
+use core::prelude::v1::*;
+use core::ptr::{self, NonNull};
+
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 
 impl Bitmap64 {
     #[inline]
@@ -66,7 +65,7 @@ impl Bitmap64 {
     /// use std::ops::Bound;
     /// use croaring::Bitmap64;
     /// let bitmap = Bitmap64::from_range_with_step(0..10, 3);
-    /// assert_eq!(bitmap.to_vec(), vec![0, 3, 6, 9]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![0, 3, 6, 9]);
     ///
     /// // empty ranges
     /// assert_eq!(Bitmap64::from_range_with_step(0..0, 1), Bitmap64::new());
@@ -83,13 +82,13 @@ impl Bitmap64 {
     ///
     /// // Exclusive ranges still step from the start, but do not include it
     /// let bitmap = Bitmap64::from_range_with_step((Bound::Excluded(10), Bound::Included(30)), 10);
-    /// assert_eq!(bitmap.to_vec(), vec![20, 30]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![20, 30]);
     ///
     /// // Ranges including max value
     /// let bitmap = Bitmap64::from_range_with_step((u64::MAX - 1)..=u64::MAX, 1);
-    /// assert_eq!(bitmap.to_vec(), vec![u64::MAX - 1, u64::MAX]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![u64::MAX - 1, u64::MAX]);
     /// let bitmap = Bitmap64::from_range_with_step((u64::MAX - 1)..=u64::MAX, 3);
-    /// assert_eq!(bitmap.to_vec(), vec![u64::MAX - 1]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![u64::MAX - 1]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_from_range")]
@@ -274,7 +273,7 @@ impl Bitmap64 {
     /// use croaring::Bitmap64;
     /// let mut bitmap = Bitmap64::of(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
     /// bitmap.remove_many(&[1, 2, 3, 4, 5, 6, 7, 8]);
-    /// assert_eq!(bitmap.to_vec(), vec![9]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![9]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_remove_many")]
@@ -295,7 +294,7 @@ impl Bitmap64 {
     /// use croaring::Bitmap64;
     /// let mut bitmap = Bitmap64::of(&[1, 2, 3, 4, 5, 6, 7, 8, 9]);
     /// bitmap.remove_all(1..=8); // Remove all values from iterator
-    /// assert_eq!(bitmap.to_vec(), vec![9]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![9]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_remove_bulk")]
@@ -317,10 +316,10 @@ impl Bitmap64 {
     /// use croaring::Bitmap64;
     /// let mut bitmap = Bitmap64::new();
     /// bitmap.add_range(1..4);
-    /// assert_eq!(bitmap.to_vec(), vec![1, 2, 3]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![1, 2, 3]);
     ///
     /// bitmap.remove_range(1..=2);
-    /// assert_eq!(bitmap.to_vec(), vec![3]);
+    /// assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![3]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_remove_range_closed")]
@@ -722,7 +721,7 @@ impl Bitmap64 {
     /// assert!(bitmap2.contains(4));
     ///
     /// let bitmap3 = bitmap1.flip(1..=5);
-    /// assert_eq!(bitmap3.to_vec(), [1, 2, 3, 5])
+    /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), [1, 2, 3, 5])
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_flip")]
@@ -757,7 +756,7 @@ impl Bitmap64 {
     /// assert!(!bitmap1.contains(3));
     /// assert!(bitmap1.contains(4));
     /// bitmap1.flip_inplace(4..=4);
-    /// assert_eq!(bitmap1.to_vec(), [1, 2]);
+    /// assert_eq!(bitmap1.iter().collect::<Vec<_>>(), [1, 2]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_flip_inplace")]
@@ -776,13 +775,14 @@ impl Bitmap64 {
     /// assert_eq!(bitmap.to_vec(), vec![1, 2, 3]);
     /// ```
     #[must_use]
+    #[cfg(feature = "alloc")]
     pub fn to_vec(&self) -> Vec<u64> {
         let len = self
             .cardinality()
             .try_into()
             .expect("cardinality must fit in a usize");
 
-        let mut vec = vec![0; len];
+        let mut vec = alloc::vec![0; len];
         unsafe { ffi::roaring64_bitmap_to_uint64_array(self.raw.as_ptr(), vec.as_mut_ptr()) };
         vec
     }
@@ -811,9 +811,11 @@ impl Bitmap64 {
     /// ```
     #[inline]
     #[must_use]
-    pub fn serialize<S: Serializer>(&self) -> Vec<u8> {
+    #[cfg(feature = "alloc")]
+    pub fn serialize<S: Serializer + crate::serialization::NoAlign>(&self) -> Vec<u8> {
         let mut dst = Vec::new();
-        self.serialize_into::<S>(&mut dst);
+        let res = self.serialize_into_vec::<S>(&mut dst);
+        debug_assert_eq!(res.as_ptr(), dst.as_ptr());
         dst
     }
 
@@ -833,14 +835,30 @@ impl Bitmap64 {
     /// let mut data = Vec::new();
     /// for bitmap in [original_bitmap_1, original_bitmap_2] {
     ///     data.clear();
-    ///     bitmap.serialize_into::<Portable>(&mut data);
+    ///     bitmap.serialize_into_vec::<Portable>(&mut data);
     ///     // do something with data
     /// }
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_portable_serialize")]
-    pub fn serialize_into<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        S::serialize_into(self, dst)
+    #[cfg(feature = "alloc")]
+    pub fn serialize_into_vec<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
+        S::serialize_into_vec(self, dst)
+    }
+
+    /// Serializes a bitmap to a slice of bytes in format `S`
+    ///
+    /// Returns the serialized data if the buffer was large enough, otherwise None.
+    ///
+    /// See [`Self::get_serialized_size_in_bytes`] to determine the required buffer size.
+    /// Note also that some ([`crate::Frozen`]) formats require alignment, so the buffer size may need to
+    /// be larger than the serialized size.
+    ///
+    /// See also [`Self::serialize_into_vec`] for a version that uses a Vec instead, or, for
+    /// advanced use-cases, see [`Serializer::try_serialize_into`].
+    #[inline]
+    pub fn try_serialize_into<'a, S: Serializer>(&self, dst: &'a mut [u8]) -> Option<&'a mut [u8]> {
+        S::try_serialize_into_aligned(self, dst)
     }
 
     /// Given a serialized bitmap as slice of bytes in format `S`, returns a `Bitmap64` instance.
@@ -854,9 +872,10 @@ impl Bitmap64 {
     /// use croaring::{Bitmap64, Portable};
     ///
     /// let original_bitmap: Bitmap64 = (1..5).collect();
-    /// let serialized_buffer = original_bitmap.serialize::<Portable>();
+    /// let mut buf = [0; 1024];
+    /// let serialized_buffer: &[u8] = original_bitmap.try_serialize_into::<Portable>(&mut buf).unwrap();
     ///
-    /// let deserialized_bitmap = Bitmap64::try_deserialize::<Portable>(&serialized_buffer);
+    /// let deserialized_bitmap = Bitmap64::try_deserialize::<Portable>(serialized_buffer);
     /// assert_eq!(original_bitmap, deserialized_bitmap.unwrap());
     ///
     /// let invalid_buffer: Vec<u8> = vec![3];
@@ -906,18 +925,25 @@ impl Bitmap64 {
     /// assert_eq!(first_over_50, ControlFlow::Break(100));
     /// ```
     #[inline]
-    pub fn for_each<F, O>(&self, f: F) -> ControlFlow<O>
+    pub fn for_each<F, O>(&self, f: F) -> core::ops::ControlFlow<O>
     where
-        F: FnMut(u64) -> ControlFlow<O>,
+        F: FnMut(u64) -> core::ops::ControlFlow<O>,
     {
-        let mut callback_wrapper = CallbackWrapper::new(f);
-        let (callback, context) = callback_wrapper.callback_and_ctx();
-        unsafe {
-            ffi::roaring64_bitmap_iterate(self.raw.as_ptr(), Some(callback), context);
+        #[cfg(feature = "std")]
+        {
+            let mut callback_wrapper = crate::callback::CallbackWrapper::new(f);
+            let (callback, context) = callback_wrapper.callback_and_ctx();
+            unsafe {
+                ffi::roaring64_bitmap_iterate(self.raw.as_ptr(), Some(callback), context);
+            }
+            match callback_wrapper.result() {
+                Ok(cf) => cf,
+                Err(e) => std::panic::resume_unwind(e),
+            }
         }
-        match callback_wrapper.result() {
-            Ok(cf) => cf,
-            Err(e) => panic::resume_unwind(e),
+        #[cfg(not(feature = "std"))]
+        {
+            self.iter().try_for_each(f)
         }
     }
 
@@ -951,8 +977,8 @@ impl Bitmap64 {
             if error_str.is_null() {
                 return Err("Unknown error");
             }
-            let reason = unsafe { CStr::from_ptr(error_str) };
-            Err(reason.to_str().unwrap_or("Invalid UTF-8"))
+            let reason = unsafe { core::ffi::CStr::from_ptr(error_str) };
+            Err(reason.to_str().unwrap_or("Invalid UTF-8 in error message"))
         }
     }
 }
@@ -1107,7 +1133,7 @@ impl Bitmap64 {
     /// let bitmap1 = Bitmap64::of(&[1, 2, 3]);
     /// let bitmap2 = Bitmap64::of(&[2, 3, 4]);
     /// let bitmap3 = bitmap1.or(&bitmap2);
-    /// assert_eq!(bitmap3.to_vec(), vec![1, 2, 3, 4]);
+    /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), vec![1, 2, 3, 4]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_or")]
@@ -1147,7 +1173,7 @@ impl Bitmap64 {
     /// let mut bitmap1 = Bitmap64::of(&[1, 2, 3]);
     /// let bitmap2 = Bitmap64::of(&[2, 3, 4]);
     /// bitmap1.or_inplace(&bitmap2);
-    /// assert_eq!(bitmap1.to_vec(), vec![1, 2, 3, 4]);
+    /// assert_eq!(bitmap1.iter().collect::<Vec<_>>(), vec![1, 2, 3, 4]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_or_inplace")]
@@ -1164,7 +1190,7 @@ impl Bitmap64 {
     /// let bitmap1 = Bitmap64::of(&[1, 2, 3]);
     /// let bitmap2 = Bitmap64::of(&[2, 3, 4]);
     /// let bitmap3 = bitmap1.xor(&bitmap2);
-    /// assert_eq!(bitmap3.to_vec(), vec![1, 4]);
+    /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), vec![1, 4]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_xor")]
@@ -1204,7 +1230,7 @@ impl Bitmap64 {
     /// let mut bitmap1 = Bitmap64::of(&[1, 2, 3]);
     /// let bitmap2 = Bitmap64::of(&[2, 3, 4]);
     /// bitmap1.xor_inplace(&bitmap2);
-    /// assert_eq!(bitmap1.to_vec(), vec![1, 4]);
+    /// assert_eq!(bitmap1.iter().collect::<Vec<_>>(), vec![1, 4]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_xor_inplace")]
@@ -1221,7 +1247,7 @@ impl Bitmap64 {
     /// let bitmap1 = Bitmap64::of(&[1, 2, 3]);
     /// let bitmap2 = Bitmap64::of(&[2, 3, 4]);
     /// let bitmap3 = bitmap1.andnot(&bitmap2);
-    /// assert_eq!(bitmap3.to_vec(), vec![1]);
+    /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), vec![1]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_andnot")]
@@ -1261,7 +1287,7 @@ impl Bitmap64 {
     /// let mut bitmap1 = Bitmap64::of(&[1, 2, 3]);
     /// let bitmap2 = Bitmap64::of(&[2, 3, 4]);
     /// bitmap1.andnot_inplace(&bitmap2);
-    /// assert_eq!(bitmap1.to_vec(), vec![1]);
+    /// assert_eq!(bitmap1.iter().collect::<Vec<_>>(), vec![1]);
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_andnot_inplace")]

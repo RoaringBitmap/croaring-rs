@@ -1,6 +1,6 @@
 [package]
 name = "croaring-sys"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2021"
 authors = ["croaring-rs developers"]
 license = "Apache-2.0"
@@ -9,12 +9,10 @@ readme = "../README.md"
 documentation = "https://docs.rs/croaring-sys"
 build = "build.rs"
 description = "Raw bindings to CRoaring"
+categories = ["no-std::no-alloc", "external-ffi-bindings", "data-structures"]
 
 [features]
 default = []
-# This feature is now a no-op, but we keep it for backwards compatibility
-# pre-built bindgen is _always_ used
-buildtime_bindgen = []
 
 [lib]
 doctest = false

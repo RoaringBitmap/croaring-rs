@@ -1,8 +1,8 @@
 use super::util;
 use crate::bitmap::BitmapIterator;
 use crate::{Bitmap, Treemap};
-use std::collections::btree_map;
-use std::iter;
+use alloc::collections::btree_map;
+use core::iter;
 
 struct To64Iter<'a> {
     key: u32,

@@ -1,9 +1,13 @@
 use crate::{Bitmap64, Portable};
-use std::ffi::c_char;
-use std::num::NonZeroUsize;
+use core::ffi::c_char;
+use core::num::NonZeroUsize;
 
 /// Trait for different formats of bitmap64 serialization
-pub trait Serializer {
+pub trait Serializer: crate::sealed::Sealed {
+    /// The required alignment for the serialized data
+    #[doc(hidden)]
+    const REQUIRED_ALIGNMENT: usize = 1;
+
     /// Serialize a bitmap into bytes, using the provided vec buffer to store the serialized data
     ///
     /// Note that some serializers ([Frozen][crate::Frozen]) may require that the
@@ -13,15 +17,65 @@ pub trait Serializer {
     /// The contents of the provided vec buffer will not be overwritten: only new data will be
     /// appended to the end of the buffer. If the buffer has enough capacity, and the current
     /// end of the buffer is correctly aligned, then no additional allocations will be performed.
-    fn serialize_into<'a>(bitmap: &Bitmap64, dst: &'a mut Vec<u8>) -> &'a [u8];
+    #[doc(hidden)]
+    #[cfg(feature = "alloc")]
+    fn serialize_into_vec<'a>(bitmap: &Bitmap64, dst: &'a mut alloc::vec::Vec<u8>) -> &'a mut [u8] {
+        let len = Self::get_serialized_size_in_bytes(bitmap);
+        let spare_capacity =
+            crate::serialization::get_aligned_spare_capacity(dst, Self::REQUIRED_ALIGNMENT, len);
+        let data_start;
+        unsafe {
+            Self::raw_serialize(bitmap, spare_capacity.as_mut_ptr().cast::<c_char>());
+            data_start = dst.len();
+            let total_len = data_start.checked_add(len).unwrap();
+            dst.set_len(total_len);
+        }
+
+        &mut dst[data_start..]
+    }
+
+    #[doc(hidden)]
+    fn try_serialize_into_aligned<'a>(
+        bitmap: &Bitmap64,
+        dst: &'a mut [u8],
+    ) -> Option<&'a mut [u8]> {
+        let offset = dst.as_ptr().align_offset(Self::REQUIRED_ALIGNMENT);
+        let offset_dst = dst.get_mut(offset..)?;
+        let len = Self::try_serialize_into(bitmap, offset_dst)?;
+        Some(&mut dst[offset..offset + len])
+    }
+
+    /// Serialize a bitmap into bytes, using the provided buffer to store the serialized data
+    ///
+    /// This method does not require the buffer to be aligned, and will return `None` if the buffer
+    /// is not large enough to store the serialized data.
+    ///
+    /// This is a niche method, and is not recommended for general use. The
+    /// [`Bitmap64::try_serialize_into`]/[`Bitmap64::serialize_into_vec`] methods should usually be used
+    /// instead of this method.
+    fn try_serialize_into(bitmap: &Bitmap64, dst: &mut [u8]) -> Option<usize> {
+        let required_len = Self::get_serialized_size_in_bytes(bitmap);
+        if dst.len() < required_len {
+            return None;
+        }
+        unsafe {
+            Self::raw_serialize(bitmap, dst.as_mut_ptr().cast::<c_char>());
+        }
+        Some(required_len)
+    }
+
     /// Get the number of bytes required to serialize this bitmap
     ///
     /// This does not include any additional padding which may be required to align the bitmap
+    #[doc(hidden)]
     fn get_serialized_size_in_bytes(bitmap: &Bitmap64) -> usize;
+
+    #[doc(hidden)]
+    unsafe fn raw_serialize(bitmap: &Bitmap64, dst: *mut c_char);
 }
 
 /// Trait for different formats of bitmap deserialization
-pub trait Deserializer {
+pub trait Deserializer: crate::sealed::Sealed {
     /// Try to deserialize a bitmap from the beginning of the provided buffer
     ///
     /// The [`Bitmap64::try_deserialize`] method should usually be used instead of this method
@@ -54,32 +108,17 @@ pub trait Deserializer {
 }
 
 impl Serializer for Portable {
-    /// Serialize a bitmap to a slice of bytes in portable format.
-    ///
-    /// See [`Bitmap64::serialize_into`] for more details.
-    #[doc(alias = "roaring64_bitmap_portable_serialize")]
-    fn serialize_into<'a>(bitmap: &Bitmap64, dst: &'a mut Vec<u8>) -> &'a [u8] {
-        let len = Self::get_serialized_size_in_bytes(bitmap);
-
-        dst.reserve(len);
-        let offset = dst.len();
-        let total_len = offset.checked_add(len).unwrap();
-
-        unsafe {
-            ffi::roaring64_bitmap_portable_serialize(
-                bitmap.raw.as_ptr(),
-                dst.spare_capacity_mut().as_mut_ptr().cast::<c_char>(),
-            );
-            dst.set_len(total_len);
-        }
-        &dst[offset..]
-    }
-
     /// Computes the serialized size in bytes of the Bitmap in portable format.
     /// See [`Bitmap64::get_serialized_size_in_bytes`] for examples.
     #[doc(alias = "roaring64_bitmap_portable_size_in_bytes")]
     fn get_serialized_size_in_bytes(bitmap: &Bitmap64) -> usize {
         unsafe { ffi::roaring64_bitmap_portable_size_in_bytes(bitmap.raw.as_ptr()) }
+    }
+
+    unsafe fn raw_serialize(bitmap: &Bitmap64, dst: *mut c_char) {
+        unsafe {
+            ffi::roaring64_bitmap_portable_serialize(bitmap.raw.as_ptr(), dst);
+        }
     }
 }
 

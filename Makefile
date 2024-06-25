@@ -31,6 +31,7 @@ bindgen:
 			--allowlist-item '(?i-u:roaring|bitset).*' \
 			--allowlist-var '(?i-u:roaring|bitset).*' \
 			--no-layout-tests \
+			--use-core \
 			-o bindgen_bundled_version.rs \
 			roaring.h
 

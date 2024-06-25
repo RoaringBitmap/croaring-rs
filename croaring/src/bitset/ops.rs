@@ -1,6 +1,6 @@
 use super::Bitset;
-use std::ffi::c_void;
-use std::{fmt, ops};
+use core::ffi::c_void;
+use core::{fmt, ops};
 
 impl Default for Bitset {
     #[inline]

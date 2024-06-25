@@ -8,18 +8,15 @@ on:
     branches:
       - master
 
-env:
-  RUSTFLAGS: -A warnings
-
 jobs:
   test:
-    name: Test on ${{ matrix.os }} using Rust ${{ matrix.rust }} with bindgen features '${{ matrix.cargo_features }}'
+    name: Test on ${{ matrix.os }} using Rust ${{ matrix.rust }} with features '${{ matrix.cargo_features }}'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
         rust: [stable, nightly]
-        cargo_features: ['']
+        cargo_features: ['', 'alloc', 'default']
 
     steps:
     - uses: hecrj/setup-rust-action@v2
@@ -44,33 +41,20 @@ jobs:
       if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly'
 
     - name: Cargo clippy
-      run: cargo +${{ matrix.rust }} clippy --all-targets --workspace --features "${{ matrix.cargo_features }}"
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly' && matrix.cargo_features != ''
-
-    - name: Cargo clippy
-      run: cargo +${{ matrix.rust }} clippy --all-targets --workspace
-      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly' && matrix.cargo_features == ''
-
-    - name: Build
-      run: cargo +${{ matrix.rust }} build --features "${{ matrix.cargo_features }}"
-      if: matrix.cargo_features != ''
-
-    - name: Build
-      run: cargo +${{ matrix.rust }} build
-      if: matrix.cargo_features == ''
+      run: cargo +${{ matrix.rust }} clippy --all-targets --workspace --no-default-features --features "${{ matrix.cargo_features }}"
+      if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
     - name: Test
-      run: cargo +${{ matrix.rust }} test --features "${{ matrix.cargo_features }}"
-      if: matrix.cargo_features != ''
-
-    - name: Test
-      run: cargo +${{ matrix.rust }} test
-      if: matrix.cargo_features == ''
+      run: cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
 
     - name: Benchmark
-      if: matrix.rust == 'nightly'
-      run: cargo +${{ matrix.rust }} bench
+      run: cargo +${{ matrix.rust }} bench --no-default-features --features "${{ matrix.cargo_features }}"
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
     - name: Minimal versions
-      if: matrix.rust == 'nightly'
-      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test
+      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test --no-default-features --features "${{ matrix.cargo_features }}"
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
+      
+    - name: Updated versions
+      run: cargo update && cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
+      if: matrix.rust == 'stable' && matrix.cargo_features == 'default'
