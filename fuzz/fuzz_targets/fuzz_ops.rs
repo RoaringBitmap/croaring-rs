@@ -38,7 +38,7 @@ fn check_serialized(lhs: &mut Bitmap, to_compare: &Bitmap, v: &mut Vec<u8>, inpu
     v.clear();
 
     let data = to_compare.serialize::<Portable>();
-    let data2 = to_compare.serialize_into::<Frozen>(v);
+    let data2 = to_compare.serialize_into_vec::<Frozen>(v);
     let view1 = unsafe { BitmapView::deserialize::<Portable>(&data) };
     assert_eq!(view1, *to_compare);
     let view2 = unsafe { BitmapView::deserialize::<Frozen>(data2) };
