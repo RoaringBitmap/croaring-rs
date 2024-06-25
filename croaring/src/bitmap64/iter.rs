@@ -504,6 +504,7 @@ impl<'a> Bitmap64Iterator<'a> {
     /// # print_by_chunks(&Bitmap64::of(&[1, 2, 8, 20, 1000]));
     /// ```
     #[inline]
+    #[must_use]
     #[doc(alias = "roaring64_iterator_read")]
     pub fn next_many(&mut self, dst: &mut [u64]) -> usize {
         self.cursor.read_many(dst)
@@ -550,6 +551,7 @@ impl<'a> Bitmap64Iterator<'a> {
     /// assert_eq!(iter.next(), Some(1));
     /// ```
     #[inline]
+    #[must_use]
     pub fn peek(&self) -> Option<u64> {
         self.cursor.current()
     }

@@ -41,6 +41,7 @@ impl Bitmap64 {
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_of_ptr")]
+    #[must_use]
     pub fn of(slice: &[u64]) -> Self {
         unsafe { Self::take_heap(ffi::roaring64_bitmap_of_ptr(slice.len(), slice.as_ptr())) }
     }
@@ -48,6 +49,7 @@ impl Bitmap64 {
     /// Create a new bitmap containing all the values in a range
     #[inline]
     #[doc(alias = "roaring64_bitmap_from_range")]
+    #[must_use]
     pub fn from_range<R: RangeBounds<u64>>(range: R) -> Self {
         Self::from_range_with_step(range, 1)
     }
@@ -91,6 +93,7 @@ impl Bitmap64 {
     /// ```
     #[inline]
     #[doc(alias = "roaring64_bitmap_from_range")]
+    #[must_use]
     pub fn from_range_with_step<R: RangeBounds<u64>>(range: R, step: u64) -> Self {
         // This can't use `range_to_exclusive` because when the start is excluded, we want
         // to start at the next step, not one more
@@ -461,6 +464,9 @@ impl Bitmap64 {
     /// assert!(!bitmap4.is_strict_subset(&bitmap1));
     /// assert!(!bitmap1.is_strict_subset(&bitmap1));
     ///
+    #[inline]
+    #[must_use]
+    #[doc(alias = "roaring64_bitmap_is_strict_subset")]
     pub fn is_strict_subset(&self, other: &Self) -> bool {
         unsafe { ffi::roaring64_bitmap_is_strict_subset(self.raw.as_ptr(), other.raw.as_ptr()) }
     }
@@ -575,6 +581,7 @@ impl Bitmap64 {
     /// assert!(bitmap.contains_range(10..0));
     /// ```
     #[inline]
+    #[must_use]
     #[doc(alias = "roaring64_bitmap_contains_range")]
     pub fn contains_range<R: RangeBounds<u64>>(&self, range: R) -> bool {
         let Some(exclusive_range) = range_to_exclusive(range) else {
@@ -821,7 +828,8 @@ impl Bitmap64 {
     /// Serializes a bitmap to a slice of bytes in format `S`, re-using existing capacity
     ///
     /// `dst` is not cleared, data is added after any existing data. Returns the added slice of `dst`.
-    /// If `dst` is empty, it is guaranteed to hold only the serialized data after this call
+    /// Because of alignment requirements, the serialized data may not start at the beginning of
+    /// `dst`: the returned slice may not start at `dst.as_ptr()`.
     ///
     /// # Examples
     ///
@@ -834,11 +842,13 @@ impl Bitmap64 {
     /// let mut data = Vec::new();
     /// for bitmap in [original_bitmap_1, original_bitmap_2] {
     ///     data.clear();
-    ///     bitmap.serialize_into_vec::<Portable>(&mut data);
-    ///     // do something with data
+    ///     let serialized = bitmap.serialize_into_vec::<Portable>(&mut data);
+    ///     // do something with serialized
+    ///     # let _ = serialized;
     /// }
     /// ```
     #[inline]
+    #[must_use]
     #[doc(alias = "roaring64_bitmap_portable_serialize")]
     #[cfg(feature = "alloc")]
     pub fn serialize_into_vec<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a [u8] {
@@ -856,6 +866,7 @@ impl Bitmap64 {
     /// See also [`Self::serialize_into_vec`] for a version that uses a Vec instead, or, for
     /// advanced use-cases, see [`Serializer::try_serialize_into`].
     #[inline]
+    #[must_use]
     pub fn try_serialize_into<'a, S: Serializer>(&self, dst: &'a mut [u8]) -> Option<&'a mut [u8]> {
         S::try_serialize_into_aligned(self, dst)
     }
@@ -892,6 +903,7 @@ impl Bitmap64 {
     ///
     /// On invalid input returns empty bitmap.
     #[inline]
+    #[must_use]
     pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
         Self::try_deserialize::<D>(buffer).unwrap_or_default()
     }
@@ -1071,6 +1083,7 @@ impl Bitmap64 {
     /// assert!(!bitmap.intersect_with_range(100..0));
     /// ```
     #[inline]
+    #[must_use]
     #[doc(alias = "roaring64_bitmap_intersect_with_range")]
     pub fn intersect_with_range<R: RangeBounds<u64>>(&self, range: R) -> bool {
         let Some(exclusive_range) = range_to_exclusive(range) else {
