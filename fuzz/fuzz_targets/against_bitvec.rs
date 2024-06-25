@@ -69,20 +69,20 @@ impl ReadBitmapOp {
                 assert_eq!(v.count_ones() as u64, b.cardinality());
             }
             ReadBitmapOp::Flip(ref r) => {
-                b.flip(r.start().0..=r.end().0);
+                _ = b.flip(r.start().0..=r.end().0);
             }
             ReadBitmapOp::ToVec => {
                 let vec_iter = b.to_vec();
                 assert!(vec_iter.into_iter().eq(v.iter_ones().map(|i| i as u32)));
             }
             ReadBitmapOp::GetPortableSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes::<Portable>();
+                _ = b.get_serialized_size_in_bytes::<Portable>();
             }
             ReadBitmapOp::GetNativeSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes::<Native>();
+                _ = b.get_serialized_size_in_bytes::<Native>();
             }
             ReadBitmapOp::GetFrozenSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes::<Frozen>();
+                _ = b.get_serialized_size_in_bytes::<Frozen>();
             }
             ReadBitmapOp::IsEmpty => {
                 assert_eq!(v.not_any(), b.is_empty());
@@ -121,7 +121,7 @@ impl ReadBitmapOp {
                 );
             }
             ReadBitmapOp::Statistics => {
-                b.statistics();
+                _ = b.statistics();
             }
             ReadBitmapOp::Clone => {
                 drop(b.clone());
@@ -142,13 +142,14 @@ impl ReadBitmapOp {
                         }
                         IterOperation::NextMany(n) => {
                             let mut v = vec![0; n as usize];
-                            iter.next_many(&mut v);
+                            let res = iter.next_many(&mut v);
+                            assert!(res <= n as usize);
                         }
                     }
                 }
             }
             ReadBitmapOp::AddOffset(i) => {
-                b.add_offset(i);
+                _ = b.add_offset(i);
             }
         }
         b.internal_validate().unwrap();
