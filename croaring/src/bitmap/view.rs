@@ -27,7 +27,7 @@ impl<'a> BitmapView<'a> {
         // `containers` array is stored immediately after the roaring_bitmap_t data.
         // Ensure this is still valid every time we update
         // the version of croaring.
-        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 3 && ffi::ROARING_VERSION_MINOR == 0);
+        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4 && ffi::ROARING_VERSION_MINOR == 0);
 
         assert!(!p.is_null());
 

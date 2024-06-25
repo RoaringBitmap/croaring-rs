@@ -87,7 +87,40 @@ unsafe impl<'a> Sync for BitmapView<'a> {}
 unsafe impl<'a> Send for BitmapView<'a> {}
 
 /// Detailed statistics on the composition of a bitmap
-pub type Statistics = ffi::roaring_statistics_s;
+///
+/// See [`Bitmap::statistics`] for more information
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+pub struct Statistics {
+    /// Number of containers in the bitmap
+    pub n_containers: u32,
+    /// Number of array containers in the bitmap
+    pub n_array_containers: u32,
+    /// Number of run containers in the bitmap
+    pub n_run_containers: u32,
+    /// Number of bitset containers in the bitmap
+    pub n_bitset_containers: u32,
+    /// Number of values stored in array containers
+    pub n_values_array_containers: u32,
+    /// Number of values stored in run containers
+    pub n_values_run_containers: u32,
+    /// Number of values stored in bitset containers
+    pub n_values_bitset_containers: u32,
+    /// Number of bytes used by array containers
+    pub n_bytes_array_containers: u32,
+    /// Number of bytes used by run containers
+    pub n_bytes_run_containers: u32,
+    /// Number of bytes used by bitset containers
+    pub n_bytes_bitset_containers: u32,
+    /// Maximum value stored in the bitmap
+    pub max_value: u32,
+    /// Minimum value stored in the bitmap
+    pub min_value: u32,
+    /// Number of values stored in the bitmap
+    pub cardinality: u64,
+    // NOTE: This has every field as the roaring_statistics_t struct in CRoaring,
+    //       except for the sum_value, which is deprecated and always zero since
+    //       CRoaring 4.0.0
+}
 
 mod imp;
 mod iter;
