@@ -1,5 +1,4 @@
-use crate::bitmap64::Bitmap64;
-use crate::bitmap64::{Deserializer, Serializer};
+use super::{Bitmap64, Deserializer, Serializer, Statistics};
 use core::mem::MaybeUninit;
 use core::ops::{Bound, RangeBounds};
 use core::prelude::v1::*;
@@ -944,6 +943,58 @@ impl Bitmap64 {
         #[cfg(not(feature = "std"))]
         {
             self.iter().try_for_each(f)
+        }
+    }
+
+    /// Returns statistics about the composition of a roaring bitmap64.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let mut bitmap: Bitmap64 = (1..100).collect();
+    /// let statistics = bitmap.statistics();
+    ///
+    /// assert_eq!(statistics.n_containers, 1);
+    /// assert_eq!(statistics.n_array_containers, 1);
+    /// assert_eq!(statistics.n_run_containers, 0);
+    /// assert_eq!(statistics.n_bitset_containers, 0);
+    /// assert_eq!(statistics.n_values_array_containers, 99);
+    /// assert_eq!(statistics.n_values_run_containers, 0);
+    /// assert_eq!(statistics.n_values_bitset_containers, 0);
+    /// assert_eq!(statistics.n_bytes_array_containers, 198);
+    /// assert_eq!(statistics.n_bytes_run_containers, 0);
+    /// assert_eq!(statistics.n_bytes_bitset_containers, 0);
+    /// assert_eq!(statistics.max_value, 99);
+    /// assert_eq!(statistics.min_value, 1);
+    /// assert_eq!(statistics.cardinality, 99);
+    ///
+    /// bitmap.run_optimize();
+    /// let statistics = bitmap.statistics();
+    ///
+    /// assert_eq!(statistics.n_containers, 1);
+    /// assert_eq!(statistics.n_array_containers, 0);
+    /// assert_eq!(statistics.n_run_containers, 1);
+    /// assert_eq!(statistics.n_bitset_containers, 0);
+    /// assert_eq!(statistics.n_values_array_containers, 0);
+    /// assert_eq!(statistics.n_values_run_containers, 99);
+    /// assert_eq!(statistics.n_values_bitset_containers, 0);
+    /// assert_eq!(statistics.n_bytes_array_containers, 0);
+    /// assert_eq!(statistics.n_bytes_run_containers, 6);
+    /// assert_eq!(statistics.n_bytes_bitset_containers, 0);
+    /// assert_eq!(statistics.max_value, 99);
+    /// assert_eq!(statistics.min_value, 1);
+    /// assert_eq!(statistics.cardinality, 99);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_bitmap_statistics")]
+    #[must_use]
+    pub fn statistics(&self) -> Statistics {
+        let mut stats = MaybeUninit::<ffi::roaring64_statistics_t>::zeroed();
+        unsafe {
+            ffi::roaring64_bitmap_statistics(self.raw.as_ptr(), stats.as_mut_ptr());
+            stats.assume_init()
         }
     }
 

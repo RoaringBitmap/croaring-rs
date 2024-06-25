@@ -138,7 +138,7 @@ impl Drop for Bitmap {
     fn drop(&mut self) {
         // This depends somewhat heavily on the implementation of croaring,
         // Ensure this is still valid every time we update the version of croaring.
-        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 3 && ffi::ROARING_VERSION_MINOR == 0);
+        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4 && ffi::ROARING_VERSION_MINOR == 0);
 
         // Per https://github.com/RoaringBitmap/CRoaring/blob/4f8dbdb0cc884626b20ef0cc9e891f701fe157cf/cpp/roaring.hh#L182
         // > By contract, calling roaring_bitmap_clear() is enough to

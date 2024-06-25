@@ -15,3 +15,8 @@ pub struct Bitmap64 {
 }
 unsafe impl Sync for Bitmap64 {}
 unsafe impl Send for Bitmap64 {}
+
+/// Detailed statistics on the composition of a bitmap
+///
+/// See [`Bitmap64::statistics`] for more information
+pub type Statistics = ffi::roaring64_statistics_t;

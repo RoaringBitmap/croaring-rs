@@ -24,7 +24,7 @@ impl Bitmap {
         // (it can be moved safely), and can be freed with `free`, without freeing the underlying
         // containers and auxiliary data. Ensure this is still valid every time we update
         // the version of croaring.
-        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 3 && ffi::ROARING_VERSION_MINOR == 0);
+        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4 && ffi::ROARING_VERSION_MINOR == 0);
         ffi::roaring_free(p.cast::<c_void>());
         result
     }
@@ -1534,7 +1534,6 @@ impl Bitmap {
     /// assert_eq!(statistics.n_bytes_bitset_containers, 0);
     /// assert_eq!(statistics.max_value, 99);
     /// assert_eq!(statistics.min_value, 1);
-    /// assert_eq!(statistics.sum_value, 4950);
     /// assert_eq!(statistics.cardinality, 99);
     ///
     /// bitmap.run_optimize();
@@ -1552,18 +1551,50 @@ impl Bitmap {
     /// assert_eq!(statistics.n_bytes_bitset_containers, 0);
     /// assert_eq!(statistics.max_value, 99);
     /// assert_eq!(statistics.min_value, 1);
-    /// assert_eq!(statistics.sum_value, 4950);
     /// assert_eq!(statistics.cardinality, 99);
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_statistics")]
     #[must_use]
     pub fn statistics(&self) -> Statistics {
-        let mut statistics: ffi::roaring_statistics_s = unsafe { mem::zeroed() };
+        let mut statistics = mem::MaybeUninit::zeroed();
 
-        unsafe { ffi::roaring_bitmap_statistics(&self.bitmap, &mut statistics) };
+        unsafe { ffi::roaring_bitmap_statistics(&self.bitmap, statistics.as_mut_ptr()) };
 
-        statistics
+        // Exhaustively extract the fields to ensure we don't miss any if they're added
+        let ffi::roaring_statistics_t {
+            n_containers,
+            n_array_containers,
+            n_run_containers,
+            n_bitset_containers,
+            n_values_array_containers,
+            n_values_run_containers,
+            n_values_bitset_containers,
+            n_bytes_array_containers,
+            n_bytes_run_containers,
+            n_bytes_bitset_containers,
+            max_value,
+            min_value,
+            // sum_value is deprecated and always zero
+            sum_value: _sum_value,
+            cardinality,
+        } = unsafe { statistics.assume_init() };
+
+        Statistics {
+            n_containers,
+            n_array_containers,
+            n_run_containers,
+            n_bitset_containers,
+            n_values_array_containers,
+            n_values_run_containers,
+            n_values_bitset_containers,
+            n_bytes_array_containers,
+            n_bytes_run_containers,
+            n_bytes_bitset_containers,
+            max_value,
+            min_value,
+            cardinality,
+        }
     }
 
     /// Store the bitmap to a bitset

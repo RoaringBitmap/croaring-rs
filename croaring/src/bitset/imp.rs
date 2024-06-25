@@ -9,7 +9,7 @@ impl Bitset {
         let result = Self { bitset: p.read() };
         // It seems unlikely that the bitset type will meaningfully change, but check if we ever go
         // to a version 3.
-        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 3);
+        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4);
         ffi::roaring_free(p.cast());
         result
     }
