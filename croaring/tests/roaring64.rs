@@ -55,3 +55,19 @@ fn test_r64_cursor_reset() {
     assert_eq!(cursor.current(), Some(u64::MAX));
     assert_eq!(cursor.next(), None);
 }
+
+#[test]
+fn empty_intersect_with_range() {
+    let bitmap = Bitmap64::new();
+    assert_eq!(0, bitmap.range_cardinality(0..1));
+    bitmap.intersect_with_range(0..1);
+}
+
+#[test]
+fn empty_reset_iterator() {
+    let bitmap = Bitmap64::new();
+    let mut iterator = bitmap.iter();
+    assert_eq!(iterator.peek(), None);
+    iterator.reset_at_or_after(0);
+    assert_eq!(iterator.peek(), None);
+}
