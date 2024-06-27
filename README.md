@@ -124,3 +124,10 @@ cargo bench
 ### Documentation
 
 Current documentation is available at https://docs.rs/croaring/latest/croaring/
+
+## CRoaring Version
+
+This crate uses [CRoaring version `4.0.0`](https://github.com/RoaringBitmap/CRoaring/releases/tag/v4.0.0).
+The version of this crate does not necessarily match the version of CRoaring: the major version of the crate is only
+incremented when there are breaking changes in the Rust API: It is possible (and has happened) that breaking changes
+in the CRoaring C API do not necessitate a major version bump in this crate.
