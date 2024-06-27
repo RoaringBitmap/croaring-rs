@@ -15,7 +15,7 @@ test:
 croaring_release_url_base = https://github.com/RoaringBitmap/CRoaring/releases/download
 
 # Fetch the c source amalgamation from a tagged CRoaring release (like `make version=0.9.3 update_croaring`)
-update_croaring: download_croaring bindgen
+update_croaring: download_croaring bindgen update_readme_croaring_version
 
 download_croaring:
 	rm -f '$(croaring_source)/roaring.c' '$(croaring_source)/roaring.h' '$(croaring_source)/roaring.hh'
@@ -34,6 +34,13 @@ bindgen:
 			--use-core \
 			-o bindgen_bundled_version.rs \
 			roaring.h
+
+
+# sed -i is a GNU extension, so we use a temporary file explicitly
+update_readme_croaring_version:
+	@echo "Updating README.md with CRoaring version $(version)"
+	@sed -r -e 's_\[CRoaring version `[0-9]+\.[0-9]+\.[0-9]+`\]\([^\)]+\)_[CRoaring version `$(version)`](https://github.com/RoaringBitmap/CRoaring/releases/tag/v$(version))_' README.md > README.md.tmp
+	@mv README.md.tmp README.md
 
 # Build a c program to (re)generate the example serialized files for testing
 test_serialization_files:
