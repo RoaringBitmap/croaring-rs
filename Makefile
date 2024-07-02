@@ -15,7 +15,7 @@ test:
 croaring_release_url_base = https://github.com/RoaringBitmap/CRoaring/releases/download
 
 # Fetch the c source amalgamation from a tagged CRoaring release (like `make version=0.9.3 update_croaring`)
-update_croaring: download_croaring bindgen update_readme_croaring_version
+update_croaring: download_croaring bindgen update_readme_croaring_version update_croaring_sys_version
 
 download_croaring:
 	rm -f '$(croaring_source)/roaring.c' '$(croaring_source)/roaring.h' '$(croaring_source)/roaring.hh'
@@ -41,6 +41,12 @@ update_readme_croaring_version:
 	@echo "Updating README.md with CRoaring version $(version)"
 	@sed -r -e 's_\[CRoaring version `[0-9]+\.[0-9]+\.[0-9]+`\]\([^\)]+\)_[CRoaring version `$(version)`](https://github.com/RoaringBitmap/CRoaring/releases/tag/v$(version))_' README.md > README.md.tmp
 	@mv README.md.tmp README.md
+
+# We don't always want to update the version of croaring-sys dependency in croaring, but we always want to update croaring-sys
+update_croaring_sys_version:
+	@echo "Updating croaring-sys version in Cargo.toml to $(version)"
+	@sed -r -e 's/^version = ".*"/version = "$(version)"/' croaring-sys/Cargo.toml > croaring-sys/Cargo.toml.tmp
+	@mv croaring-sys/Cargo.toml.tmp croaring-sys/Cargo.toml
 
 # Build a c program to (re)generate the example serialized files for testing
 test_serialization_files:

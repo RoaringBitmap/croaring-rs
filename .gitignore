@@ -1,4 +1,5 @@
 target
 .DS_Store
 .idea
-/README.md.tmp
+README.md.tmp
+Cargo.toml.tmp
