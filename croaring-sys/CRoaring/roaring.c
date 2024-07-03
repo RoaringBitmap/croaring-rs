@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2024-05-13T21:29:25Z
+// Created by amalgamation.sh on 2024-07-03T21:30:32Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -10770,7 +10770,7 @@ static bool art_node_iterator_lower_bound(const art_node_t *node,
 }
 
 art_iterator_t art_init_iterator(const art_t *art, bool first) {
-    art_iterator_t iterator = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    art_iterator_t iterator = CROARING_ZERO_INITIALIZER;
     if (art->root == NULL) {
         return iterator;
     }
@@ -10793,8 +10793,11 @@ bool art_iterator_lower_bound(art_iterator_t *iterator,
         // a valid key. Start from the root.
         iterator->frame = 0;
         iterator->depth = 0;
-        return art_node_iterator_lower_bound(art_iterator_node(iterator),
-                                             iterator, key);
+        art_node_t *root = art_iterator_node(iterator);
+        if (root == NULL) {
+            return false;
+        }
+        return art_node_iterator_lower_bound(root, iterator, key);
     }
     int compare_result =
         art_compare_prefix(iterator->key, 0, key, 0, ART_KEY_BYTES);
@@ -10827,7 +10830,7 @@ bool art_iterator_lower_bound(art_iterator_t *iterator,
 }
 
 art_iterator_t art_lower_bound(const art_t *art, const art_key_chunk_t *key) {
-    art_iterator_t iterator = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    art_iterator_t iterator = CROARING_ZERO_INITIALIZER;
     if (art->root != NULL) {
         art_node_iterator_lower_bound(art->root, &iterator, key);
     }
@@ -10835,7 +10838,7 @@ art_iterator_t art_lower_bound(const art_t *art, const art_key_chunk_t *key) {
 }
 
 art_iterator_t art_upper_bound(const art_t *art, const art_key_chunk_t *key) {
-    art_iterator_t iterator = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    art_iterator_t iterator = CROARING_ZERO_INITIALIZER;
     if (art->root != NULL) {
         if (art_node_iterator_lower_bound(art->root, &iterator, key) &&
             art_compare_keys(iterator.key, key) == 0) {
@@ -19469,7 +19472,7 @@ roaring_bitmap_t *roaring_bitmap_of(size_t n_args, ...) {
     // todo: could be greatly optimized but we do not expect this call to ever
     // include long lists
     roaring_bitmap_t *answer = roaring_bitmap_create();
-    roaring_bulk_context_t context = {0, 0, 0, 0};
+    roaring_bulk_context_t context = CROARING_ZERO_INITIALIZER;
     va_list ap;
     va_start(ap, n_args);
     for (size_t i = 0; i < n_args; i++) {
@@ -20811,7 +20814,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf) {
         if (bitmap == NULL) {
             return NULL;
         }
-        roaring_bulk_context_t context = {0, 0, 0, 0};
+        roaring_bulk_context_t context = CROARING_ZERO_INITIALIZER;
         for (uint32_t i = 0; i < card; i++) {
             // elems may not be aligned, read with memcpy
             uint32_t elem;
@@ -20854,7 +20857,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize_safe(const void *buf,
         if (bitmap == NULL) {
             return NULL;
         }
-        roaring_bulk_context_t context = {0, 0, 0, 0};
+        roaring_bulk_context_t context = CROARING_ZERO_INITIALIZER;
         for (uint32_t i = 0; i < card; i++) {
             // elems may not be aligned, read with memcpy
             uint32_t elem;
@@ -22780,6 +22783,9 @@ roaring64_bitmap_t *roaring64_bitmap_create(void) {
 }
 
 void roaring64_bitmap_free(roaring64_bitmap_t *r) {
+    if (!r) {
+        return;
+    }
     art_iterator_t it = art_init_iterator(&r->art, /*first=*/true);
     while (it.value != NULL) {
         leaf_t *leaf = (leaf_t *)it.value;
@@ -22856,7 +22862,7 @@ roaring64_bitmap_t *roaring64_bitmap_of_ptr(size_t n_args,
 
 roaring64_bitmap_t *roaring64_bitmap_of(size_t n_args, ...) {
     roaring64_bitmap_t *r = roaring64_bitmap_create();
-    roaring64_bulk_context_t context = {0, 0, 0, 0, 0, 0, 0};
+    roaring64_bulk_context_t context = CROARING_ZERO_INITIALIZER;
     va_list ap;
     va_start(ap, n_args);
     for (size_t i = 0; i < n_args; i++) {
@@ -22949,7 +22955,7 @@ void roaring64_bitmap_add_many(roaring64_bitmap_t *r, size_t n_args,
         return;
     }
     const uint64_t *end = vals + n_args;
-    roaring64_bulk_context_t context = {0, 0, 0, 0, 0, 0, 0};
+    roaring64_bulk_context_t context = CROARING_ZERO_INITIALIZER;
     for (const uint64_t *current_val = vals; current_val != end;
          current_val++) {
         roaring64_bitmap_add_bulk(r, &context, *current_val);
@@ -23273,7 +23279,7 @@ void roaring64_bitmap_remove_many(roaring64_bitmap_t *r, size_t n_args,
         return;
     }
     const uint64_t *end = vals + n_args;
-    roaring64_bulk_context_t context = {0, 0, 0, 0, 0, 0, 0};
+    roaring64_bulk_context_t context = CROARING_ZERO_INITIALIZER;
     for (const uint64_t *current_val = vals; current_val != end;
          current_val++) {
         roaring64_bitmap_remove_bulk(r, &context, *current_val);
@@ -23339,6 +23345,10 @@ void roaring64_bitmap_remove_range_closed(roaring64_bitmap_t *r, uint64_t min,
     remove_range_closed_at(art, max_high48, 0, max_low16);
 }
 
+void roaring64_bitmap_clear(roaring64_bitmap_t *r) {
+    roaring64_bitmap_remove_range_closed(r, 0, UINT64_MAX);
+}
+
 uint64_t roaring64_bitmap_get_cardinality(const roaring64_bitmap_t *r) {
     art_iterator_t it = art_init_iterator(&r->art, /*first=*/true);
     uint64_t cardinality = 0;
@@ -23356,7 +23366,17 @@ uint64_t roaring64_bitmap_range_cardinality(const roaring64_bitmap_t *r,
     if (min >= max) {
         return 0;
     }
-    max--;  // A closed range is easier to work with.
+    // Convert to a closed range
+    // No underflow here: passing the above condition implies min < max, so
+    // there is a number less than max
+    return roaring64_bitmap_range_closed_cardinality(r, min, max - 1);
+}
+
+uint64_t roaring64_bitmap_range_closed_cardinality(const roaring64_bitmap_t *r,
+                                                   uint64_t min, uint64_t max) {
+    if (min > max) {
+        return 0;
+    }
 
     uint64_t cardinality = 0;
     uint8_t min_high48[ART_KEY_BYTES];
