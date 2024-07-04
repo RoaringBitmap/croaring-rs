@@ -176,7 +176,7 @@ dependencies = [
 
 [[package]]
 name = "croaring"
-version = "2.0.1"
+version = "2.0.2"
 dependencies = [
  "criterion",
  "croaring-sys",
@@ -186,7 +186,7 @@ dependencies = [
 
 [[package]]
 name = "croaring-sys"
-version = "3.0.0"
+version = "4.1.0"
 dependencies = [
  "cc",
 ]

@@ -59,6 +59,7 @@ impl<'a> BitmapCursor<'a> {
     /// assert!(!cursor.has_value());
     /// ```
     #[inline]
+    #[must_use]
     pub fn has_value(&self) -> bool {
         self.raw.has_value
     }
@@ -79,6 +80,7 @@ impl<'a> BitmapCursor<'a> {
     /// assert_eq!(cursor.current(), None);
     /// ```
     #[inline]
+    #[must_use]
     pub fn current(&self) -> Option<u32> {
         if self.has_value() {
             Some(self.raw.current_value)
@@ -291,6 +293,7 @@ impl<'a> BitmapCursor<'a> {
     /// ```
     #[inline]
     #[doc(alias = "roaring_uint32_iterator_read")]
+    #[must_use]
     pub fn read_many(&mut self, dst: &mut [u32]) -> usize {
         let count = u32::try_from(dst.len()).unwrap_or(u32::MAX);
         let result =
@@ -404,6 +407,7 @@ impl<'a> BitmapIterator<'a> {
     /// ```
     #[inline]
     #[doc(alias = "roaring_uint32_iterator_read")]
+    #[must_use]
     pub fn next_many(&mut self, dst: &mut [u32]) -> usize {
         self.cursor.read_many(dst)
     }
@@ -449,6 +453,7 @@ impl<'a> BitmapIterator<'a> {
     /// assert_eq!(iter.next(), Some(1));
     /// ```
     #[inline]
+    #[must_use]
     pub fn peek(&self) -> Option<u32> {
         self.cursor.current()
     }

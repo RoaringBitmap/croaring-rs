@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2024-05-13T21:29:25Z
+// Created by amalgamation.sh on 2024-07-03T21:30:32Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -67,157 +67,6 @@ enum {
 };
 #endif // ROARING_INCLUDE_ROARING_VERSION
 // clang-format on/* end file include/roaring/roaring_version.h */
-/* begin file include/roaring/roaring_types.h */
-/*
-  Typedefs used by various components
-*/
-
-#ifndef ROARING_TYPES_H
-#define ROARING_TYPES_H
-
-#include <stdbool.h>
-#include <stdint.h>
-
-#ifdef __cplusplus
-extern "C" {
-namespace roaring {
-namespace api {
-#endif
-
-/**
- * When building .c files as C++, there's added compile-time checking if the
- * container types are derived from a `container_t` base class.  So long as
- * such a base class is empty, the struct will behave compatibly with C structs
- * despite the derivation.  This is due to the Empty Base Class Optimization:
- *
- * https://en.cppreference.com/w/cpp/language/ebo
- *
- * But since C isn't namespaced, taking `container_t` globally might collide
- * with other projects.  So roaring.h uses ROARING_CONTAINER_T, while internal
- * code #undefs that after declaring `typedef ROARING_CONTAINER_T container_t;`
- */
-#if defined(__cplusplus)
-extern "C++" {
-struct container_s {};
-}
-#define ROARING_CONTAINER_T ::roaring::api::container_s
-#else
-#define ROARING_CONTAINER_T void  // no compile-time checking
-#endif
-
-#define ROARING_FLAG_COW UINT8_C(0x1)
-#define ROARING_FLAG_FROZEN UINT8_C(0x2)
-
-/**
- * Roaring arrays are array-based key-value pairs having containers as values
- * and 16-bit integer keys. A roaring bitmap  might be implemented as such.
- */
-
-// parallel arrays.  Element sizes quite different.
-// Alternative is array
-// of structs.  Which would have better
-// cache performance through binary searches?
-
-typedef struct roaring_array_s {
-    int32_t size;
-    int32_t allocation_size;
-    ROARING_CONTAINER_T **containers;  // Use container_t in non-API files!
-    uint16_t *keys;
-    uint8_t *typecodes;
-    uint8_t flags;
-} roaring_array_t;
-
-typedef bool (*roaring_iterator)(uint32_t value, void *param);
-typedef bool (*roaring_iterator64)(uint64_t value, void *param);
-
-/**
- *  (For advanced users.)
- * The roaring_statistics_t can be used to collect detailed statistics about
- * the composition of a roaring bitmap.
- */
-typedef struct roaring_statistics_s {
-    uint32_t n_containers; /* number of containers */
-
-    uint32_t n_array_containers;  /* number of array containers */
-    uint32_t n_run_containers;    /* number of run containers */
-    uint32_t n_bitset_containers; /* number of bitmap containers */
-
-    uint32_t
-        n_values_array_containers;    /* number of values in array containers */
-    uint32_t n_values_run_containers; /* number of values in run containers */
-    uint32_t
-        n_values_bitset_containers; /* number of values in  bitmap containers */
-
-    uint32_t n_bytes_array_containers;  /* number of allocated bytes in array
-                                           containers */
-    uint32_t n_bytes_run_containers;    /* number of allocated bytes in run
-                                           containers */
-    uint32_t n_bytes_bitset_containers; /* number of allocated bytes in  bitmap
-                                           containers */
-
-    uint32_t
-        max_value; /* the maximal value, undefined if cardinality is zero */
-    uint32_t
-        min_value; /* the minimal value, undefined if cardinality is zero */
-    uint64_t sum_value; /* deprecated always zero */
-
-    uint64_t cardinality; /* total number of values stored in the bitmap */
-
-    // and n_values_arrays, n_values_rle, n_values_bitmap
-} roaring_statistics_t;
-
-/**
- *  (For advanced users.)
- * The roaring64_statistics_t can be used to collect detailed statistics about
- * the composition of a roaring64 bitmap.
- */
-typedef struct roaring64_statistics_s {
-    uint64_t n_containers; /* number of containers */
-
-    uint64_t n_array_containers;  /* number of array containers */
-    uint64_t n_run_containers;    /* number of run containers */
-    uint64_t n_bitset_containers; /* number of bitmap containers */
-
-    uint64_t
-        n_values_array_containers;    /* number of values in array containers */
-    uint64_t n_values_run_containers; /* number of values in run containers */
-    uint64_t
-        n_values_bitset_containers; /* number of values in  bitmap containers */
-
-    uint64_t n_bytes_array_containers;  /* number of allocated bytes in array
-                                           containers */
-    uint64_t n_bytes_run_containers;    /* number of allocated bytes in run
-                                           containers */
-    uint64_t n_bytes_bitset_containers; /* number of allocated bytes in  bitmap
-                                           containers */
-
-    uint64_t
-        max_value; /* the maximal value, undefined if cardinality is zero */
-    uint64_t
-        min_value; /* the minimal value, undefined if cardinality is zero */
-
-    uint64_t cardinality; /* total number of values stored in the bitmap */
-
-    // and n_values_arrays, n_values_rle, n_values_bitmap
-} roaring64_statistics_t;
-
-/**
- * Roaring-internal type used to iterate within a roaring container.
- */
-typedef struct roaring_container_iterator_s {
-    // For bitset and array containers this is the index of the bit / entry.
-    // For run containers this points at the run.
-    int32_t index;
-} roaring_container_iterator_t;
-
-#ifdef __cplusplus
-}
-}
-}  // extern "C" { namespace roaring { namespace api {
-#endif
-
-#endif /* ROARING_TYPES_H */
-/* end file include/roaring/roaring_types.h */
 /* begin file include/roaring/portability.h */
 /*
  * portability.h
@@ -810,6 +659,16 @@ static inline uint32_t croaring_refcount_get(const croaring_refcount_t *val) {
 #define CROARING_DEPRECATED
 #endif  // defined(__GNUC__) || defined(__clang__)
 
+// We want to initialize structs to zero portably (C and C++), without
+// warnings. We can do mystruct s = CROARING_ZERO_INITIALIZER;
+#if __cplusplus
+#define CROARING_ZERO_INITIALIZER \
+    {}
+#else
+#define CROARING_ZERO_INITIALIZER \
+    { 0 }
+#endif
+
 // We need portability.h to be included first,
 // but we also always want isadetection.h to be
 // included (right after).
@@ -819,6 +678,160 @@ static inline uint32_t croaring_refcount_get(const croaring_refcount_t *val) {
 // strict requirement.
 #endif                             /* INCLUDE_PORTABILITY_H_ */
 /* end file include/roaring/portability.h */
+/* begin file include/roaring/roaring_types.h */
+/*
+  Typedefs used by various components
+*/
+
+#ifndef ROARING_TYPES_H
+#define ROARING_TYPES_H
+
+#include <stdbool.h>
+#include <stdint.h>
+
+
+#ifdef __cplusplus
+extern "C" {
+namespace roaring {
+namespace api {
+#endif
+
+/**
+ * When building .c files as C++, there's added compile-time checking if the
+ * container types are derived from a `container_t` base class.  So long as
+ * such a base class is empty, the struct will behave compatibly with C structs
+ * despite the derivation.  This is due to the Empty Base Class Optimization:
+ *
+ * https://en.cppreference.com/w/cpp/language/ebo
+ *
+ * But since C isn't namespaced, taking `container_t` globally might collide
+ * with other projects.  So roaring.h uses ROARING_CONTAINER_T, while internal
+ * code #undefs that after declaring `typedef ROARING_CONTAINER_T container_t;`
+ */
+#if defined(__cplusplus)
+extern "C++" {
+struct container_s {};
+}
+#define ROARING_CONTAINER_T ::roaring::api::container_s
+#else
+#define ROARING_CONTAINER_T void  // no compile-time checking
+#endif
+
+#define ROARING_FLAG_COW UINT8_C(0x1)
+#define ROARING_FLAG_FROZEN UINT8_C(0x2)
+
+/**
+ * Roaring arrays are array-based key-value pairs having containers as values
+ * and 16-bit integer keys. A roaring bitmap  might be implemented as such.
+ */
+
+// parallel arrays.  Element sizes quite different.
+// Alternative is array
+// of structs.  Which would have better
+// cache performance through binary searches?
+
+typedef struct roaring_array_s {
+    int32_t size;
+    int32_t allocation_size;
+    ROARING_CONTAINER_T **containers;  // Use container_t in non-API files!
+    uint16_t *keys;
+    uint8_t *typecodes;
+    uint8_t flags;
+} roaring_array_t;
+
+typedef bool (*roaring_iterator)(uint32_t value, void *param);
+typedef bool (*roaring_iterator64)(uint64_t value, void *param);
+
+/**
+ *  (For advanced users.)
+ * The roaring_statistics_t can be used to collect detailed statistics about
+ * the composition of a roaring bitmap.
+ */
+typedef struct roaring_statistics_s {
+    uint32_t n_containers; /* number of containers */
+
+    uint32_t n_array_containers;  /* number of array containers */
+    uint32_t n_run_containers;    /* number of run containers */
+    uint32_t n_bitset_containers; /* number of bitmap containers */
+
+    uint32_t
+        n_values_array_containers;    /* number of values in array containers */
+    uint32_t n_values_run_containers; /* number of values in run containers */
+    uint32_t
+        n_values_bitset_containers; /* number of values in  bitmap containers */
+
+    uint32_t n_bytes_array_containers;  /* number of allocated bytes in array
+                                           containers */
+    uint32_t n_bytes_run_containers;    /* number of allocated bytes in run
+                                           containers */
+    uint32_t n_bytes_bitset_containers; /* number of allocated bytes in  bitmap
+                                           containers */
+
+    uint32_t
+        max_value; /* the maximal value, undefined if cardinality is zero */
+    uint32_t
+        min_value; /* the minimal value, undefined if cardinality is zero */
+
+    CROARING_DEPRECATED
+    uint64_t sum_value; /* deprecated always zero */
+
+    uint64_t cardinality; /* total number of values stored in the bitmap */
+
+    // and n_values_arrays, n_values_rle, n_values_bitmap
+} roaring_statistics_t;
+
+/**
+ *  (For advanced users.)
+ * The roaring64_statistics_t can be used to collect detailed statistics about
+ * the composition of a roaring64 bitmap.
+ */
+typedef struct roaring64_statistics_s {
+    uint64_t n_containers; /* number of containers */
+
+    uint64_t n_array_containers;  /* number of array containers */
+    uint64_t n_run_containers;    /* number of run containers */
+    uint64_t n_bitset_containers; /* number of bitmap containers */
+
+    uint64_t
+        n_values_array_containers;    /* number of values in array containers */
+    uint64_t n_values_run_containers; /* number of values in run containers */
+    uint64_t
+        n_values_bitset_containers; /* number of values in  bitmap containers */
+
+    uint64_t n_bytes_array_containers;  /* number of allocated bytes in array
+                                           containers */
+    uint64_t n_bytes_run_containers;    /* number of allocated bytes in run
+                                           containers */
+    uint64_t n_bytes_bitset_containers; /* number of allocated bytes in  bitmap
+                                           containers */
+
+    uint64_t
+        max_value; /* the maximal value, undefined if cardinality is zero */
+    uint64_t
+        min_value; /* the minimal value, undefined if cardinality is zero */
+
+    uint64_t cardinality; /* total number of values stored in the bitmap */
+
+    // and n_values_arrays, n_values_rle, n_values_bitmap
+} roaring64_statistics_t;
+
+/**
+ * Roaring-internal type used to iterate within a roaring container.
+ */
+typedef struct roaring_container_iterator_s {
+    // For bitset and array containers this is the index of the bit / entry.
+    // For run containers this points at the run.
+    int32_t index;
+} roaring_container_iterator_t;
+
+#ifdef __cplusplus
+}
+}
+}  // extern "C" { namespace roaring { namespace api {
+#endif
+
+#endif /* ROARING_TYPES_H */
+/* end file include/roaring/roaring_types.h */
 /* begin file include/roaring/bitset/bitset.h */
 #ifndef CROARING_CBITSET_BITSET_H
 #define CROARING_CBITSET_BITSET_H
@@ -2487,6 +2500,11 @@ void roaring64_bitmap_remove_range_closed(roaring64_bitmap_t *r, uint64_t min,
                                           uint64_t max);
 
 /**
+ * Empties the bitmap.
+ */
+void roaring64_bitmap_clear(roaring64_bitmap_t *r);
+
+/**
  * Returns true if the provided value is present.
  */
 bool roaring64_bitmap_contains(const roaring64_bitmap_t *r, uint64_t val);
@@ -2555,6 +2573,12 @@ uint64_t roaring64_bitmap_get_cardinality(const roaring64_bitmap_t *r);
  */
 uint64_t roaring64_bitmap_range_cardinality(const roaring64_bitmap_t *r,
                                             uint64_t min, uint64_t max);
+
+/**
+ * Returns the number of elements in the range [min, max]
+ */
+uint64_t roaring64_bitmap_range_closed_cardinality(const roaring64_bitmap_t *r,
+                                                   uint64_t min, uint64_t max);
 
 /**
  * Returns true if the bitmap is empty (cardinality is zero).

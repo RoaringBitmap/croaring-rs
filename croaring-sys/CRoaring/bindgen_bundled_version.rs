@@ -5,6 +5,14 @@ pub const ROARING_VERSION_MAJOR: _bindgen_ty_1 = 4;
 pub const ROARING_VERSION_MINOR: _bindgen_ty_1 = 0;
 pub const ROARING_VERSION_REVISION: _bindgen_ty_1 = 0;
 pub type _bindgen_ty_1 = ::core::ffi::c_uint;
+extern "C" {
+    #[doc = " result might be undefined when input_num is zero"]
+    pub fn roaring_trailing_zeroes(input_num: ::core::ffi::c_ulonglong) -> ::core::ffi::c_int;
+}
+extern "C" {
+    #[doc = " result might be undefined when input_num is zero"]
+    pub fn roaring_leading_zeroes(input_num: ::core::ffi::c_ulonglong) -> ::core::ffi::c_int;
+}
 #[doc = " Roaring arrays are array-based key-value pairs having containers as values\n and 16-bit integer keys. A roaring bitmap  might be implemented as such."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -73,14 +81,6 @@ pub struct roaring_container_iterator_s {
 }
 #[doc = " Roaring-internal type used to iterate within a roaring container."]
 pub type roaring_container_iterator_t = roaring_container_iterator_s;
-extern "C" {
-    #[doc = " result might be undefined when input_num is zero"]
-    pub fn roaring_trailing_zeroes(input_num: ::core::ffi::c_ulonglong) -> ::core::ffi::c_int;
-}
-extern "C" {
-    #[doc = " result might be undefined when input_num is zero"]
-    pub fn roaring_leading_zeroes(input_num: ::core::ffi::c_ulonglong) -> ::core::ffi::c_int;
-}
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct bitset_s {
@@ -926,6 +926,10 @@ extern "C" {
     pub fn roaring64_bitmap_remove_range_closed(r: *mut roaring64_bitmap_t, min: u64, max: u64);
 }
 extern "C" {
+    #[doc = " Empties the bitmap."]
+    pub fn roaring64_bitmap_clear(r: *mut roaring64_bitmap_t);
+}
+extern "C" {
     #[doc = " Returns true if the provided value is present."]
     pub fn roaring64_bitmap_contains(r: *const roaring64_bitmap_t, val: u64) -> bool;
 }
@@ -972,6 +976,14 @@ extern "C" {
 extern "C" {
     #[doc = " Returns the number of elements in the range [min, max)."]
     pub fn roaring64_bitmap_range_cardinality(
+        r: *const roaring64_bitmap_t,
+        min: u64,
+        max: u64,
+    ) -> u64;
+}
+extern "C" {
+    #[doc = " Returns the number of elements in the range [min, max]"]
+    pub fn roaring64_bitmap_range_closed_cardinality(
         r: *const roaring64_bitmap_t,
         min: u64,
         max: u64,

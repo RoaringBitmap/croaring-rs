@@ -14,6 +14,7 @@ use core::prelude::v1::*;
 impl Bitmap {
     #[inline]
     #[allow(clippy::assertions_on_constants)]
+    #[must_use]
     pub(crate) unsafe fn take_heap(p: *mut roaring_bitmap_t) -> Self {
         // Based heavily on the `roaring.hh` cpp header from croaring
 
@@ -219,6 +220,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_contains_range")]
+    #[must_use]
     pub fn contains_range<R: RangeBounds<u32>>(&self, range: R) -> bool {
         let (start, end) = range_to_exclusive(range);
         unsafe { ffi::roaring_bitmap_contains_range(&self.bitmap, start, end) }
@@ -364,6 +366,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_range_cardinality")]
+    #[must_use]
     pub fn range_cardinality<R: RangeBounds<u32>>(&self, range: R) -> u64 {
         let (start, end) = range_to_exclusive(range);
         unsafe { ffi::roaring_bitmap_range_cardinality(&self.bitmap, start, end) }
@@ -873,7 +876,8 @@ impl Bitmap {
     /// Serializes a bitmap to a slice of bytes in format `S`, re-using existing capacity
     ///
     /// `dst` is not cleared, data is added after any existing data. Returns the added slice of `dst`.
-    /// If `dst` is empty, it is guaranteed to hold only the serialized data after this call
+    /// Because of alignment requirements, the serialized data may not start at the beginning of
+    /// `dst`: the returned slice may not start at `dst.as_ptr()`.
     ///
     /// # Examples
     ///
@@ -886,12 +890,14 @@ impl Bitmap {
     /// let mut data = Vec::new();
     /// for bitmap in [original_bitmap_1, original_bitmap_2] {
     ///     data.clear();
-    ///     bitmap.try_serialize_into::<Portable>(&mut data);
-    ///     // do something with data
+    ///     let serialized: &[u8] = bitmap.serialize_into_vec::<Portable>(&mut data);
+    ///     // do something with serialized data
+    ///     # let _ = serialized;
     /// }
     /// ```
     #[inline]
     #[cfg(feature = "alloc")]
+    #[must_use]
     pub fn serialize_into_vec<'a, S: Serializer>(&self, dst: &'a mut Vec<u8>) -> &'a mut [u8] {
         S::serialize_into_vec(self, dst)
     }
@@ -907,6 +913,7 @@ impl Bitmap {
     /// See also [`Self::serialize_into_vec`] for a version that uses a Vec instead, or, for
     /// advanced use-cases, see [`Serializer::try_serialize_into`].
     #[inline]
+    #[must_use]
     pub fn try_serialize_into<'a, S: Serializer>(&self, dst: &'a mut [u8]) -> Option<&'a mut [u8]> {
         S::try_serialize_into_aligned(self, dst)
     }
@@ -945,6 +952,7 @@ impl Bitmap {
     ///
     /// On invalid input returns empty bitmap.
     #[inline]
+    #[must_use]
     pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
         Self::try_deserialize::<D>(buffer).unwrap_or_else(Bitmap::new)
     }
@@ -999,6 +1007,7 @@ impl Bitmap {
     /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), [3, 4, 5]);
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
+    #[must_use]
     pub fn from_range<R: RangeBounds<u32>>(range: R) -> Self {
         let mut result = Self::new();
         result.add_range(range);
@@ -1045,6 +1054,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
+    #[must_use]
     pub fn from_range_with_step<R: RangeBounds<u32>>(range: R, step: u32) -> Self {
         // This can't use `range_to_exclusive` because when the start is excluded, we want
         // to start at the next step, not one more
@@ -1243,6 +1253,7 @@ impl Bitmap {
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_intersect_with_range")]
+    #[must_use]
     pub fn intersect_with_range<R: RangeBounds<u32>>(&self, range: R) -> bool {
         let (start, end) = range_to_exclusive(range);
         unsafe { ffi::roaring_bitmap_intersect_with_range(&self.bitmap, start, end) }
