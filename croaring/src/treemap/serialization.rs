@@ -328,8 +328,13 @@ impl Serializer for JvmLegacy {
         let bitmap_count: u32 = treemap.map.len().try_into().unwrap();
         dst.extend_from_slice(&bitmap_count.to_be_bytes());
         treemap.map.iter().for_each(|(&key, bitmap)| {
+            fn assert_unaligned<S: crate::serialization::NoAlign>() {}
             dst.extend_from_slice(&key.to_be_bytes());
-            bitmap.serialize_into_vec::<Portable>(dst);
+
+            // Because Portable serialization doesn't require alignment,
+            // we know serializing into a vec will not leave any padding before the serialized data
+            assert_unaligned::<Portable>();
+            let _ = bitmap.serialize_into_vec::<Portable>(dst);
         });
 
         &dst[start_idx..]

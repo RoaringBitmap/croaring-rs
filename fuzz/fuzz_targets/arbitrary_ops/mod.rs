@@ -148,20 +148,20 @@ impl BitmapCompOperation {
                 assert_eq!(lhs, lhs);
             }
             BitmapCompOperation::IsSubset => {
-                lhs.is_subset(rhs);
+                _ = lhs.is_subset(rhs);
                 assert!(lhs.is_subset(lhs));
             }
             BitmapCompOperation::IsStrictSubset => {
-                lhs.is_strict_subset(rhs);
+                _ = lhs.is_strict_subset(rhs);
                 assert!(!lhs.is_strict_subset(lhs));
             }
             BitmapCompOperation::Intersect => {
-                lhs.intersect(rhs);
+                _ = lhs.intersect(rhs);
                 assert!(lhs.is_empty() || lhs.intersect(lhs));
             }
             BitmapCompOperation::JacardIndex => {
-                lhs.jaccard_index(rhs);
-                lhs.jaccard_index(lhs);
+                _ = lhs.jaccard_index(rhs);
+                _ = lhs.jaccard_index(lhs);
             }
             BitmapCompOperation::And => {
                 assert_eq!(lhs.and(lhs), *lhs);

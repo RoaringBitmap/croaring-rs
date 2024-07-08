@@ -66,55 +66,55 @@ impl ReadBitmapOp {
     pub fn on_roaring(&self, b: &Bitmap) {
         match *self {
             ReadBitmapOp::ContainsRange(ref r) => {
-                b.contains_range(r.start().0..=r.end().0);
+                let _ = b.contains_range(r.start().0..=r.end().0);
             }
             ReadBitmapOp::Contains(i) => {
-                b.contains(i.0);
+                let _ = b.contains(i.0);
             }
             ReadBitmapOp::RangeCardinality(ref r) => {
-                b.range_cardinality(r.start().0..=r.end().0);
+                let _ = b.range_cardinality(r.start().0..=r.end().0);
             }
             ReadBitmapOp::Cardinality => {
-                b.cardinality();
+                let _ = b.cardinality();
             }
             ReadBitmapOp::Flip(ref r) => {
-                b.flip(r.start().0..=r.end().0);
+                let _ = b.flip(r.start().0..=r.end().0);
             }
             ReadBitmapOp::ToVec => {
                 drop(b.to_vec());
             }
             ReadBitmapOp::GetPortableSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes::<Portable>();
+                let _ = b.get_serialized_size_in_bytes::<Portable>();
             }
             ReadBitmapOp::GetNativeSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes::<Native>();
+                let _ = b.get_serialized_size_in_bytes::<Native>();
             }
             ReadBitmapOp::GetFrozenSerializedSizeInBytes => {
-                b.get_serialized_size_in_bytes::<Frozen>();
+                let _ = b.get_serialized_size_in_bytes::<Frozen>();
             }
             ReadBitmapOp::IsEmpty => {
                 assert_eq!(b.is_empty(), b.cardinality() == 0);
             }
             ReadBitmapOp::IntersectWithRange(ref r) => {
-                b.intersect_with_range(r.start().0..=r.end().0);
+                let _ = b.intersect_with_range(r.start().0..=r.end().0);
             }
             ReadBitmapOp::Minimum => {
-                b.minimum();
+                let _ = b.minimum();
             }
             ReadBitmapOp::Maximum => {
-                b.maximum();
+                let _ = b.maximum();
             }
             ReadBitmapOp::Rank(i) => {
-                b.rank(i.0);
+                let _ = b.rank(i.0);
             }
             ReadBitmapOp::Index(i) => {
-                b.position(i.0);
+                let _ = b.position(i.0);
             }
             ReadBitmapOp::Select(i) => {
-                b.select(i.0);
+                let _ = b.select(i.0);
             }
             ReadBitmapOp::Statistics => {
-                b.statistics();
+                let _ = b.statistics();
             }
             ReadBitmapOp::Clone => {
                 drop(b.clone());
@@ -141,7 +141,7 @@ impl ReadBitmapOp {
                 }
             }
             ReadBitmapOp::AddOffset(i) => {
-                b.add_offset(i);
+                let _ = b.add_offset(i);
             }
         }
     }

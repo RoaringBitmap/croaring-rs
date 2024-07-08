@@ -343,8 +343,9 @@ impl Bitmap64 {
     /// assert!(bitmap.is_empty());
     /// ```
     #[inline]
+    #[doc(alias = "roaring64_bitmap_clear")]
     pub fn clear(&mut self) {
-        self.remove_range(..);
+        unsafe { ffi::roaring64_bitmap_clear(self.raw.as_ptr()) }
     }
 
     /// Returns the number of values in the bitmap
@@ -385,25 +386,8 @@ impl Bitmap64 {
     #[must_use]
     #[doc(alias = "roaring64_bitmap_range_cardinality")]
     pub fn range_cardinality<R: RangeBounds<u64>>(&self, range: R) -> u64 {
-        let Some(exclusive_range) = range_to_exclusive(range) else {
-            return 0;
-        };
-        self._range_cardinality(exclusive_range)
-    }
-
-    #[inline]
-    fn _range_cardinality(&self, exclusive_range: ExclusiveRangeRes) -> u64 {
-        let ExclusiveRangeRes {
-            start,
-            end,
-            needs_max,
-        } = exclusive_range;
-        let mut cardinality =
-            unsafe { ffi::roaring64_bitmap_range_cardinality(self.raw.as_ptr(), start, end) };
-        if needs_max {
-            cardinality += u64::from(self.contains(u64::MAX));
-        }
-        cardinality
+        let (start, end) = range_to_inclusive(range);
+        unsafe { ffi::roaring64_bitmap_range_closed_cardinality(self.raw.as_ptr(), start, end) }
     }
 
     /// Returns true if the bitmap is empty
