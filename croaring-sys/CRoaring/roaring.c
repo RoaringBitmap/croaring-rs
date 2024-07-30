@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2024-07-03T21:30:32Z
+// Created by amalgamation.sh on 2024-07-30T19:32:00Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -12787,11 +12787,8 @@ int array_container_shrink_to_fit(array_container_t *src) {
 
 /* Free memory. */
 void array_container_free(array_container_t *arr) {
-    if (arr->array !=
-        NULL) {  // Jon Strabala reports that some tools complain otherwise
-        roaring_free(arr->array);
-        arr->array = NULL;  // pedantic
-    }
+    if (arr == NULL) return;
+    roaring_free(arr->array);
     roaring_free(arr);
 }
 
@@ -12819,10 +12816,7 @@ void array_container_grow(array_container_t *container, int32_t min,
             (uint16_t *)roaring_realloc(array, new_capacity * sizeof(uint16_t));
         if (container->array == NULL) roaring_free(array);
     } else {
-        // Jon Strabala reports that some tools complain otherwise
-        if (array != NULL) {
-            roaring_free(array);
-        }
+        roaring_free(array);
         container->array =
             (uint16_t *)roaring_malloc(new_capacity * sizeof(uint16_t));
     }
@@ -13343,11 +13337,8 @@ void bitset_container_add_from_range(bitset_container_t *bitset, uint32_t min,
 
 /* Free memory. */
 void bitset_container_free(bitset_container_t *bitset) {
-    if (bitset->words !=
-        NULL) {  // Jon Strabala reports that some tools complain otherwise
-        roaring_aligned_free(bitset->words);
-        bitset->words = NULL;  // pedantic
-    }
+    if (bitset == NULL) return;
+    roaring_aligned_free(bitset->words);
     roaring_free(bitset);
 }
 
@@ -17979,11 +17970,8 @@ void run_container_offset(const run_container_t *c, container_t **loc,
 
 /* Free memory. */
 void run_container_free(run_container_t *run) {
-    if (run->runs !=
-        NULL) {  // Jon Strabala reports that some tools complain otherwise
-        roaring_free(run->runs);
-        run->runs = NULL;  // pedantic
-    }
+    if (run == NULL) return;
+    roaring_free(run->runs);
     roaring_free(run);
 }
 
@@ -18001,10 +17989,7 @@ void run_container_grow(run_container_t *run, int32_t min, bool copy) {
                                                run->capacity * sizeof(rle16_t));
         if (run->runs == NULL) roaring_free(oldruns);
     } else {
-        // Jon Strabala reports that some tools complain otherwise
-        if (run->runs != NULL) {
-            roaring_free(run->runs);
-        }
+        roaring_free(run->runs);
         run->runs = (rle16_t *)roaring_malloc(run->capacity * sizeof(rle16_t));
     }
     // We may have run->runs == NULL.
@@ -18426,24 +18411,6 @@ void run_container_andnot(const run_container_t *src_1,
     }
 }
 
-ALLOW_UNALIGNED
-int run_container_to_uint32_array(void *vout, const run_container_t *cont,
-                                  uint32_t base) {
-    int outpos = 0;
-    uint32_t *out = (uint32_t *)vout;
-    for (int i = 0; i < cont->n_runs; ++i) {
-        uint32_t run_start = base + cont->runs[i].value;
-        uint16_t le = cont->runs[i].length;
-        for (int j = 0; j <= le; ++j) {
-            uint32_t val = run_start + j;
-            memcpy(out + outpos, &val,
-                   sizeof(uint32_t));  // should be compiled as a MOV on x64
-            outpos++;
-        }
-    }
-    return outpos;
-}
-
 /*
  * Print this container using printf (useful for debugging).
  */
@@ -18816,6 +18783,47 @@ static inline int _avx2_run_container_cardinality(const run_container_t *run) {
     return sum;
 }
 
+ALLOW_UNALIGNED
+int _avx2_run_container_to_uint32_array(void *vout, const run_container_t *cont,
+                                        uint32_t base) {
+    int outpos = 0;
+    uint32_t *out = (uint32_t *)vout;
+
+    for (int i = 0; i < cont->n_runs; ++i) {
+        uint32_t run_start = base + cont->runs[i].value;
+        uint16_t le = cont->runs[i].length;
+        if (le < 8) {
+            for (int j = 0; j <= le; ++j) {
+                uint32_t val = run_start + j;
+                memcpy(out + outpos, &val,
+                       sizeof(uint32_t));  // should be compiled as a MOV on x64
+                outpos++;
+            }
+        } else {
+            int j = 0;
+            __m256i run_start_v = _mm256_set1_epi32(run_start);
+            // [8,8,8,8....]
+            __m256i inc = _mm256_set1_epi32(8);
+            // used for generate sequence:
+            // [0, 1, 2, 3...], [8, 9, 10,...]
+            __m256i delta = _mm256_setr_epi32(0, 1, 2, 3, 4, 5, 6, 7);
+            for (j = 0; j + 8 <= le; j += 8) {
+                __m256i val_v = _mm256_add_epi32(run_start_v, delta);
+                _mm256_storeu_si256((__m256i *)(out + outpos), val_v);
+                delta = _mm256_add_epi32(inc, delta);
+                outpos += 8;
+            }
+            for (; j <= le; ++j) {
+                uint32_t val = run_start + j;
+                memcpy(out + outpos, &val,
+                       sizeof(uint32_t));  // should be compiled as a MOV on x64
+                outpos++;
+            }
+        }
+    }
+    return outpos;
+}
+
 CROARING_UNTARGET_AVX2
 
 /* Get the cardinality of `run'. Requires an actual computation. */
@@ -18845,6 +18853,34 @@ int run_container_cardinality(const run_container_t *run) {
         return _scalar_run_container_cardinality(run);
     }
 }
+
+int _scalar_run_container_to_uint32_array(void *vout,
+                                          const run_container_t *cont,
+                                          uint32_t base) {
+    int outpos = 0;
+    uint32_t *out = (uint32_t *)vout;
+    for (int i = 0; i < cont->n_runs; ++i) {
+        uint32_t run_start = base + cont->runs[i].value;
+        uint16_t le = cont->runs[i].length;
+        for (int j = 0; j <= le; ++j) {
+            uint32_t val = run_start + j;
+            memcpy(out + outpos, &val,
+                   sizeof(uint32_t));  // should be compiled as a MOV on x64
+            outpos++;
+        }
+    }
+    return outpos;
+}
+
+int run_container_to_uint32_array(void *vout, const run_container_t *cont,
+                                  uint32_t base) {
+    if (croaring_hardware_support() & ROARING_SUPPORTS_AVX2) {
+        return _avx2_run_container_to_uint32_array(vout, cont, base);
+    } else {
+        return _scalar_run_container_to_uint32_array(vout, cont, base);
+    }
+}
+
 #else
 
 /* Get the cardinality of `run'. Requires an actual computation. */
@@ -18861,6 +18897,25 @@ int run_container_cardinality(const run_container_t *run) {
 
     return sum;
 }
+
+ALLOW_UNALIGNED
+int run_container_to_uint32_array(void *vout, const run_container_t *cont,
+                                  uint32_t base) {
+    int outpos = 0;
+    uint32_t *out = (uint32_t *)vout;
+    for (int i = 0; i < cont->n_runs; ++i) {
+        uint32_t run_start = base + cont->runs[i].value;
+        uint16_t le = cont->runs[i].length;
+        for (int j = 0; j <= le; ++j) {
+            uint32_t val = run_start + j;
+            memcpy(out + outpos, &val,
+                   sizeof(uint32_t));  // should be compiled as a MOV on x64
+            outpos++;
+        }
+    }
+    return outpos;
+}
+
 #endif
 
 #ifdef __cplusplus
@@ -18922,15 +18977,15 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <stdint.h>
 #include <stdlib.h>
 
-// Binaries produced by Visual Studio with solely AVX2 routines
+// Binaries produced by Visual Studio 19.38 with solely AVX2 routines
 // can compile to AVX-512 thus causing crashes on non-AVX-512 systems.
 // This appears to affect VS 17.8 and 17.9. We disable AVX-512 and AVX2
 // on these systems. It seems that ClangCL is not affected.
 // https://github.com/RoaringBitmap/CRoaring/pull/603
 #ifndef __clang__
-#if _MSC_VER >= 1938
+#if _MSC_VER == 1938
 #define ROARING_DISABLE_AVX 1
-#endif  // _MSC_VER >= 1938
+#endif  // _MSC_VER == 1938
 #endif  // __clang__
 
 // We need portability.h to be included first, see
