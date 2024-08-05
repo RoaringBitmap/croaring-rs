@@ -25,6 +25,12 @@ jobs:
         targets: ${{ matrix.target }}
         components: 'rustfmt, clippy'
 
+    - name: Install cargo tools
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-hack,cargo-minimal-versions
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
+
     - uses: actions/checkout@v4
 
     - name: Install LLVM
@@ -52,7 +58,7 @@ jobs:
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
     - name: Minimal versions
-      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test --no-default-features --features "${{ matrix.cargo_features }}"
+      run: cargo minimal-versions test --detach-path-deps --direct --workspace
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
       
     - name: Updated versions
