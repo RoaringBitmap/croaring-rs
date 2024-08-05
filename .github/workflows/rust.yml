@@ -53,10 +53,6 @@ jobs:
     - name: Test
       run: cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
 
-    - name: Benchmark
-      run: cargo +${{ matrix.rust }} bench --no-default-features --features "${{ matrix.cargo_features }}"
-      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
-
     - name: Minimal versions
       run: cargo minimal-versions test --detach-path-deps --direct --workspace
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
@@ -64,3 +60,7 @@ jobs:
     - name: Updated versions
       run: cargo update && cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
       if: matrix.rust == 'stable' && matrix.cargo_features == 'default'
+
+    - name: Benchmark
+      run: cargo +${{ matrix.rust }} bench --no-default-features --features "${{ matrix.cargo_features }}"
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
