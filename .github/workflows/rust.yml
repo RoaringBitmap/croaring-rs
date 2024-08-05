@@ -54,7 +54,11 @@ jobs:
       run: cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
 
     - name: Minimal versions
-      run: cargo minimal-versions test --detach-path-deps --direct --workspace
+      # cargo-minimal-versions won't detach the path deps if we're using dev dependencies
+      # so we won't catch the case where we compile but fail tests because of path dependencies
+      run: |
+        cargo +${{ matrix.rust }} minimal-versions check --detach-path-deps --direct --workspace
+        cargo +${{ matrix.rust }} minimal-versions test --direct --workspace
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
       
     - name: Updated versions
