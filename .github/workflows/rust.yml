@@ -70,8 +70,10 @@ jobs:
         cd fuzz || exit 1
         CFLAGS="-fsanitize=address -g -fno-omit-frame-pointer"
         targets=( $(cargo metadata --format-version 1 --no-deps | jq -r ".packages[].targets[].name") )
+        target_triple=$(cargo --version --verbose | grep 'host:' | cut -d ' ' -f 2)
         for target in "${targets[@]}"; do
-          cargo fuzz run "$target" -- -max_total_time=10
+          # https://github.com/rust-fuzz/cargo-fuzz/issues/355
+          cargo +${{ matrix.rust }} fuzz run "$target" --target "${target_triple}" -- -max_total_time=10
         done
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default' && matrix.os == 'ubuntu-latest'
 
