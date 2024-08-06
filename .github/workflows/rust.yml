@@ -28,7 +28,7 @@ jobs:
     - name: Install cargo tools
       uses: taiki-e/install-action@v2
       with:
-        tool: cargo-hack,cargo-minimal-versions
+        tool: cargo-hack,cargo-minimal-versions,cargo-fuzz
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
     - uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest' && matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
     - name: Test
-      run: cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
+      run: cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}" --all-targets
 
     - name: Minimal versions
       # cargo-minimal-versions won't detach the path deps if we're using dev dependencies
@@ -65,6 +65,18 @@ jobs:
       run: cargo update && cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
       if: matrix.rust == 'stable' && matrix.cargo_features == 'default'
 
-    - name: Benchmark
-      run: cargo +${{ matrix.rust }} bench --no-default-features --features "${{ matrix.cargo_features }}"
+    - name: Short Fuzz
+      run: |
+        cd fuzz || exit 1
+        CFLAGS="-fsanitize=address -g -fno-omit-frame-pointer"
+        targets=( $(cargo metadata --format-version 1 --no-deps | jq -r ".packages[].targets[].name") )
+        for target in "${targets[@]}"; do
+          cargo fuzz run "$target" -- -max_total_time=10
+        done
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default' && matrix.os == 'ubuntu-latest'
+
+    - name: Release Test
+      run: |
+        cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}" --release --all-targets
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
+

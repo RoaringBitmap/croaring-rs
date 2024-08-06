@@ -25,18 +25,17 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.101"
+version = "1.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac367972e516d45567c7eafc73d24e1c193dcf200a8d94e9db7b3d38b349572d"
+checksum = "26a5c3fd7bfa1ce3897a3a3501d362b2d87b7f2583ebcb4a949ec25911025cbc"
 dependencies = [
  "jobserver",
  "libc",
- "once_cell",
 ]
 
 [[package]]
 name = "croaring"
-version = "2.0.2"
+version = "2.0.3"
 dependencies = [
  "croaring-sys",
 ]
@@ -52,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "croaring-sys"
-version = "4.1.0"
+version = "4.1.1"
 dependencies = [
  "cc",
 ]
