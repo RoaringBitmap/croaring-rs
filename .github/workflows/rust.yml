@@ -25,6 +25,12 @@ jobs:
         targets: ${{ matrix.target }}
         components: 'rustfmt, clippy'
 
+    - name: Install cargo tools
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-hack,cargo-minimal-versions
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
+
     - uses: actions/checkout@v4
 
     - name: Install LLVM
@@ -47,14 +53,18 @@ jobs:
     - name: Test
       run: cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
 
-    - name: Benchmark
-      run: cargo +${{ matrix.rust }} bench --no-default-features --features "${{ matrix.cargo_features }}"
-      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
-
     - name: Minimal versions
-      run: cargo +${{ matrix.rust }} -Zdirect-minimal-versions test --no-default-features --features "${{ matrix.cargo_features }}"
+      # cargo-minimal-versions won't detach the path deps if we're using dev dependencies
+      # so we won't catch the case where we compile but fail tests because of path dependencies
+      run: |
+        cargo +${{ matrix.rust }} minimal-versions check --detach-path-deps --direct --workspace
+        cargo +${{ matrix.rust }} minimal-versions test --direct --workspace
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
       
     - name: Updated versions
       run: cargo update && cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
       if: matrix.rust == 'stable' && matrix.cargo_features == 'default'
+
+    - name: Benchmark
+      run: cargo +${{ matrix.rust }} bench --no-default-features --features "${{ matrix.cargo_features }}"
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
