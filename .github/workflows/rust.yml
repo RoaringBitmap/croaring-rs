@@ -28,7 +28,7 @@ jobs:
     - name: Install cargo tools
       uses: taiki-e/install-action@v2
       with:
-        tool: cargo-hack,cargo-minimal-versions,cargo-fuzz
+        tool: cargo-hack,cargo-minimal-versions${{ matrix.os == 'ubuntu-latest' && ',cargo-fuzz' || '' }}
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
     - uses: actions/checkout@v4
@@ -67,6 +67,7 @@ jobs:
 
     - name: Short Fuzz
       run: |
+        cargo +${{ matrix.rust }} install cargo-fuzz --locked
         cd fuzz || exit 1
         CFLAGS="-fsanitize=address -g -fno-omit-frame-pointer"
         targets=( $(cargo metadata --format-version 1 --no-deps | jq -r ".packages[].targets[].name") )
