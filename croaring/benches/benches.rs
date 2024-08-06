@@ -89,22 +89,36 @@ fn binops(c: &mut Criterion) {
             group
         }};
         ($new:ident, $inplace:ident, $fast:ident) => {{
-            let mut group = bench_op!($new, $inplace);
+            #[cfg(not(feature = "alloc"))]
+            {
+                bench_op!($new, $inplace)
+            }
+            #[cfg(feature = "alloc")]
+            {
+                let mut group = bench_op!($new, $inplace);
 
-            group.bench_function("fast", |b| {
-                b.iter(|| Bitmap::$fast(&[&bitmap1, &bitmap2]));
-            });
+                group.bench_function("fast", |b| {
+                    b.iter(|| Bitmap::$fast(&[&bitmap1, &bitmap2]));
+                });
 
-            group
+                group
+            }
         }};
         ($new:ident, $inplace:ident, $fast:ident, $fast_heap:ident) => {{
-            let mut group = bench_op!($new, $inplace, $fast);
+            #[cfg(not(feature = "alloc"))]
+            {
+                bench_op!($new, $inplace, $fast)
+            }
+            #[cfg(feature = "alloc")]
+            {
+                let mut group = bench_op!($new, $inplace, $fast);
 
-            group.bench_function("fast_heap", |b| {
-                b.iter(|| Bitmap::$fast_heap(&[&bitmap1, &bitmap2]));
-            });
+                group.bench_function("fast_heap", |b| {
+                    b.iter(|| Bitmap::$fast_heap(&[&bitmap1, &bitmap2]));
+                });
 
-            group
+                group
+            }
         }};
     }
 
@@ -134,6 +148,8 @@ fn to_vec(c: &mut Criterion) {
     const N: usize = 100_000;
     let bitmap: Bitmap = random_iter().take(N).collect();
     let mut g = c.benchmark_group("collect");
+
+    #[cfg(feature = "alloc")]
     g.bench_function("to_vec", |b| {
         b.iter(|| bitmap.to_vec());
     });
@@ -178,13 +194,20 @@ fn of(c: &mut Criterion) {
 }
 
 fn serialize(c: &mut Criterion) {
-    let mut group = c.benchmark_group("serialize");
-    for &size in &[100_000, 1_000_000] {
-        let bitmap: Bitmap = (1..size).collect();
-        group.throughput(Throughput::Elements(size.into()));
-        group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
-            b.iter(|| bitmap.serialize::<Portable>());
-        });
+    #[cfg(not(feature = "alloc"))]
+    {
+        _ = c;
+    }
+    #[cfg(feature = "alloc")]
+    {
+        let mut group = c.benchmark_group("serialize");
+        for &size in &[100_000, 1_000_000] {
+            let bitmap: Bitmap = (1..size).collect();
+            group.throughput(Throughput::Elements(size.into()));
+            group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
+                b.iter(|| bitmap.serialize::<Portable>());
+            });
+        }
     }
 }
 
@@ -192,7 +215,10 @@ fn deserialize(c: &mut Criterion) {
     let mut group = c.benchmark_group("deserialize");
     for &size in &[100_000, 1_000_000] {
         let bitmap: Bitmap = (1..size).collect();
-        let serialized_buffer = bitmap.serialize::<Portable>();
+        let mut serialized_buffer = vec![0; bitmap.get_serialized_size_in_bytes::<Portable>()];
+        let serialized_buffer = bitmap
+            .try_serialize_into::<Portable>(&mut serialized_buffer)
+            .unwrap();
         group.throughput(Throughput::Elements(size.into()));
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
             b.iter(|| Bitmap::deserialize::<Portable>(&serialized_buffer));
@@ -285,6 +311,8 @@ fn collect_bitmap64_to_vec(c: &mut Criterion) {
     let mut group = c.benchmark_group("collect_bitmap64_to_vec");
     group.throughput(Throughput::Elements(N.into()));
     let bitmap = Bitmap64::from_range(0..N);
+
+    #[cfg(feature = "alloc")]
     group.bench_function("to_vec", |b| {
         b.iter_batched(|| (), |()| bitmap.to_vec(), BatchSize::LargeInput);
     });
