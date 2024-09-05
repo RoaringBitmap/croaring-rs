@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2024-07-30T19:32:00Z
+// Created by amalgamation.sh on 2024-09-19T15:00:26Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -12095,16 +12095,13 @@ size_t bitset_extract_setbits_avx512(const uint64_t *words, size_t length,
     for (; (i < length) && (out < safeout); ++i) {
         uint64_t w = words[i];
         while ((w != 0) && (out < safeout)) {
-            uint64_t t =
-                w & (~w + 1);  // on x64, should compile to BLSI (careful: the
-                               // Intel compiler seems to fail)
             int r =
                 roaring_trailing_zeroes(w);  // on x64, should compile to TZCNT
             uint32_t val = r + base;
             memcpy(out, &val,
                    sizeof(uint32_t));  // should be compiled as a MOV on x64
             out++;
-            w ^= t;
+            w &= (w - 1);
         }
         base += 64;
     }
@@ -12149,15 +12146,12 @@ size_t bitset_extract_setbits_avx512_uint16(const uint64_t *array,
     for (; (i < length) && (out < safeout); ++i) {
         uint64_t w = array[i];
         while ((w != 0) && (out < safeout)) {
-            uint64_t t =
-                w & (~w + 1);  // on x64, should compile to BLSI (careful: the
-                               // Intel compiler seems to fail)
             int r =
                 roaring_trailing_zeroes(w);  // on x64, should compile to TZCNT
             uint32_t val = r + base;
             memcpy(out, &val, sizeof(uint16_t));
             out++;
-            w ^= t;
+            w &= (w - 1);
         }
         base += 64;
     }
@@ -12207,16 +12201,13 @@ size_t bitset_extract_setbits_avx2(const uint64_t *words, size_t length,
     for (; (i < length) && (out < safeout); ++i) {
         uint64_t w = words[i];
         while ((w != 0) && (out < safeout)) {
-            uint64_t t =
-                w & (~w + 1);  // on x64, should compile to BLSI (careful: the
-                               // Intel compiler seems to fail)
             int r =
                 roaring_trailing_zeroes(w);  // on x64, should compile to TZCNT
             uint32_t val = r + base;
             memcpy(out, &val,
                    sizeof(uint32_t));  // should be compiled as a MOV on x64
             out++;
-            w ^= t;
+            w &= (w - 1);
         }
         base += 64;
     }
@@ -12231,16 +12222,13 @@ size_t bitset_extract_setbits(const uint64_t *words, size_t length,
     for (size_t i = 0; i < length; ++i) {
         uint64_t w = words[i];
         while (w != 0) {
-            uint64_t t =
-                w & (~w + 1);  // on x64, should compile to BLSI (careful: the
-                               // Intel compiler seems to fail)
             int r =
                 roaring_trailing_zeroes(w);  // on x64, should compile to TZCNT
             uint32_t val = r + base;
             memcpy(out + outpos, &val,
                    sizeof(uint32_t));  // should be compiled as a MOV on x64
             outpos++;
-            w ^= t;
+            w &= (w - 1);
         }
         base += 64;
     }
@@ -12254,10 +12242,9 @@ size_t bitset_extract_intersection_setbits_uint16(
     for (size_t i = 0; i < length; ++i) {
         uint64_t w = words1[i] & words2[i];
         while (w != 0) {
-            uint64_t t = w & (~w + 1);
             int r = roaring_trailing_zeroes(w);
             out[outpos++] = (uint16_t)(r + base);
-            w ^= t;
+            w &= (w - 1);
         }
         base += 64;
     }
@@ -12318,11 +12305,10 @@ size_t bitset_extract_setbits_sse_uint16(const uint64_t *words, size_t length,
     for (; (i < length) && (out < safeout); ++i) {
         uint64_t w = words[i];
         while ((w != 0) && (out < safeout)) {
-            uint64_t t = w & (~w + 1);
             int r = roaring_trailing_zeroes(w);
             *out = (uint16_t)(r + base);
             out++;
-            w ^= t;
+            w &= (w - 1);
         }
         base += 64;
     }
@@ -12346,10 +12332,9 @@ size_t bitset_extract_setbits_uint16(const uint64_t *words, size_t length,
     for (size_t i = 0; i < length; ++i) {
         uint64_t w = words[i];
         while (w != 0) {
-            uint64_t t = w & (~w + 1);
             int r = roaring_trailing_zeroes(w);
             out[outpos++] = (uint16_t)(r + base);
-            w ^= t;
+            w &= (w - 1);
         }
         base += 64;
     }
@@ -12640,7 +12625,8 @@ void bitset_flip_list(uint64_t *words, const uint16_t *list, uint64_t length) {
 #endif
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
-#endif/* end file src/bitset_util.c */
+#endif
+/* end file src/bitset_util.c */
 /* begin file src/containers/array.c */
 /*
  * array.c
@@ -22647,7 +22633,7 @@ roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
 
 bool roaring_bitmap_to_bitset(const roaring_bitmap_t *r, bitset_t *bitset) {
     uint32_t max_value = roaring_bitmap_maximum(r);
-    size_t new_array_size = (size_t)(((uint64_t)max_value + 63) / 64);
+    size_t new_array_size = (size_t)(max_value / 64 + 1);
     bool resize_ok = bitset_resize(bitset, new_array_size, true);
     if (!resize_ok) {
         return false;
@@ -22865,6 +22851,43 @@ roaring64_bitmap_t *roaring64_bitmap_copy(const roaring64_bitmap_t *r) {
         art_insert(&result->art, it.key, (art_val_t *)result_leaf);
         art_iterator_next(&it);
     }
+    return result;
+}
+
+/**
+ * Steal the containers from a 32-bit bitmap and insert them into a 64-bit
+ * bitmap (with an offset)
+ *
+ * After calling this function, the original bitmap will be empty, and the
+ * returned bitmap will contain all the values from the original bitmap.
+ */
+static void move_from_roaring32_offset(roaring64_bitmap_t *dst,
+                                       roaring_bitmap_t *src,
+                                       uint32_t high_bits) {
+    uint64_t key_base = ((uint64_t)high_bits) << 32;
+    uint32_t r32_size = ra_get_size(&src->high_low_container);
+    for (uint32_t i = 0; i < r32_size; ++i) {
+        uint16_t key = ra_get_key_at_index(&src->high_low_container, i);
+        uint8_t typecode;
+        container_t *container = ra_get_container_at_index(
+            &src->high_low_container, (uint16_t)i, &typecode);
+
+        uint8_t high48[ART_KEY_BYTES];
+        uint64_t high48_bits = key_base | ((uint64_t)key << 16);
+        split_key(high48_bits, high48);
+        leaf_t *leaf = create_leaf(container, typecode);
+        art_insert(&dst->art, high48, (art_val_t *)leaf);
+    }
+    // We stole all the containers, so leave behind a size of zero
+    src->high_low_container.size = 0;
+}
+
+roaring64_bitmap_t *roaring64_bitmap_move_from_roaring32(
+    roaring_bitmap_t *bitmap32) {
+    roaring64_bitmap_t *result = roaring64_bitmap_create();
+
+    move_from_roaring32_offset(result, bitmap32, 0);
+
     return result;
 }
 
@@ -24607,6 +24630,7 @@ roaring64_bitmap_t *roaring64_bitmap_portable_deserialize_safe(
 
     roaring64_bitmap_t *r = roaring64_bitmap_create();
     // Iterate through buckets ordered by increasing keys.
+    int64_t previous_high32 = -1;
     for (uint64_t bucket = 0; bucket < buckets; ++bucket) {
         // Read as uint32 the most significant 32 bits of the bucket.
         uint32_t high32;
@@ -24617,7 +24641,10 @@ roaring64_bitmap_t *roaring64_bitmap_portable_deserialize_safe(
         memcpy(&high32, buf, sizeof(high32));
         buf += sizeof(high32);
         read_bytes += sizeof(high32);
-
+        if (high32 < previous_high32) {
+            roaring64_bitmap_free(r);
+            return NULL;
+        }
         // Read the 32-bit Roaring bitmaps representing the least significant
         // bits of a set of elements.
         size_t bitmap32_size = roaring_bitmap_portable_deserialize_size(
@@ -24637,22 +24664,8 @@ roaring64_bitmap_t *roaring64_bitmap_portable_deserialize_safe(
         read_bytes += bitmap32_size;
 
         // Insert all containers of the 32-bit bitmap into the 64-bit bitmap.
-        uint32_t r32_size = ra_get_size(&bitmap32->high_low_container);
-        for (size_t i = 0; i < r32_size; ++i) {
-            uint16_t key16 =
-                ra_get_key_at_index(&bitmap32->high_low_container, (uint16_t)i);
-            uint8_t typecode;
-            container_t *container = ra_get_container_at_index(
-                &bitmap32->high_low_container, (uint16_t)i, &typecode);
-
-            uint64_t high48_bits =
-                (((uint64_t)high32) << 32) | (((uint64_t)key16) << 16);
-            uint8_t high48[ART_KEY_BYTES];
-            split_key(high48_bits, high48);
-            leaf_t *leaf = create_leaf(container, typecode);
-            art_insert(&r->art, high48, (art_val_t *)leaf);
-        }
-        roaring_bitmap_free_without_containers(bitmap32);
+        move_from_roaring32_offset(r, bitmap32, high32);
+        roaring_bitmap_free(bitmap32);
     }
     return r;
 }
