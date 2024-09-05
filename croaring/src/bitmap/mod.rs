@@ -67,7 +67,7 @@ use core::marker::PhantomData;
 // &BitmapView and &Bitmap
 #[repr(transparent)]
 pub struct Bitmap {
-    bitmap: ffi::roaring_bitmap_t,
+    pub(crate) bitmap: ffi::roaring_bitmap_t,
 }
 
 unsafe impl Sync for Bitmap {}

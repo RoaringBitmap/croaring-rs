@@ -1,4 +1,4 @@
-use crate::Bitmap64;
+use crate::{Bitmap, Bitmap64};
 use core::fmt;
 use core::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign, Sub, SubAssign};
 use ffi::roaring64_bitmap_copy;
@@ -42,6 +42,12 @@ impl From<&'_ [u64]> for Bitmap64 {
     #[doc(alias = "roaring64_bitmap_of_ptr")]
     fn from(slice: &[u64]) -> Self {
         Self::of(slice)
+    }
+}
+
+impl From<Bitmap> for Bitmap64 {
+    fn from(mut value: Bitmap) -> Self {
+        unsafe { Self::take_heap(ffi::roaring64_bitmap_move_from_roaring32(&mut value.bitmap)) }
     }
 }
 
