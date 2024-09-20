@@ -35,7 +35,7 @@ dependencies = [
 
 [[package]]
 name = "croaring"
-version = "2.1.0"
+version = "2.1.1"
 dependencies = [
  "croaring-sys",
 ]
@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "croaring-sys"
-version = "4.1.4"
+version = "4.1.6"
 dependencies = [
  "cc",
 ]
