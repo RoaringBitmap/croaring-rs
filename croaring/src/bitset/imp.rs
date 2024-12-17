@@ -263,6 +263,23 @@ impl Bitset {
         (word & mask) != 0
     }
 
+    /// Check if the bitset is empty
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitset;
+    /// let mut bitset = Bitset::new();
+    /// assert!(bitset.is_empty());
+    /// bitset.set(100);
+    /// assert!(!bitset.is_empty());
+    /// ```
+    #[inline]
+    #[doc(alias = "bitset_empty")]
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        unsafe { ffi::bitset_empty(&self.bitset) }
+    }
+
     /// Count of number of set bits
     ///
     /// # Examples
