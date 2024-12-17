@@ -61,11 +61,6 @@ jobs:
         cargo +${{ matrix.rust }} minimal-versions test --direct --workspace
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
-      # This only must pass when we're ready to release, allow it to fail unless this is a commit to master
-      # e.g if we're on a PR that's bumping the -sys crate, and requires changes to the main crate, the minimal version
-      # check _cannot_ succeed, because the new version of the -sys crate won't be published yet
-      continue-on-error: ${{ github.ref != 'refs/heads/master' }}
-
     - name: Updated versions
       run: cargo update && cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}"
       if: matrix.rust == 'stable' && matrix.cargo_features == 'default'
