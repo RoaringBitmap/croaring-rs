@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2024-09-20T14:21:41Z
+// Created by amalgamation.sh on 2024-10-04T22:14:33Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -67,6 +67,7 @@ A C++ header for Roaring Bitmaps.
 #include <algorithm>
 #include <cstdarg>
 #include <initializer_list>
+#include <limits>
 #include <new>
 #include <stdexcept>
 #include <string>
@@ -97,7 +98,10 @@ A C++ header for Roaring Bitmaps.
 
 namespace roaring {
 
-class RoaringSetBitForwardIterator;
+class RoaringSetBitBiDirectionalIterator;
+
+/** DEPRECATED, use `RoaringSetBitBiDirectionalIterator`. */
+using RoaringSetBitForwardIterator = RoaringSetBitBiDirectionalIterator;
 
 /**
  * A bit of context usable with `*Bulk()` functions.
@@ -150,6 +154,16 @@ class Roaring {
     }
 
     /**
+     * Construct a roaring object by taking control of a malloc()'d C struct.
+     *
+     * Passing a NULL pointer is unsafe.
+     * The pointer to the C struct will be invalid after the call.
+     */
+    explicit Roaring(roaring_bitmap_t *s) noexcept : roaring(*s) {
+        roaring_free(s);  // deallocate the passed-in pointer
+    }
+
+    /**
      * Copy constructor.
      * It may throw std::runtime_error if there is insufficient memory.
      */
@@ -177,16 +191,6 @@ class Roaring {
     }
 
     /**
-     * Construct a roaring object by taking control of a malloc()'d C struct.
-     *
-     * Passing a NULL pointer is unsafe.
-     * The pointer to the C struct will be invalid after the call.
-     */
-    explicit Roaring(roaring_bitmap_t *s) noexcept : roaring(*s) {
-        roaring_free(s);  // deallocate the passed-in pointer
-    }
-
-    /**
      * Construct a bitmap from a list of uint32_t values.
      */
     static Roaring bitmapOf(size_t n, ...) {
@@ -198,6 +202,44 @@ class Roaring {
         }
         va_end(vl);
         return ans;
+    }
+
+    /**
+     * Copies the content of the provided bitmap, and
+     * discard the current content.
+     * It may throw std::runtime_error if there is insufficient memory.
+     */
+    Roaring &operator=(const Roaring &r) {
+        if (!api::roaring_bitmap_overwrite(&roaring, &r.roaring)) {
+            ROARING_TERMINATE("failed memory alloc in assignment");
+        }
+        api::roaring_bitmap_set_copy_on_write(
+            &roaring, api::roaring_bitmap_get_copy_on_write(&r.roaring));
+        return *this;
+    }
+
+    /**
+     * Moves the content of the provided bitmap, and
+     * discard the current content.
+     */
+    Roaring &operator=(Roaring &&r) noexcept {
+        api::roaring_bitmap_clear(&roaring);  // free this class's allocations
+
+        // !!! See notes in the Move Constructor regarding roaring_bitmap_move()
+        //
+        roaring = r.roaring;
+        api::roaring_bitmap_init_cleared(&r.roaring);
+
+        return *this;
+    }
+
+    /**
+     * Assignment from an initializer list.
+     */
+    Roaring &operator=(std::initializer_list<uint32_t> l) {
+        // Delegate to move assignment operator
+        *this = Roaring(l);
+        return *this;
     }
 
     /**
@@ -301,6 +343,11 @@ class Roaring {
     }
 
     /**
+     * Clears the bitmap.
+     */
+    void clear() { api::roaring_bitmap_clear(&roaring); }
+
+    /**
      * Return the largest value (if not empty)
      */
     uint32_t maximum() const noexcept {
@@ -328,63 +375,9 @@ class Roaring {
         return api::roaring_bitmap_contains_range(&roaring, x, y);
     }
 
-    /**
-     * Destructor.  By contract, calling roaring_bitmap_clear() is enough to
-     * release all auxiliary memory used by the structure.
-     */
-    ~Roaring() {
-        if (!(roaring.high_low_container.flags & ROARING_FLAG_FROZEN)) {
-            api::roaring_bitmap_clear(&roaring);
-        } else {
-            // The roaring member variable copies the `roaring_bitmap_t` and
-            // nested `roaring_array_t` structures by value and is freed in the
-            // constructor, however the underlying memory arena used for the
-            // container data is not freed with it. Here we derive the arena
-            // pointer from the second arena allocation in
-            // `roaring_bitmap_frozen_view` and free it as well.
-            roaring_bitmap_free(
-                (roaring_bitmap_t *)((char *)
-                                         roaring.high_low_container.containers -
-                                     sizeof(roaring_bitmap_t)));
-        }
-    }
-
-    /**
-     * Copies the content of the provided bitmap, and
-     * discard the current content.
-     * It may throw std::runtime_error if there is insufficient memory.
-     */
-    Roaring &operator=(const Roaring &r) {
-        if (!api::roaring_bitmap_overwrite(&roaring, &r.roaring)) {
-            ROARING_TERMINATE("failed memory alloc in assignment");
-        }
-        api::roaring_bitmap_set_copy_on_write(
-            &roaring, api::roaring_bitmap_get_copy_on_write(&r.roaring));
-        return *this;
-    }
-
-    /**
-     * Moves the content of the provided bitmap, and
-     * discard the current content.
-     */
-    Roaring &operator=(Roaring &&r) noexcept {
-        api::roaring_bitmap_clear(&roaring);  // free this class's allocations
-
-        // !!! See notes in the Move Constructor regarding roaring_bitmap_move()
-        //
-        roaring = r.roaring;
-        api::roaring_bitmap_init_cleared(&r.roaring);
-
-        return *this;
-    }
-
-    /**
-     * Assignment from an initializer list.
-     */
-    Roaring &operator=(std::initializer_list<uint32_t> l) {
-        // Delegate to move assignment operator
-        *this = Roaring(l);
-        return *this;
+    bool containsRangeClosed(const uint32_t x,
+                             const uint32_t y) const noexcept {
+        return api::roaring_bitmap_contains_range_closed(&roaring, x, y);
     }
 
     /**
@@ -452,6 +445,16 @@ class Roaring {
     }
 
     /**
+     * Returns true if the bitmap is full (cardinality is uint32_t max + 1).
+     * we put std::numeric_limits<>::max/min in parentheses
+     * to avoid a clash with the Windows.h header under Windows.
+     */
+    bool isFull() const noexcept {
+        return api::roaring_bitmap_get_cardinality(&roaring) ==
+               ((uint64_t)(std::numeric_limits<uint32_t>::max)()) + 1;
+    }
+
+    /**
      * Returns true if the bitmap is subset of the other.
      */
     bool isSubset(const Roaring &r) const noexcept {
@@ -501,8 +504,8 @@ class Roaring {
      * [range_start, range_end]. Areas outside the interval are unchanged.
      */
     void flipClosed(uint32_t range_start, uint32_t range_end) noexcept {
-        api::roaring_bitmap_flip_inplace(&roaring, range_start,
-                                         uint64_t(range_end) + 1);
+        api::roaring_bitmap_flip_inplace_closed(&roaring, range_start,
+                                                range_end);
     }
 
     /**
@@ -926,7 +929,30 @@ class Roaring {
         return ans;
     }
 
-    typedef RoaringSetBitForwardIterator const_iterator;
+    /**
+     * Destructor.  By contract, calling roaring_bitmap_clear() is enough to
+     * release all auxiliary memory used by the structure.
+     */
+    ~Roaring() {
+        if (!(roaring.high_low_container.flags & ROARING_FLAG_FROZEN)) {
+            api::roaring_bitmap_clear(&roaring);
+        } else {
+            // The roaring member variable copies the `roaring_bitmap_t` and
+            // nested `roaring_array_t` structures by value and is freed in the
+            // constructor, however the underlying memory arena used for the
+            // container data is not freed with it. Here we derive the arena
+            // pointer from the second arena allocation in
+            // `roaring_bitmap_frozen_view` and free it as well.
+            roaring_bitmap_free(
+                (roaring_bitmap_t *)((char *)
+                                         roaring.high_low_container.containers -
+                                     sizeof(roaring_bitmap_t)));
+        }
+    }
+
+    friend class RoaringSetBitBiDirectionalIterator;
+    typedef RoaringSetBitBiDirectionalIterator const_iterator;
+    typedef RoaringSetBitBiDirectionalIterator const_bidirectional_iterator;
 
     /**
      * Returns an iterator that can be used to access the position of the set
@@ -951,14 +977,26 @@ class Roaring {
 /**
  * Used to go through the set bits. Not optimally fast, but convenient.
  */
-class RoaringSetBitForwardIterator final {
+class RoaringSetBitBiDirectionalIterator final {
    public:
-    typedef std::forward_iterator_tag iterator_category;
+    typedef std::bidirectional_iterator_tag iterator_category;
     typedef uint32_t *pointer;
     typedef uint32_t &reference_type;
     typedef uint32_t value_type;
     typedef int32_t difference_type;
-    typedef RoaringSetBitForwardIterator type_of_iterator;
+    typedef RoaringSetBitBiDirectionalIterator type_of_iterator;
+
+    explicit RoaringSetBitBiDirectionalIterator(const Roaring &parent,
+                                                bool exhausted = false) {
+        if (exhausted) {
+            i.parent = &parent.roaring;
+            i.container_index = INT32_MAX;
+            i.has_value = false;
+            i.current_value = UINT32_MAX;
+        } else {
+            api::roaring_iterator_init(&parent.roaring, &i);
+        }
+    }
 
     /**
      * Provides the location of the set bit.
@@ -989,22 +1027,28 @@ class RoaringSetBitForwardIterator final {
         return i.current_value >= *o;
     }
 
-    /**
-     * Move the iterator to the first value >= val.
-     */
-    void equalorlarger(uint32_t val) {
-        api::roaring_uint32_iterator_move_equalorlarger(&i, val);
-    }
-
     type_of_iterator &operator++() {  // ++i, must returned inc. value
         api::roaring_uint32_iterator_advance(&i);
         return *this;
     }
 
     type_of_iterator operator++(int) {  // i++, must return orig. value
-        RoaringSetBitForwardIterator orig(*this);
+        RoaringSetBitBiDirectionalIterator orig(*this);
         api::roaring_uint32_iterator_advance(&i);
         return orig;
+    }
+
+    /**
+     * Move the iterator to the first value >= val.
+     * Return true if there is such a value.
+     */
+    bool move_equalorlarger(value_type val) {
+        return api::roaring_uint32_iterator_move_equalorlarger(&i, val);
+    }
+
+    /** DEPRECATED, use `move_equalorlarger`.*/
+    CROARING_DEPRECATED void equalorlarger(uint32_t val) {
+        api::roaring_uint32_iterator_move_equalorlarger(&i, val);
     }
 
     type_of_iterator &operator--() {  // prefix --
@@ -1013,29 +1057,17 @@ class RoaringSetBitForwardIterator final {
     }
 
     type_of_iterator operator--(int) {  // postfix --
-        RoaringSetBitForwardIterator orig(*this);
+        RoaringSetBitBiDirectionalIterator orig(*this);
         api::roaring_uint32_iterator_previous(&i);
         return orig;
     }
 
-    bool operator==(const RoaringSetBitForwardIterator &o) const {
+    bool operator==(const RoaringSetBitBiDirectionalIterator &o) const {
         return i.current_value == *o && i.has_value == o.i.has_value;
     }
 
-    bool operator!=(const RoaringSetBitForwardIterator &o) const {
+    bool operator!=(const RoaringSetBitBiDirectionalIterator &o) const {
         return i.current_value != *o || i.has_value != o.i.has_value;
-    }
-
-    explicit RoaringSetBitForwardIterator(const Roaring &parent,
-                                          bool exhausted = false) {
-        if (exhausted) {
-            i.parent = &parent.roaring;
-            i.container_index = INT32_MAX;
-            i.has_value = false;
-            i.current_value = UINT32_MAX;
-        } else {
-            api::roaring_iterator_init(&parent.roaring, &i);
-        }
     }
 
     api::roaring_uint32_iterator_t
@@ -1043,12 +1075,12 @@ class RoaringSetBitForwardIterator final {
               // analyzers.
 };
 
-inline RoaringSetBitForwardIterator Roaring::begin() const {
-    return RoaringSetBitForwardIterator(*this);
+inline RoaringSetBitBiDirectionalIterator Roaring::begin() const {
+    return RoaringSetBitBiDirectionalIterator(*this);
 }
 
-inline RoaringSetBitForwardIterator &Roaring::end() const {
-    static RoaringSetBitForwardIterator e(*this, true);
+inline RoaringSetBitBiDirectionalIterator &Roaring::end() const {
+    static RoaringSetBitBiDirectionalIterator e(*this, true);
     return e;
 }
 
@@ -1551,6 +1583,8 @@ class Roaring64Map {
         return iter->second.contains(lowBytes(x));
     }
 
+    // TODO: implement `containsRange`
+
     /**
      * Compute the intersection of the current bitmap and the provided bitmap,
      * writing the result in the current bitmap. The provided bitmap is not
@@ -1843,17 +1877,11 @@ class Roaring64Map {
         // to avoid a clash with the Windows.h header under Windows
         return roarings.size() ==
                        ((uint64_t)(std::numeric_limits<uint32_t>::max)()) + 1
-                   ? std::all_of(
-                         roarings.cbegin(), roarings.cend(),
-                         [](const std::pair<const uint32_t, Roaring>
-                                &roaring_map_entry) {
-                             // roarings within map are saturated if cardinality
-                             // is uint32_t max + 1
-                             return roaring_map_entry.second.cardinality() ==
-                                    ((uint64_t)(std::numeric_limits<
-                                                uint32_t>::max)()) +
-                                        1;
-                         })
+                   ? std::all_of(roarings.cbegin(), roarings.cend(),
+                                 [](const std::pair<const uint32_t, Roaring>
+                                        &roaring_map_entry) {
+                                     return roaring_map_entry.second.isFull();
+                                 })
                    : false;
     }
 
@@ -2770,6 +2798,8 @@ class Roaring64Map {
 
 /**
  * Used to go through the set bits. Not optimally fast, but convenient.
+ *
+ * Recommend to explicitly construct this iterator.
  */
 class Roaring64MapSetBitBiDirectionalIterator {
    public:
@@ -2848,7 +2878,11 @@ class Roaring64MapSetBitBiDirectionalIterator {
         return orig;
     }
 
-    bool move(const value_type &x) {
+    /**
+     * Move the iterator to the first value >= val.
+     * Return true if there is such a value.
+     */
+    bool move_equalorlarger(const value_type &x) {
         map_iter = p->lower_bound(Roaring64Map::highBytes(x));
         if (map_iter != p->cend()) {
             roaring_iterator_init(&map_iter->second.roaring, &i);
@@ -2863,6 +2897,11 @@ class Roaring64MapSetBitBiDirectionalIterator {
             return true;
         }
         return false;
+    }
+
+    /** DEPRECATED, use `move_equalorlarger`. */
+    CROARING_DEPRECATED bool move(const value_type &x) {
+        return move_equalorlarger(x);
     }
 
     type_of_iterator &operator--() {  //  --i, must return dec.value

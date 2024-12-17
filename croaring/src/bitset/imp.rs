@@ -278,14 +278,14 @@ impl Bitset {
         unsafe { ffi::bitset_count(&self.bitset) }
     }
 
-    /// Index of the first set bit, or zero if the bitset has no set bits
+    /// Index of the first set bit, or usize::MAX if the bitset has no set bits
     ///
     /// # Examples
     /// ```
     /// use croaring::Bitset;
     /// let mut bitset = Bitset::new();
     /// // minimum returns 0 if the bitset is empty
-    /// assert_eq!(bitset.minimum(), 0);
+    /// assert_eq!(bitset.minimum(), usize::MAX);
     /// bitset.set(100);
     /// assert_eq!(bitset.minimum(), 100);
     /// ```
