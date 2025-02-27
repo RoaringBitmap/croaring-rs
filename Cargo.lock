@@ -189,7 +189,7 @@ dependencies = [
 
 [[package]]
 name = "croaring-sys"
-version = "4.2.1"
+version = "4.2.3"
 dependencies = [
  "cc",
 ]
