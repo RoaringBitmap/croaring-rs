@@ -1,6 +1,14 @@
 use croaring::{Bitmap64, Portable};
 use std::fs;
 
+fn init() {
+    #[cfg(feature = "alloc")]
+    {
+        static INIT: std::sync::Once = std::sync::Once::new();
+        INIT.call_once(|| unsafe { croaring::configure_rust_alloc() });
+    }
+}
+
 fn expected_serialized_bitmap() -> Bitmap64 {
     let mut bitmap = Bitmap64::new();
 
@@ -22,6 +30,7 @@ fn expected_serialized_bitmap() -> Bitmap64 {
 
 #[test]
 fn test_portable_deserialize() {
+    init();
     let buffer = fs::read("tests/data/portable_bitmap64.bin").unwrap();
     let bitmap = Bitmap64::deserialize::<Portable>(&buffer);
     let expected = expected_serialized_bitmap();
@@ -31,6 +40,7 @@ fn test_portable_deserialize() {
 
 #[test]
 fn test_r64_contains_max() {
+    init();
     let mut bitmap = Bitmap64::new();
     assert!(!bitmap.contains_range((u64::MAX - 1)..=u64::MAX));
     bitmap.add(u64::MAX - 1);
@@ -40,6 +50,7 @@ fn test_r64_contains_max() {
 
 #[test]
 fn test_r64_cursor_reset() {
+    init();
     let bitmap = Bitmap64::of(&[0, 1, 100, 1000, u64::MAX]);
     let mut cursor = bitmap.cursor();
     cursor.reset_at_or_after(0);
@@ -58,6 +69,7 @@ fn test_r64_cursor_reset() {
 
 #[test]
 fn empty_intersect_with_range() {
+    init();
     let bitmap = Bitmap64::new();
     assert_eq!(0, bitmap.range_cardinality(0..1));
     bitmap.intersect_with_range(0..1);
@@ -65,6 +77,7 @@ fn empty_intersect_with_range() {
 
 #[test]
 fn empty_reset_iterator() {
+    init();
     let bitmap = Bitmap64::new();
     let mut iterator = bitmap.iter();
     assert_eq!(iterator.peek(), None);
