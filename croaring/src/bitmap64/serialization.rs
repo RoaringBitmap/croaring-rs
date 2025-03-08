@@ -1,4 +1,4 @@
-use crate::{Bitmap64, Portable};
+use crate::{Bitmap64, Frozen, Portable};
 use core::ffi::c_char;
 use core::num::NonZeroUsize;
 
@@ -48,14 +48,17 @@ pub trait Serializer: crate::sealed::Sealed {
     /// Serialize a bitmap into bytes, using the provided buffer to store the serialized data
     ///
     /// This method does not require the buffer to be aligned, and will return `None` if the buffer
-    /// is not large enough to store the serialized data.
+    /// is not large enough to store the serialized data. Some serializers may have other
+    /// conditions where this method will return `None`, for example the [`crate::Frozen`] format
+    /// requires the bitmap to be shrunk with [`Bitmap64::shrink_to_fit`] before it can be
+    /// serialized.
     ///
     /// This is a niche method, and is not recommended for general use. The
     /// [`Bitmap64::try_serialize_into`]/[`Bitmap64::serialize_into_vec`] methods should usually be used
     /// instead of this method.
     fn try_serialize_into(bitmap: &Bitmap64, dst: &mut [u8]) -> Option<usize> {
         let required_len = Self::get_serialized_size_in_bytes(bitmap);
-        if dst.len() < required_len {
+        if dst.len() < required_len || required_len == 0 {
             return None;
         }
         unsafe {
@@ -107,6 +110,19 @@ pub trait Deserializer: crate::sealed::Sealed {
     fn find_end(buffer: &[u8]) -> Option<NonZeroUsize>;
 }
 
+pub trait ViewDeserializer: crate::sealed::Sealed {
+    /// Create a bitmap64 view using the passed data
+    ///
+    /// # Safety
+    /// * `data` must be the result of serializing a roaring bitmap in this format.
+    /// * Its beginning must be aligned properly for this format.
+    /// * data.len() must be equal exactly to the size of the serialized bitmap.
+    ///
+    /// See [`Bitmap64View::deserialize`] for examples.
+    #[doc(hidden)]
+    unsafe fn deserialize_view(data: &[u8]) -> *mut ffi::roaring64_bitmap_t;
+}
+
 impl Serializer for Portable {
     /// Computes the serialized size in bytes of the Bitmap in portable format.
     /// See [`Bitmap64::get_serialized_size_in_bytes`] for examples.
@@ -154,5 +170,26 @@ impl Deserializer for Portable {
             )
         };
         NonZeroUsize::new(end)
+    }
+}
+
+impl Serializer for Frozen {
+    // Unlike 32 bit bitmaps, 64 bit bitmaps require 64 byte alignment
+    const REQUIRED_ALIGNMENT: usize = 64;
+
+    fn get_serialized_size_in_bytes(bitmap: &Bitmap64) -> usize {
+        unsafe { ffi::roaring64_bitmap_frozen_size_in_bytes(bitmap.raw.as_ptr()) }
+    }
+
+    unsafe fn raw_serialize(bitmap: &Bitmap64, dst: *mut c_char) {
+        unsafe {
+            ffi::roaring64_bitmap_frozen_serialize(bitmap.raw.as_ptr(), dst);
+        }
+    }
+}
+
+impl ViewDeserializer for Frozen {
+    unsafe fn deserialize_view(data: &[u8]) -> *mut ffi::roaring64_bitmap_t {
+        unsafe { ffi::roaring64_bitmap_frozen_view(data.as_ptr().cast(), data.len()) }
     }
 }
