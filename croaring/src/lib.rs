@@ -19,6 +19,8 @@ pub mod bitset;
 pub mod treemap;
 
 mod callback;
+#[cfg(feature = "alloc")]
+mod rust_alloc;
 mod serialization;
 
 mod sealed {
@@ -35,3 +37,6 @@ pub use bitset::Bitset;
 pub use treemap::Treemap;
 
 pub use bitmap::BitmapView;
+
+#[cfg(feature = "alloc")]
+pub use rust_alloc::configure_rust_alloc;
