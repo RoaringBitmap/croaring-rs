@@ -1,4 +1,4 @@
-use croaring::{Bitmap64, Portable};
+use croaring::{Bitmap64, Bitmap64View, Frozen, Portable};
 use std::fs;
 
 fn init() {
@@ -83,4 +83,21 @@ fn empty_reset_iterator() {
     assert_eq!(iterator.peek(), None);
     iterator.reset_at_or_after(0);
     assert_eq!(iterator.peek(), None);
+}
+
+#[test]
+fn copy_from_view() {
+    init();
+    let mut orig_bitmap = Bitmap64::of(&[1, 2, 3, 4]);
+    orig_bitmap.shrink_to_fit();
+    let mut buf = [0; 1024];
+    let data: &[u8] = orig_bitmap.try_serialize_into::<Frozen>(&mut buf).unwrap();
+    let view: Bitmap64View = unsafe { Bitmap64View::deserialize::<Frozen>(data) }.unwrap();
+    view.internal_validate().unwrap();
+    assert_eq!(view, orig_bitmap);
+    let mut mutable_bitmap: Bitmap64 = view.to_bitmap64();
+    assert_eq!(view, mutable_bitmap);
+    mutable_bitmap.add(10);
+    assert!(!view.contains(10));
+    assert!(mutable_bitmap.contains(10));
 }

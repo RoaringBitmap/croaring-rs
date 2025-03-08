@@ -29,14 +29,12 @@ mod sealed {
 
 pub use serialization::*;
 
-pub use bitmap::Bitmap;
-pub use bitmap64::Bitmap64;
+pub use bitmap::{Bitmap, BitmapView};
+pub use bitmap64::{Bitmap64, Bitmap64View};
 pub use bitset::Bitset;
 
 #[cfg(feature = "alloc")]
 pub use treemap::Treemap;
-
-pub use bitmap::BitmapView;
 
 #[cfg(feature = "alloc")]
 pub use rust_alloc::configure_rust_alloc;

@@ -1092,6 +1092,7 @@ impl Bitmap {
     /// assert!(saved_bytes > 0);
     /// let more_saved_bytes = bitmap.shrink_to_fit();
     /// assert_eq!(more_saved_bytes, 0);
+    /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_shrink_to_fit")]
     pub fn shrink_to_fit(&mut self) -> usize {

@@ -777,7 +777,34 @@ impl Bitmap64 {
         vec
     }
 
+    /// Shrink the memory allocation of the bitmap if needed
+    ///
+    /// Returns the number of bytes saved
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let mut bitmap = Bitmap64::new();
+    /// for i in 0..100 {
+    ///     bitmap.add(i * 0x1_0000_0000);
+    /// }
+    /// bitmap.clear();
+    /// let saved_bytes = bitmap.shrink_to_fit();
+    /// assert!(saved_bytes > 0);
+    /// let more_saved_bytes = bitmap.shrink_to_fit();
+    /// assert_eq!(more_saved_bytes, 0);
+    /// ```
+    #[inline]
+    pub fn shrink_to_fit(&mut self) -> usize {
+        unsafe { ffi::roaring64_bitmap_shrink_to_fit(self.raw.as_ptr()) }
+    }
+
     /// Computes the serialized size in bytes of the Bitmap in format `S`.
+    ///
+    /// Note that the [`crate::Frozen`] format requires calling [`Self::shrink_to_fit`] before
+    /// calling serialization functions.
     #[inline]
     #[must_use]
     pub fn get_serialized_size_in_bytes<S: Serializer>(&self) -> usize {
@@ -815,6 +842,10 @@ impl Bitmap64 {
     /// Because of alignment requirements, the serialized data may not start at the beginning of
     /// `dst`: the returned slice may not start at `dst.as_ptr()`.
     ///
+    /// Note that the [`crate::Frozen`] format requires calling [`Self::shrink_to_fit`] before
+    /// calling serialization functions. If this is not done, this function will return an empty
+    /// slice.
+    ///
     /// # Examples
     ///
     /// ```
@@ -827,6 +858,22 @@ impl Bitmap64 {
     /// for bitmap in [original_bitmap_1, original_bitmap_2] {
     ///     data.clear();
     ///     let serialized = bitmap.serialize_into_vec::<Portable>(&mut data);
+    ///     // do something with serialized
+    ///     # let _ = serialized;
+    /// }
+    /// ```
+    ///
+    /// ```
+    /// use croaring::{Bitmap64, Frozen};
+    ///
+    /// let original_bitmap_1: Bitmap64 = (1..5).collect();
+    /// let original_bitmap_2: Bitmap64 = (1..10).collect();
+    ///
+    /// let mut data = Vec::new();
+    /// for mut bitmap in [original_bitmap_1, original_bitmap_2] {
+    ///     data.clear();
+    ///     bitmap.shrink_to_fit();
+    ///     let serialized = bitmap.serialize_into_vec::<Frozen>(&mut data);
     ///     // do something with serialized
     ///     # let _ = serialized;
     /// }
@@ -847,8 +894,24 @@ impl Bitmap64 {
     /// Note also that some ([`crate::Frozen`]) formats require alignment, so the buffer size may need to
     /// be larger than the serialized size.
     ///
+    /// Note that the [`crate::Frozen`] format requires calling [`Self::shrink_to_fit`] before
+    /// calling serialization functions. If this is not done, this function will return None.
+    ///
     /// See also [`Self::serialize_into_vec`] for a version that uses a Vec instead, or, for
     /// advanced use-cases, see [`Serializer::try_serialize_into`].
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Bitmap64, Frozen};
+    ///
+    /// let mut original_bitmap: Bitmap64 = (1..5).collect();
+    /// let mut data = [0u8; 1000];
+    /// original_bitmap.shrink_to_fit();
+    /// let serialized_data: &[u8] = original_bitmap.try_serialize_into::<Frozen>(&mut data).unwrap();
+    /// // do something with serialized_data
+    /// # let _ = serialized_data;
+    /// ```
     #[inline]
     #[must_use]
     pub fn try_serialize_into<'a, S: Serializer>(&self, dst: &'a mut [u8]) -> Option<&'a mut [u8]> {
