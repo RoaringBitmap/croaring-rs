@@ -11,6 +11,7 @@ fn main() {
         build.flag_if_supported(format!("-march={target_arch}"));
     }
 
+    build.std("c11");
     build.flag_if_supported("-Wno-unused-function");
     build.compile("roaring");
 }
