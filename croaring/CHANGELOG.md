@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.2.0...croaring-v2.3.0) - 2025-03-25
+
+### Added
+- Frozen serialization format for bitmap64 (by @Dr-Emann) - #172
+- Enable configuring rust global alloc as croaring allocator (by @Dr-Emann) - #171
+
 ## [2.2.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.1.1...croaring-v2.2.0) - 2024-12-17
 
 ### Added
