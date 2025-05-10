@@ -1099,7 +1099,11 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_shrink_to_fit(&mut self.bitmap) }
     }
 
-    /// Compresses of the bitmap. Returns true if the bitmap was modified.
+    /// Optimize the type of containers used in the bitmap.
+    ///
+    /// Returns true if the result contains at least one run container.
+    ///
+    /// Additional space savings may be achieved by calling [`Self::shrink_to_fit`].
     ///
     /// # Examples
     ///
@@ -1111,6 +1115,8 @@ impl Bitmap {
     /// assert_eq!(bitmap.cardinality(), 900);
     /// let old_size = bitmap.get_serialized_size_in_bytes::<Portable>();
     /// assert!(bitmap.run_optimize());
+    /// # // run_optimize returns true if there's at least one run, not if the bitmap was changed
+    /// # assert!(bitmap.run_optimize());
     /// let new_size = bitmap.get_serialized_size_in_bytes::<Portable>();
     /// assert!(new_size < old_size);
     /// ```

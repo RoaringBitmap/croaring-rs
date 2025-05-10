@@ -1158,8 +1158,11 @@ impl Treemap {
         treemap
     }
 
-    /// Compresses treemap's bitmaps. Returns true if any of the bitmaps
-    /// were modified.
+    /// Optimize the type of containers used in the treemap.
+    ///
+    /// Returns true if the result contains at least one run container.
+    ///
+    /// Additional space savings may be achieved by calling [`Self::shrink_to_fit`].
     ///
     /// # Examples
     ///
