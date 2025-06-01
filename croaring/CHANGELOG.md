@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.1](https://github.com/RoaringBitmap/croaring-rs/compare/v2.3.0...v2.3.1) - 2025-06-01
+
+### Other
+- Correct return docs for run_optimize function (by @Dr-Emann) - #177
+
 ## [2.3.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.2.0...croaring-v2.3.0) - 2025-03-25
 
 ### Added
