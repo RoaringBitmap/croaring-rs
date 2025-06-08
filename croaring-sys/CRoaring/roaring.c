@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2025-05-31T04:15:37Z
+// Created by amalgamation.sh on 2025-06-05T04:01:50Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -11433,14 +11433,14 @@ bool art_internal_validate(const art_t *art, const char **reason,
     return art_internal_validate_at(art, art->root, validator);
 }
 
-_Static_assert(alignof(art_leaf_t) == alignof(art_node4_t),
-               "Serialization assumes node type alignment is equal");
-_Static_assert(alignof(art_leaf_t) == alignof(art_node16_t),
-               "Serialization assumes node type alignment is equal");
-_Static_assert(alignof(art_leaf_t) == alignof(art_node48_t),
-               "Serialization assumes node type alignment is equal");
-_Static_assert(alignof(art_leaf_t) == alignof(art_node256_t),
-               "Serialization assumes node type alignment is equal");
+CROARING_STATIC_ASSERT(alignof(art_leaf_t) == alignof(art_node4_t),
+                       "Serialization assumes node type alignment is equal");
+CROARING_STATIC_ASSERT(alignof(art_leaf_t) == alignof(art_node16_t),
+                       "Serialization assumes node type alignment is equal");
+CROARING_STATIC_ASSERT(alignof(art_leaf_t) == alignof(art_node48_t),
+                       "Serialization assumes node type alignment is equal");
+CROARING_STATIC_ASSERT(alignof(art_leaf_t) == alignof(art_node256_t),
+                       "Serialization assumes node type alignment is equal");
 
 size_t art_size_in_bytes(const art_t *art) {
     if (!art_is_shrunken(art)) {
@@ -11512,8 +11512,8 @@ size_t art_frozen_view(const char *buf, size_t maxbytes, art_t *art) {
     if (maxbytes < sizeof(art->capacities)) {
         return 0;
     }
-    _Static_assert(sizeof(art->first_free) == sizeof(art->capacities),
-                   "first_free is read from capacities");
+    CROARING_STATIC_ASSERT(sizeof(art->first_free) == sizeof(art->capacities),
+                           "first_free is read from capacities");
     memcpy(art->first_free, buf, sizeof(art->capacities));
     memcpy(art->capacities, buf, sizeof(art->capacities));
     buf += sizeof(art->capacities);
@@ -18464,7 +18464,7 @@ void run_container_offset(const run_container_t *c, container_t **loc,
     pivot = run_container_index_equalorlarger(c, top);
     // pivot is the index of the first run that is >= top or -1 if no such run
 
-    if(pivot >= 0) {
+    if (pivot >= 0) {
         split = c->runs[pivot].value < top;
         lo_cap = pivot + (split ? 1 : 0);
         hi_cap = c->n_runs - pivot;
@@ -18479,7 +18479,7 @@ void run_container_offset(const run_container_t *c, container_t **loc,
         lo = run_container_create_given_capacity(lo_cap);
         memcpy(lo->runs, c->runs, lo_cap * sizeof(rle16_t));
         lo->n_runs = lo_cap;
-        for (int i = 0; i < lo_cap; ++i) {
+        for (unsigned int i = 0; i < lo_cap; ++i) {
             lo->runs[i].value += offset;
         }
         *loc = (container_t *)lo;
@@ -18489,7 +18489,7 @@ void run_container_offset(const run_container_t *c, container_t **loc,
         hi = run_container_create_given_capacity(hi_cap);
         memcpy(hi->runs, c->runs + pivot, hi_cap * sizeof(rle16_t));
         hi->n_runs = hi_cap;
-        for (int i = 0; i < hi_cap; ++i) {
+        for (unsigned int i = 0; i < hi_cap; ++i) {
             hi->runs[i].value += offset;
         }
         *hic = (container_t *)hi;
@@ -24533,8 +24533,8 @@ static void extend_containers(roaring64_bitmap_t *r) {
         new_capacity = 5 * r->capacity / 4;
     }
     uint64_t increase = new_capacity - r->capacity;
-    r->containers =
-        roaring_realloc(r->containers, new_capacity * sizeof(container_t *));
+    r->containers = (container_t **)roaring_realloc(
+        r->containers, new_capacity * sizeof(container_t *));
     memset(r->containers + r->capacity, 0, increase * sizeof(container_t *));
     r->capacity = new_capacity;
 }
@@ -25391,8 +25391,8 @@ size_t roaring64_bitmap_shrink_to_fit(roaring64_bitmap_t *r) {
     }
     uint64_t new_capacity = r->first_free;
     if (new_capacity < r->capacity) {
-        r->containers = roaring_realloc(r->containers,
-                                        new_capacity * sizeof(container_t *));
+        r->containers = (container_t **)roaring_realloc(
+            r->containers, new_capacity * sizeof(container_t *));
         freed += (r->capacity - new_capacity) * sizeof(container_t *);
         r->capacity = new_capacity;
     }
@@ -26858,7 +26858,7 @@ roaring64_bitmap_t *roaring64_bitmap_frozen_view(const char *buf,
     maxbytes -= sizeof(r->capacity);
 
     r->containers =
-        (container_t *)roaring_malloc(r->capacity * sizeof(container_t *));
+        (container_t **)roaring_malloc(r->capacity * sizeof(container_t *));
 
     // Container element counts.
     if (maxbytes < r->capacity * sizeof(uint16_t)) {
