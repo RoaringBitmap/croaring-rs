@@ -14,7 +14,17 @@ test:
 
 croaring_release_url_base = https://github.com/RoaringBitmap/CRoaring/releases/download
 
-# Fetch the c source amalgamation from a tagged CRoaring release (like `make version=0.9.3 update_croaring`)
+# Automatically fetch and update to the latest CRoaring release from GitHub
+update_latest_croaring:
+	$(eval LATEST_VERSION := $(shell curl -s "https://api.github.com/repos/RoaringBitmap/CRoaring/releases/latest" | jq -r '.tag_name' | sed 's/^v//'))
+	@if [ -z "$(LATEST_VERSION)" ]; then \
+		echo "Error: Could not fetch latest CRoaring version"; \
+		exit 1; \
+	fi
+	@echo "Latest CRoaring version: $(LATEST_VERSION)"
+	@$(MAKE) update_croaring version=$(LATEST_VERSION)
+
+# Fetch the c source amalgamation from a tagged CRoaring release (like `make update_croaring version=0.9.3`)
 update_croaring: download_croaring bindgen update_readme_croaring_version update_croaring_sys_version
 
 download_croaring:
