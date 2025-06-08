@@ -26,6 +26,8 @@ update_latest_croaring:
 
 # Fetch the c source amalgamation from a tagged CRoaring release (like `make update_croaring version=0.9.3`)
 update_croaring: download_croaring bindgen update_readme_croaring_version update_croaring_sys_version
+	@cargo test
+	@cd fuzz && cargo test
 
 download_croaring:
 	rm -f '$(croaring_source)/roaring.c' '$(croaring_source)/roaring.h' '$(croaring_source)/roaring.hh'
