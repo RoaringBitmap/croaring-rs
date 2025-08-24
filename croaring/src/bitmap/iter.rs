@@ -497,7 +497,7 @@ impl Bitmap {
     #[inline]
     #[doc(alias = "roaring_init_iterator")]
     #[must_use]
-    pub fn iter(&self) -> BitmapIterator {
+    pub fn iter(&self) -> BitmapIterator<'_> {
         BitmapIterator::new(self)
     }
 
@@ -506,7 +506,7 @@ impl Bitmap {
     /// See [`BitmapCursor`] for more details.
     #[inline]
     #[must_use]
-    pub fn cursor(&self) -> BitmapCursor {
+    pub fn cursor(&self) -> BitmapCursor<'_> {
         BitmapCursor::at_first(self)
     }
 
@@ -515,7 +515,7 @@ impl Bitmap {
     /// See [`BitmapCursor`] for more details.
     #[inline]
     #[must_use]
-    pub fn cursor_to_last(&self) -> BitmapCursor {
+    pub fn cursor_to_last(&self) -> BitmapCursor<'_> {
         BitmapCursor::at_last(self)
     }
 }

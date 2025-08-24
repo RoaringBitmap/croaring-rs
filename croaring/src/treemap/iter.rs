@@ -79,7 +79,7 @@ impl Treemap {
     /// assert_eq!(iterator.next(), None);
     /// ```
     #[must_use]
-    pub fn iter(&self) -> TreemapIterator {
+    pub fn iter(&self) -> TreemapIterator<'_> {
         TreemapIterator::new(self)
     }
 }
