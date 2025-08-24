@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2025-06-05T04:01:50Z
+// Created by amalgamation.sh on 2025-08-23T01:59:30Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -1401,7 +1401,7 @@ void array_container_free(array_container_t *array);
 array_container_t *array_container_clone(const array_container_t *src);
 
 /* Get the cardinality of `array'. */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline int array_container_cardinality(const array_container_t *array) {
     return array->cardinality;
 }
@@ -1539,7 +1539,7 @@ int32_t array_container_read(int32_t cardinality, array_container_t *container,
  * that the cardinality of the container is already known.
  *
  */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline int32_t array_container_size_in_bytes(
     const array_container_t *container) {
     return container->cardinality * sizeof(uint16_t);
@@ -1548,7 +1548,7 @@ static inline int32_t array_container_size_in_bytes(
 /**
  * Return true if the two arrays have the same content.
  */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline bool array_container_equals(const array_container_t *container1,
                                           const array_container_t *container2) {
     if (container1->cardinality != container2->cardinality) {
@@ -2083,7 +2083,7 @@ static inline bool bitset_container_contains_range(
 }
 
 /* Get the number of bits set */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline int bitset_container_cardinality(
     const bitset_container_t *bitset) {
     return bitset->cardinality;
@@ -2841,7 +2841,7 @@ int32_t run_container_read(int32_t cardinality, run_container_t *container,
  * Return the serialized size in bytes of a container (see run_container_write).
  * This is meant to be compatible with the Java and Go versions of Roaring.
  */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline int32_t run_container_size_in_bytes(
     const run_container_t *container) {
     return run_container_serialized_size_in_bytes(container->n_runs);
@@ -2850,7 +2850,7 @@ static inline int32_t run_container_size_in_bytes(
 /**
  * Return true if the two containers have the same content.
  */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline bool run_container_equals(const run_container_t *container1,
                                         const run_container_t *container2) {
     if (container1->n_runs != container2->n_runs) {
@@ -7438,7 +7438,7 @@ int32_t intersect_vector16(const uint16_t *__restrict__ A, size_t s_a,
     return (int32_t)count;
 }
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 int array_container_to_uint32_array_vector16(void *vout, const uint16_t *array,
                                              size_t cardinality,
                                              uint32_t base) {
@@ -9115,7 +9115,7 @@ bool memequals(const void *s1, const void *s2, size_t n) {
 #if CROARING_IS_X64
 #if CROARING_COMPILER_SUPPORTS_AVX512
 CROARING_TARGET_AVX512
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 int avx512_array_container_to_uint32_array(void *vout, const uint16_t *array,
                                            size_t cardinality, uint32_t base) {
     int outpos = 0;
@@ -13272,7 +13272,7 @@ array_container_t *array_container_create_range(uint32_t min, uint32_t max) {
 }
 
 /* Duplicate container */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 array_container_t *array_container_clone(const array_container_t *src) {
     array_container_t *newcontainer =
         array_container_create_given_capacity(src->capacity);
@@ -13582,7 +13582,7 @@ void array_container_intersection_inplace(array_container_t *src_1,
     }
 }
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 int array_container_to_uint32_array(void *vout, const array_container_t *cont,
                                     uint32_t base) {
 #if CROARING_IS_X64
@@ -13884,7 +13884,7 @@ void bitset_container_free(bitset_container_t *bitset) {
 }
 
 /* duplicate container. */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 bitset_container_t *bitset_container_clone(const bitset_container_t *src) {
     bitset_container_t *bitset =
         (bitset_container_t *)roaring_malloc(sizeof(bitset_container_t));
@@ -14679,7 +14679,7 @@ CROARING_BITSET_CONTAINER_FN(andnot, &~, _mm256_andnot_si256, vbicq_u64)
 // clang-format On
 
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 int bitset_container_to_uint32_array(
     uint32_t *out,
     const bitset_container_t *bc,
@@ -14842,7 +14842,7 @@ bool bitset_container_iterate64(const bitset_container_t *cont, uint32_t base, r
 #if CROARING_IS_X64
 #if CROARING_COMPILER_SUPPORTS_AVX512
 CROARING_TARGET_AVX512
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline bool _avx512_bitset_container_equals(const bitset_container_t *container1, const bitset_container_t *container2) {
   const __m512i *ptr1 = (const __m512i*)container1->words;
   const __m512i *ptr2 = (const __m512i*)container2->words;
@@ -14859,7 +14859,7 @@ static inline bool _avx512_bitset_container_equals(const bitset_container_t *con
 CROARING_UNTARGET_AVX512
 #endif // CROARING_COMPILER_SUPPORTS_AVX512
 CROARING_TARGET_AVX2
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 static inline bool _avx2_bitset_container_equals(const bitset_container_t *container1, const bitset_container_t *container2) {
     const __m256i *ptr1 = (const __m256i*)container1->words;
     const __m256i *ptr2 = (const __m256i*)container2->words;
@@ -14876,7 +14876,7 @@ static inline bool _avx2_bitset_container_equals(const bitset_container_t *conta
 CROARING_UNTARGET_AVX2
 #endif // CROARING_IS_X64
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 bool bitset_container_equals(const bitset_container_t *container1, const bitset_container_t *container2) {
   if((container1->cardinality != BITSET_UNKNOWN_CARDINALITY) && (container2->cardinality != BITSET_UNKNOWN_CARDINALITY)) {
     if(container1->cardinality != container2->cardinality) {
@@ -18442,7 +18442,7 @@ run_container_t *run_container_create(void) {
     return run_container_create_given_capacity(RUN_DEFAULT_INIT_SIZE);
 }
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 run_container_t *run_container_clone(const run_container_t *src) {
     run_container_t *run = run_container_create_given_capacity(src->capacity);
     if (run == NULL) return NULL;
@@ -19254,7 +19254,7 @@ int run_container_get_index(const run_container_t *container, uint16_t x) {
 #if defined(CROARING_IS_X64) && CROARING_COMPILER_SUPPORTS_AVX512
 
 CROARING_TARGET_AVX512
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 /* Get the cardinality of `run'. Requires an actual computation. */
 static inline int _avx512_run_container_cardinality(
     const run_container_t *run) {
@@ -19296,7 +19296,7 @@ static inline int _avx512_run_container_cardinality(
 CROARING_UNTARGET_AVX512
 
 CROARING_TARGET_AVX2
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 /* Get the cardinality of `run'. Requires an actual computation. */
 static inline int _avx2_run_container_cardinality(const run_container_t *run) {
     const int32_t n_runs = run->n_runs;
@@ -19326,7 +19326,7 @@ static inline int _avx2_run_container_cardinality(const run_container_t *run) {
     return sum;
 }
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 int _avx2_run_container_to_uint32_array(void *vout, const run_container_t *cont,
                                         uint32_t base) {
     int outpos = 0;
@@ -19427,7 +19427,7 @@ int run_container_to_uint32_array(void *vout, const run_container_t *cont,
 #else
 
 /* Get the cardinality of `run'. Requires an actual computation. */
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 int run_container_cardinality(const run_container_t *run) {
     const int32_t n_runs = run->n_runs;
     const rle16_t *runs = run->runs;
@@ -19441,7 +19441,7 @@ int run_container_cardinality(const run_container_t *run) {
     return sum;
 }
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 int run_container_to_uint32_array(void *vout, const run_container_t *cont,
                                   uint32_t base) {
     int outpos = 0;
@@ -20523,7 +20523,7 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
     }
     bytestotal += size * 2 * sizeof(uint16_t);
     if (bytestotal > maxbytes) return 0;
-    uint16_t *keyscards = (uint16_t *)buf;
+    const char *keyscards = buf;
     buf += size * 2 * sizeof(uint16_t);
     if ((!hasrun) || (size >= NO_OFFSET_THRESHOLD)) {
         // skipping the offsets
@@ -20534,7 +20534,7 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
     // Reading the containers
     for (int32_t k = 0; k < size; ++k) {
         uint16_t tmp;
-        memcpy(&tmp, keyscards + 2 * k + 1, sizeof(tmp));
+        memcpy(&tmp, keyscards + 4 * k + 2, sizeof(tmp));
         uint32_t thiscard = tmp + 1;
         bool isbitmap = (thiscard > DEFAULT_MAX_SIZE);
         bool isrun = false;
@@ -20625,7 +20625,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
         bitmapOfRunContainers = buf;
         buf += s;
     }
-    uint16_t *keyscards = (uint16_t *)buf;
+    const char *keyscards = buf;
 
     *readbytes += size * 2 * sizeof(uint16_t);
     if (*readbytes > maxbytes) {
@@ -20642,7 +20642,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
 
     for (int32_t k = 0; k < size; ++k) {
         uint16_t tmp;
-        memcpy(&tmp, keyscards + 2 * k, sizeof(tmp));
+        memcpy(&tmp, keyscards + 4 * k, sizeof(tmp));
         answer->keys[k] = tmp;
     }
     if ((!hasrun) || (size >= NO_OFFSET_THRESHOLD)) {
@@ -20660,7 +20660,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
     // Reading the containers
     for (int32_t k = 0; k < size; ++k) {
         uint16_t tmp;
-        memcpy(&tmp, keyscards + 2 * k + 1, sizeof(tmp));
+        memcpy(&tmp, keyscards + 4 * k + 2, sizeof(tmp));
         uint32_t thiscard = tmp + 1;
         bool isbitmap = (thiscard > DEFAULT_MAX_SIZE);
         bool isrun = false;
@@ -22930,7 +22930,7 @@ static void insert_flipped_container(roaring_array_t *ans_arr,
             container_not_range(container_to_flip, ctype_in, (uint32_t)lb_start,
                                 (uint32_t)(lb_end + 1), &ctype_out);
 
-        if (container_get_cardinality(flipped_container, ctype_out))
+        if (container_nonzero_cardinality(flipped_container, ctype_out))
             ra_insert_new_key_value_at(ans_arr, -j - 1, hb, flipped_container,
                                        ctype_out);
         else {
@@ -22956,7 +22956,7 @@ static void inplace_flip_container(roaring_array_t *x1_arr, uint16_t hb,
             container_to_flip, ctype_in, (uint32_t)lb_start,
             (uint32_t)(lb_end + 1), &ctype_out);
         // if a new container was created, the old one was already freed
-        if (container_get_cardinality(flipped_container, ctype_out)) {
+        if (container_nonzero_cardinality(flipped_container, ctype_out)) {
             ra_set_container_at_index(x1_arr, i, flipped_container, ctype_out);
         } else {
             container_free(flipped_container, ctype_out);
@@ -22983,7 +22983,7 @@ static void insert_fully_flipped_container(roaring_array_t *ans_arr,
             ra_get_container_at_index(x1_arr, (uint16_t)i, &ctype_in);
         flipped_container =
             container_not(container_to_flip, ctype_in, &ctype_out);
-        if (container_get_cardinality(flipped_container, ctype_out))
+        if (container_nonzero_cardinality(flipped_container, ctype_out))
             ra_insert_new_key_value_at(ans_arr, -j - 1, hb, flipped_container,
                                        ctype_out);
         else {
@@ -23006,7 +23006,7 @@ static void inplace_fully_flip_container(roaring_array_t *x1_arr, uint16_t hb) {
         flipped_container =
             container_inot(container_to_flip, ctype_in, &ctype_out);
 
-        if (container_get_cardinality(flipped_container, ctype_out)) {
+        if (container_nonzero_cardinality(flipped_container, ctype_out)) {
             ra_set_container_at_index(x1_arr, i, flipped_container, ctype_out);
         } else {
             container_free(flipped_container, ctype_out);
@@ -24202,7 +24202,7 @@ const roaring_bitmap_t *roaring_bitmap_frozen_view(const char *buf,
     return rb;
 }
 
-ALLOW_UNALIGNED
+CROARING_ALLOW_UNALIGNED
 roaring_bitmap_t *roaring_bitmap_portable_deserialize_frozen(const char *buf) {
     char *start_of_buf = (char *)buf;
     uint32_t cookie;
