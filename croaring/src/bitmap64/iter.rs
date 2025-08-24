@@ -577,7 +577,7 @@ impl Bitmap64 {
     /// Returns an iterator over the values in the bitmap.
     #[inline]
     #[must_use]
-    pub fn iter(&self) -> Bitmap64Iterator {
+    pub fn iter(&self) -> Bitmap64Iterator<'_> {
         Bitmap64Iterator::new(self)
     }
 
@@ -586,7 +586,7 @@ impl Bitmap64 {
     /// See [`Bitmap64Cursor`] for more details.
     #[inline]
     #[must_use]
-    pub fn cursor(&self) -> Bitmap64Cursor {
+    pub fn cursor(&self) -> Bitmap64Cursor<'_> {
         Bitmap64Cursor::at_first(self)
     }
 
@@ -595,7 +595,7 @@ impl Bitmap64 {
     /// See [`Bitmap64Cursor`] for more details.
     #[inline]
     #[must_use]
-    pub fn cursor_to_last(&self) -> Bitmap64Cursor {
+    pub fn cursor_to_last(&self) -> Bitmap64Cursor<'_> {
         Bitmap64Cursor::at_last(self)
     }
 }
