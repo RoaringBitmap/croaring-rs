@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2025-06-05T04:01:50Z
+// Created by amalgamation.sh on 2025-08-23T01:59:30Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -57,7 +57,7 @@
 #define ROARING_API_NOT_IN_GLOBAL_NAMESPACE  // see remarks in roaring.h
 #include "roaring.h"
 #undef ROARING_API_NOT_IN_GLOBAL_NAMESPACE
-/* begin file cpp/roaring.hh */
+/* begin file cpp/roaring/roaring.hh */
 /*
 A C++ header for Roaring Bitmaps.
 */
@@ -1087,8 +1087,8 @@ inline RoaringSetBitBiDirectionalIterator &Roaring::end() const {
 }  // namespace roaring
 
 #endif /* INCLUDE_ROARING_HH_ */
-/* end file cpp/roaring.hh */
-/* begin file cpp/roaring64map.hh */
+/* end file cpp/roaring/roaring.hh */
+/* begin file cpp/roaring/roaring64map.hh */
 /**
  * A C++ header for 64-bit Roaring Bitmaps,
  * implemented by way of a map of many
@@ -2339,6 +2339,9 @@ class Roaring64Map {
             });
     }
 
+    /**
+     * For advanced users only.
+     */
     static const Roaring64Map frozenView(const char *buf) {
         // size of bitmap buffer and key
         const size_t metadata_size = sizeof(size_t) + sizeof(uint32_t);
@@ -2374,6 +2377,10 @@ class Roaring64Map {
         return result;
     }
 
+    /**
+     * For advanced users only. This function is unsafe in the sense that
+     * that it may trigger unaligned memory access. Use with caution.
+     */
     static const Roaring64Map portableDeserializeFrozen(const char *buf) {
         Roaring64Map result;
         // get map size
@@ -2979,4 +2986,4 @@ inline Roaring64MapSetBitBiDirectionalIterator Roaring64Map::end() const {
 }  // namespace roaring
 
 #endif /* INCLUDE_ROARING_64_MAP_HH_ */
-/* end file cpp/roaring64map.hh */
+/* end file cpp/roaring/roaring64map.hh */
