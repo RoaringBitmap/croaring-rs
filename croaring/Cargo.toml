@@ -21,8 +21,8 @@ std = ["alloc"]
 
 [dev-dependencies]
 proptest = "1"
-roaring = "0.10"
-criterion = { version = "0.6", features = ["html_reports"] }
+roaring = "0.11"
+criterion = { version = "0.7", features = ["html_reports"] }
 
 [dependencies]
 ffi = { package = "croaring-sys", path = "../croaring-sys", version = "4.3.0" }
