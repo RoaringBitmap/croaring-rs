@@ -19,7 +19,7 @@ pub mod bitset;
 pub mod treemap;
 
 mod callback;
-#[cfg(feature = "alloc")]
+#[cfg(any(feature = "alloc", feature = "allocator-api2"))]
 mod rust_alloc;
 mod serialization;
 
@@ -36,5 +36,7 @@ pub use bitset::Bitset;
 #[cfg(feature = "alloc")]
 pub use treemap::Treemap;
 
+#[cfg(feature = "allocator-api2")]
+pub use rust_alloc::configure_custom_alloc;
 #[cfg(feature = "alloc")]
 pub use rust_alloc::configure_rust_alloc;
