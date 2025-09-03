@@ -12,12 +12,14 @@ categories = ["data-structures", "api-bindings", "no-std::no-alloc"]
 documentation = "https://docs.rs/croaring"
 
 [features]
-default = ["std"]
+default = ["std", "allocator-api2"]
 # Include alloc to get features that depend on an allocator (treemap, serializing to vec, etc)
 # enabled by default
 alloc = []
 
-std = ["alloc"]
+std = ["alloc", "allocator-api2?/std"]
+
+allocator-api2 = ["dep:allocator-api2"]
 
 [dev-dependencies]
 proptest = "1"
@@ -25,6 +27,8 @@ roaring = "0.11"
 criterion = { version = "0.7", features = ["html_reports"] }
 
 [dependencies]
+# Support for allocators that use allocator-api2
+allocator-api2 = { version = "0.3.0", optional = true, default-features = false, features = ["alloc"] }
 ffi = { package = "croaring-sys", path = "../croaring-sys", version = "4.3.0" }
 
 [[bench]]
