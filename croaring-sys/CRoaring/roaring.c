@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2025-08-23T01:59:30Z
+// Created by amalgamation.sh on 2025-09-03T18:22:55Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -22606,7 +22606,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize_safe(const void *buf,
         for (uint32_t i = 0; i < card; i++) {
             // elems may not be aligned, read with memcpy
             uint32_t elem;
-            memcpy(&elem, elems + i, sizeof(elem));
+            memcpy((char *)&elem, (char *)(elems + i), sizeof(elem));
             roaring_bitmap_add_bulk(bitmap, &context, elem);
         }
         return bitmap;
@@ -24026,7 +24026,7 @@ void roaring_bitmap_frozen_serialize(const roaring_bitmap_t *rb, char *buf) {
     uint16_t *key_zone = (uint16_t *)arena_alloc(&buf, 2 * ra->size);
     uint16_t *count_zone = (uint16_t *)arena_alloc(&buf, 2 * ra->size);
     uint8_t *typecode_zone = (uint8_t *)arena_alloc(&buf, ra->size);
-    uint32_t *header_zone = (uint32_t *)arena_alloc(&buf, 4);
+    char *header_zone = (char *)arena_alloc(&buf, 4);
 
     for (int32_t i = 0; i < ra->size; i++) {
         uint16_t count;
@@ -27111,6 +27111,8 @@ uint64_t roaring64_iterator_read(roaring64_iterator_t *it, uint64_t *buf,
         it->has_value = art_iterator_next(&it->art_it);
         if (it->has_value) {
             roaring64_iterator_init_at_leaf_first(it);
+        } else {
+            it->saturated_forward = true;
         }
     }
     return consumed;
