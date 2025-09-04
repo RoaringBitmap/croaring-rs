@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.3.1...croaring-v2.4.0) - 2025-09-04
+
+### Added
+- Introduce configure_custom_alloc (by @Dr-Emann) - #194
+
+### Fixed
+- Appease clippy, explicitly indicate elided lifetime (by @Dr-Emann) - #191
+
+### Other
+- Update croaring to 4.3.10 (by @Dr-Emann) - #191
+- Update dependencies (by @Dr-Emann) - #191
+- Update croaring to 4.3.7 (by @Dr-Emann) - #191
+- *(deps)* Bump criterion from 0.5.1 to 0.6.0 (by @dependabot[bot]) - #182
+
 ## [2.3.1](https://github.com/RoaringBitmap/croaring-rs/compare/v2.3.0...v2.3.1) - 2025-06-01
 
 ### Other
