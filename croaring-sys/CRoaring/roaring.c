@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2025-09-03T18:22:55Z
+// Created by amalgamation.sh on 2025-10-01T12:05:42Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -6423,6 +6423,40 @@ bool container_iterator_read_into_uint64(const container_t *c, uint8_t typecode,
                                          uint32_t count, uint32_t *consumed,
                                          uint16_t *value_out);
 
+/**
+ * Skips the next `skip_count` entries in the container iterator. Returns true
+ * and sets `value_out` if a value is present after skipping. Returns false if
+ * the end of the container is reached during the skip operation. Sets
+ * consumed_count to the number of values actually skipped (which may be less
+ * than skip_count if the end of the container is reached).
+ *
+ * value_out must be initialized to the previous value yielded by the iterator.
+ *
+ * skip_count must be greater than zero.
+ */
+bool container_iterator_skip(const container_t *c, uint8_t typecode,
+                             roaring_container_iterator_t *it,
+                             uint32_t skip_count, uint32_t *consumed_count,
+                             uint16_t *value_out);
+
+/**
+ * Skips the previous `skip_count` entries in the container iterator (moves
+ * backwards). Returns true and sets `value_out` if a value is present after
+ * skipping backwards. Returns false if the beginning of the container is
+ * reached during the skip operation. Sets consumed_count to the number of
+ * values actually skipped backwards (which may be less than skip_count if
+ * the beginning of the container is reached).
+ *
+ * value_out must be initialized to the current value yielded by the iterator.
+ *
+ * skip_count must be greater than zero.
+ */
+bool container_iterator_skip_backward(const container_t *c, uint8_t typecode,
+                                      roaring_container_iterator_t *it,
+                                      uint32_t skip_count,
+                                      uint32_t *consumed_count,
+                                      uint16_t *value_out);
+
 #ifdef __cplusplus
 }
 }
@@ -6630,9 +6664,6 @@ inline void ra_replace_key_and_container_at_index(roaring_array_t *ra,
 
 // write set bits to an array
 void ra_to_uint32_array(const roaring_array_t *ra, uint32_t *ans);
-
-bool ra_range_uint32_array(const roaring_array_t *ra, size_t offset,
-                           size_t limit, uint32_t *ans);
 
 /**
  * write a bitmap to a buffer. This is meant to be compatible with
@@ -15759,6 +15790,205 @@ bool container_iterator_read_into_uint64(const container_t *c, uint8_t typecode,
     }
 }
 
+bool container_iterator_skip(const container_t *c, uint8_t typecode,
+                             roaring_container_iterator_t *it,
+                             uint32_t skip_count, uint32_t *consumed_count,
+                             uint16_t *value_out) {
+    uint32_t actually_skipped;
+    bool has_value;
+    skip_count = minimum_uint32(skip_count, (uint32_t)UINT16_MAX + 1);
+    switch (typecode) {
+        case ARRAY_CONTAINER_TYPE: {
+            const array_container_t *ac = const_CAST_array(c);
+            actually_skipped =
+                minimum_uint32(ac->cardinality - it->index, skip_count);
+            it->index += actually_skipped;
+            has_value = it->index < ac->cardinality;
+            if (has_value) {
+                *value_out = ac->array[it->index];
+            }
+            break;
+        }
+        case BITSET_CONTAINER_TYPE: {
+            const bitset_container_t *bc = const_CAST_bitset(c);
+
+            uint32_t remaining_skip = skip_count;
+            uint32_t current_index = it->index;
+            uint64_t word_mask = UINT64_MAX << (current_index % 64);
+            has_value = false;
+
+            for (uint32_t word_index = current_index / 64;
+                 word_index < BITSET_CONTAINER_SIZE_IN_WORDS; word_index++) {
+                uint64_t word = bc->words[word_index] & word_mask;
+                word_mask = ~0;  // Only apply mask for the first word
+
+                uint32_t bits_in_word = roaring_hamming(word);
+                if (bits_in_word > remaining_skip) {
+                    // Unset the lowest bit `remaining_skip` times
+                    for (; remaining_skip > 0; --remaining_skip) {
+                        word &= word - 1;
+                    }
+                    has_value = true;
+                    *value_out = it->index =
+                        roaring_trailing_zeroes(word) + word_index * 64;
+                    break;
+                }
+                // Skip all set bits in this word
+                remaining_skip -= bits_in_word;
+            }
+            actually_skipped = skip_count - remaining_skip;
+            break;
+        }
+        case RUN_CONTAINER_TYPE: {
+            const run_container_t *rc = const_CAST_run(c);
+
+            uint16_t current_value = *value_out;
+            uint32_t remaining_skip = skip_count;
+            int32_t run_index;
+
+            // Process skips by iterating through runs
+            for (run_index = it->index;
+                 remaining_skip > 0 && run_index < rc->n_runs; run_index++) {
+                // max value (inclusive) in current run
+                uint32_t run_max_inc =
+                    rc->runs[run_index].value + rc->runs[run_index].length;
+                // Max to skip in this run (we can skip from the current value
+                // to the last value in the run, plus one to move past this run)
+                uint32_t max_skip_this_run = run_max_inc - current_value + 1;
+                uint32_t consume =
+                    minimum_uint32(remaining_skip, max_skip_this_run);
+                remaining_skip -= consume;
+                if (consume < max_skip_this_run) {
+                    current_value += consume;
+                    break;
+                }
+                // Skip past the end of this run, to the next if there is one
+                if (run_index + 1 < rc->n_runs) {
+                    current_value = rc->runs[run_index + 1].value;
+                }
+            }
+
+            // Update final state
+            it->index = run_index;
+            actually_skipped = skip_count - remaining_skip;
+            has_value = run_index < rc->n_runs;
+            if (has_value) {
+                *value_out = current_value;
+            }
+            break;
+        }
+        default:
+            assert(false);
+            roaring_unreachable;
+            return false;
+    }
+    *consumed_count = actually_skipped;
+    return has_value;
+}
+
+bool container_iterator_skip_backward(const container_t *c, uint8_t typecode,
+                                      roaring_container_iterator_t *it,
+                                      uint32_t skip_count,
+                                      uint32_t *consumed_count,
+                                      uint16_t *value_out) {
+    uint32_t actually_skipped;
+    bool has_value;
+    skip_count = minimum_uint32(skip_count, (uint32_t)UINT16_MAX + 1);
+    switch (typecode) {
+        case ARRAY_CONTAINER_TYPE: {
+            const array_container_t *ac = const_CAST_array(c);
+            // Allow skipping back to -1
+            actually_skipped = minimum_uint32(it->index + 1, skip_count);
+            it->index -= actually_skipped;
+            has_value = it->index >= 0;
+            if (has_value) {
+                *value_out = ac->array[it->index];
+            }
+            break;
+        }
+        case BITSET_CONTAINER_TYPE: {
+            const bitset_container_t *bc = const_CAST_bitset(c);
+
+            uint32_t remaining_skip = skip_count;
+            uint32_t current_index = it->index;
+            uint64_t word_mask = UINT64_MAX >> (63 - (current_index % 64));
+            has_value = false;
+
+            // Start from the word containing current index and go backwards
+            for (int32_t word_index = current_index / 64; word_index >= 0;
+                 word_index--) {
+                uint64_t word = bc->words[word_index] & word_mask;
+                word_mask = ~0;  // Only apply mask for the first word
+
+                uint32_t bits_in_word = roaring_hamming(word);
+                if (bits_in_word > remaining_skip) {
+                    // Unset the highest bit `remaining_skip` times
+                    for (; remaining_skip > 0; --remaining_skip) {
+                        uint64_t high_bit =
+                            UINT64_C(1) << (63 - roaring_leading_zeroes(word));
+                        // Clear the highest set bit
+                        word &= ~high_bit;
+                    }
+                    has_value = true;
+                    *value_out = it->index =
+                        (63 - roaring_leading_zeroes(word)) + word_index * 64;
+                    break;
+                }
+                // Skip all set bits in this word
+                remaining_skip -= bits_in_word;
+            }
+            actually_skipped = skip_count - remaining_skip;
+            break;
+        }
+        case RUN_CONTAINER_TYPE: {
+            const run_container_t *rc = const_CAST_run(c);
+
+            uint16_t current_value = *value_out;
+            uint32_t remaining_skip = skip_count;
+            int32_t run_index;
+
+            // Process skips by iterating through runs backwards
+            for (run_index = it->index; remaining_skip > 0 && run_index >= 0;
+                 run_index--) {
+                // min value (inclusive) in current run
+                uint32_t run_min_inc = rc->runs[run_index].value;
+                // Max to skip in this run (we can skip from the current value
+                // back to the first value in the run, plus one to move before
+                // this run)
+                uint32_t max_skip_this_run = current_value - run_min_inc + 1;
+                uint32_t consume =
+                    minimum_uint32(remaining_skip, max_skip_this_run);
+                remaining_skip -= consume;
+                if (consume < max_skip_this_run) {
+                    current_value -= consume;
+                    break;
+                }
+                // Skip past the beginning of this run, to the previous if there
+                // is one
+                if (run_index - 1 >= 0) {
+                    current_value = rc->runs[run_index - 1].value +
+                                    rc->runs[run_index - 1].length;
+                }
+            }
+
+            // Update final state
+            it->index = run_index;
+            actually_skipped = skip_count - remaining_skip;
+            has_value = run_index >= 0;
+            if (has_value) {
+                *value_out = current_value;
+            }
+            break;
+        }
+        default:
+            assert(false);
+            roaring_unreachable;
+            return false;
+    }
+    *consumed_count = actually_skipped;
+    return has_value;
+}
+
 #ifdef __cplusplus
 }
 }
@@ -20305,89 +20535,6 @@ void ra_to_uint32_array(const roaring_array_t *ra, uint32_t *ans) {
     }
 }
 
-bool ra_range_uint32_array(const roaring_array_t *ra, size_t offset,
-                           size_t limit, uint32_t *ans) {
-    size_t ctr = 0;
-    size_t dtr = 0;
-
-    size_t t_limit = 0;
-
-    bool first = false;
-    size_t first_skip = 0;
-
-    uint32_t *t_ans = NULL;
-    size_t cur_len = 0;
-
-    for (int i = 0; i < ra->size; ++i) {
-        const container_t *c =
-            container_unwrap_shared(ra->containers[i], &ra->typecodes[i]);
-        switch (ra->typecodes[i]) {
-            case BITSET_CONTAINER_TYPE:
-                t_limit = (const_CAST_bitset(c))->cardinality;
-                break;
-            case ARRAY_CONTAINER_TYPE:
-                t_limit = (const_CAST_array(c))->cardinality;
-                break;
-            case RUN_CONTAINER_TYPE:
-                t_limit = run_container_cardinality(const_CAST_run(c));
-                break;
-        }
-        if (ctr + t_limit - 1 >= offset && ctr < offset + limit) {
-            if (!first) {
-                // first_skip = t_limit - (ctr + t_limit - offset);
-                first_skip = offset - ctr;
-                first = true;
-                t_ans = (uint32_t *)roaring_malloc(sizeof(*t_ans) *
-                                                   (first_skip + limit));
-                if (t_ans == NULL) {
-                    return false;
-                }
-                memset(t_ans, 0, sizeof(*t_ans) * (first_skip + limit));
-                cur_len = first_skip + limit;
-            }
-            if (dtr + t_limit > cur_len) {
-                uint32_t *append_ans = (uint32_t *)roaring_malloc(
-                    sizeof(*append_ans) * (cur_len + t_limit));
-                if (append_ans == NULL) {
-                    if (t_ans != NULL) roaring_free(t_ans);
-                    return false;
-                }
-                memset(append_ans, 0,
-                       sizeof(*append_ans) * (cur_len + t_limit));
-                cur_len = cur_len + t_limit;
-                memcpy(append_ans, t_ans, dtr * sizeof(uint32_t));
-                roaring_free(t_ans);
-                t_ans = append_ans;
-            }
-            switch (ra->typecodes[i]) {
-                case BITSET_CONTAINER_TYPE:
-                    container_to_uint32_array(t_ans + dtr, const_CAST_bitset(c),
-                                              ra->typecodes[i],
-                                              ((uint32_t)ra->keys[i]) << 16);
-                    break;
-                case ARRAY_CONTAINER_TYPE:
-                    container_to_uint32_array(t_ans + dtr, const_CAST_array(c),
-                                              ra->typecodes[i],
-                                              ((uint32_t)ra->keys[i]) << 16);
-                    break;
-                case RUN_CONTAINER_TYPE:
-                    container_to_uint32_array(t_ans + dtr, const_CAST_run(c),
-                                              ra->typecodes[i],
-                                              ((uint32_t)ra->keys[i]) << 16);
-                    break;
-            }
-            dtr += t_limit;
-        }
-        ctr += t_limit;
-        if (dtr - first_skip >= limit) break;
-    }
-    if (t_ans != NULL) {
-        memcpy(ans, t_ans + first_skip, limit * sizeof(uint32_t));
-        free(t_ans);
-    }
-    return true;
-}
-
 bool ra_has_run_container(const roaring_array_t *ra) {
     for (int32_t k = 0; k < ra->size; ++k) {
         if (get_container_type(ra->containers[k], ra->typecodes[k]) ==
@@ -20429,17 +20576,14 @@ size_t ra_portable_serialize(const roaring_array_t *ra, char *buf) {
         memcpy(buf, &cookie, sizeof(cookie));
         buf += sizeof(cookie);
         uint32_t s = (ra->size + 7) / 8;
-        uint8_t *bitmapOfRunContainers = (uint8_t *)roaring_calloc(s, 1);
-        assert(bitmapOfRunContainers != NULL);  // todo: handle
+        memset(buf, 0, s);
         for (int32_t i = 0; i < ra->size; ++i) {
             if (get_container_type(ra->containers[i], ra->typecodes[i]) ==
                 RUN_CONTAINER_TYPE) {
-                bitmapOfRunContainers[i / 8] |= (1 << (i % 8));
+                buf[i / 8] |= 1 << (i % 8);
             }
         }
-        memcpy(buf, bitmapOfRunContainers, s);
         buf += s;
-        roaring_free(bitmapOfRunContainers);
         if (ra->size < NO_OFFSET_THRESHOLD) {
             startOffset = 4 + 4 * ra->size + s;
         } else {
@@ -21426,6 +21570,30 @@ void roaring_bitmap_statistics(const roaring_bitmap_t *r,
     }
 }
 
+bool roaring_contains_shared(const roaring_bitmap_t *r) {
+    const roaring_array_t *ra = &r->high_low_container;
+    for (int i = 0; i < ra->size; ++i) {
+        if (ra->typecodes[i] == SHARED_CONTAINER_TYPE) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool roaring_unshare_all(roaring_bitmap_t *r) {
+    const roaring_array_t *ra = &r->high_low_container;
+    bool unshared = false;
+    for (int i = 0; i < ra->size; ++i) {
+        uint8_t typecode = ra->typecodes[i];
+        if (typecode == SHARED_CONTAINER_TYPE) {
+            ra->containers[i] = get_writable_copy_if_shared(ra->containers[i],
+                                                            &ra->typecodes[i]);
+            unshared = true;
+        }
+    }
+    return unshared;
+}
+
 /*
  * Checks that:
  * - Array containers are sorted and contain no duplicates
@@ -21433,6 +21601,7 @@ void roaring_bitmap_statistics(const roaring_bitmap_t *r,
  * - Roaring containers are sorted by key and there are no duplicate keys
  * - The correct container type is use for each container (e.g. bitmaps aren't
  * used for small containers)
+ * - Shared containers are only used when the bitmap is COW
  */
 bool roaring_bitmap_internal_validate(const roaring_bitmap_t *r,
                                       const char **reason) {
@@ -21485,7 +21654,13 @@ bool roaring_bitmap_internal_validate(const roaring_bitmap_t *r,
         prev_key = ra->keys[i];
     }
 
+    bool cow = roaring_bitmap_get_copy_on_write(r);
+
     for (int32_t i = 0; i < ra->size; ++i) {
+        if (ra->typecodes[i] == SHARED_CONTAINER_TYPE && !cow) {
+            *reason = "shared container in non-COW bitmap";
+            return false;
+        }
         if (!container_internal_validate(ra->containers[i], ra->typecodes[i],
                                          reason)) {
             // reason should already be set
@@ -22409,7 +22584,13 @@ void roaring_bitmap_to_uint32_array(const roaring_bitmap_t *r, uint32_t *ans) {
 
 bool roaring_bitmap_range_uint32_array(const roaring_bitmap_t *r, size_t offset,
                                        size_t limit, uint32_t *ans) {
-    return ra_range_uint32_array(&r->high_low_container, offset, limit, ans);
+    roaring_uint32_iterator_t it;
+    roaring_iterator_init(r, &it);
+    roaring_uint32_iterator_skip(&it, offset);
+    roaring_uint32_iterator_read(&it, ans, limit);
+
+    // This function always succeeds
+    return true;
 }
 
 /** convert array and bitmap containers to run containers when it is more
@@ -22842,11 +23023,63 @@ uint32_t roaring_uint32_iterator_read(roaring_uint32_iterator_t *it,
         if (has_value) {
             it->has_value = true;
             it->current_value = it->highbits | low16;
+            // If the container still has values, we must have stopped because
+            // we skipped enough values.
             assert(ret == count);
             return ret;
         }
         it->container_index++;
         it->has_value = loadfirstvalue(it);
+    }
+    return ret;
+}
+
+uint32_t roaring_uint32_iterator_skip(roaring_uint32_iterator_t *it,
+                                      uint32_t count) {
+    uint32_t ret = 0;
+    while (it->has_value && ret < count) {
+        uint32_t consumed;
+        uint16_t low16 = (uint16_t)it->current_value;
+        bool has_value = container_iterator_skip(it->container, it->typecode,
+                                                 &it->container_it, count - ret,
+                                                 &consumed, &low16);
+        ret += consumed;
+        if (has_value) {
+            it->has_value = true;
+            it->current_value = it->highbits | low16;
+            // If the container still has values, we must have stopped because
+            // we skipped enough values.
+            assert(ret == count);
+            return ret;
+        }
+        // We have skipped over all items in the current container, so set
+        // ourselves at the first item of the next container.
+        // We do NOT need to count another item skipped here.
+        it->container_index++;
+        it->has_value = loadfirstvalue(it);
+    }
+    return ret;
+}
+
+uint32_t roaring_uint32_iterator_skip_backward(roaring_uint32_iterator_t *it,
+                                               uint32_t count) {
+    uint32_t ret = 0;
+    while (it->has_value && ret < count) {
+        uint32_t consumed;
+        uint16_t low16 = (uint16_t)it->current_value;
+        bool has_value = container_iterator_skip_backward(
+            it->container, it->typecode, &it->container_it, count - ret,
+            &consumed, &low16);
+        ret += consumed;
+        if (has_value) {
+            it->has_value = true;
+            it->current_value = it->highbits | low16;
+            return ret;
+        }
+        // We have skipped over all items in the current container backwards.
+        // Moving to the previous container counts as consuming one more skip.
+        it->container_index--;
+        it->has_value = loadlastvalue(it);
     }
     return ret;
 }
