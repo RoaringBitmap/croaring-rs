@@ -2,7 +2,7 @@ use super::Bitmap;
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
 
-/// A cusrsr over the values of a bitmap
+/// A cursor over the values of a bitmap
 ///
 /// A Cursor is like an iterator, except that it can freely seek back-and-forth.
 ///
