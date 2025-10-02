@@ -1,7 +1,6 @@
+use super::Bitmap;
 use core::marker::PhantomData;
 use core::mem::MaybeUninit;
-
-use super::Bitmap;
 
 /// A cusrsr over the values of a bitmap
 ///
@@ -330,6 +329,58 @@ impl<'a> BitmapCursor<'a> {
     pub fn reset_at_or_after(&mut self, val: u32) {
         unsafe { ffi::roaring_uint32_iterator_move_equalorlarger(&mut self.raw, val) };
     }
+
+    /// Advance the cursor by `n` positions
+    ///
+    /// Returns the number of positions actually advanced, which may be less than `n` if the
+    /// cursor reaches the end of the bitmap.
+    ///
+    /// This function is equivalent to calling [`move_next`](Self::move_next) up to `n` times,
+    /// but can be much more efficient.
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+    /// let mut cursor = bitmap.cursor();
+    /// assert_eq!(cursor.current(), Some(1));
+    /// assert_eq!(cursor.skip(2), 2);
+    /// assert_eq!(cursor.current(), Some(3));
+    /// assert_eq!(cursor.skip(10), 3); // Skipped to one past the end
+    /// assert_eq!(cursor.current(), None);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_uint32_iterator_skip")]
+    pub fn skip(&mut self, n: u32) -> u32 {
+        unsafe { ffi::roaring_uint32_iterator_skip(&mut self.raw, n) }
+    }
+
+    /// Move the cursor backwards by `n` positions
+    ///
+    /// Returns the number of positions actually moved backwards, which may be less than `n` if the
+    /// cursor reaches the beginning of the bitmap.
+    ///
+    /// This function is equivalent to calling [`move_prev`](Self::move_prev) up to `n` times,
+    /// but can be much more efficient.
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let mut bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+    /// let mut cursor = bitmap.cursor_to_last();
+    /// assert_eq!(cursor.current(), Some(5));
+    /// assert_eq!(cursor.skip_backward(2), 2);
+    /// assert_eq!(cursor.current(), Some(3));
+    /// assert_eq!(cursor.skip_backward(10), 3); // Skipped to one before the beginning
+    /// assert_eq!(cursor.current(), None);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_uint32_iterator_skip_backward")]
+    pub fn skip_backward(&mut self, n: u32) -> u32 {
+        unsafe { ffi::roaring_uint32_iterator_skip_backward(&mut self.raw, n) }
+    }
 }
 
 /// Iterator over the values of a bitmap
@@ -472,6 +523,17 @@ impl<'a> Iterator for BitmapIterator<'a> {
             None => None,
         }
     }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        if n > 0 {
+            // `next` yeilds the current value from the cursor, so if we skip `n` values,
+            // the next call to `next` will return the `n`th value.
+            //
+            // Unlike most calls to `nth`, we want to skip `n` values, not `n-1`.
+            self.cursor.skip(u32::try_from(n).unwrap_or(u32::MAX));
+        }
+        self.next()
+    }
 }
 
 impl Bitmap {
@@ -594,5 +656,19 @@ impl Extend<u32> for Bitmap {
         iter.into_iter().for_each(|item| unsafe {
             ffi::roaring_bitmap_add_bulk(&mut self.bitmap, ctx.as_mut_ptr(), item);
         });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn iter_nth() {
+        let bitmap = Bitmap::of(&[1, 2, 3, 4, 5]);
+        let mut iter = bitmap.iter();
+        assert_eq!(iter.nth(0), Some(1));
+        assert_eq!(iter.nth(1), Some(3));
+        assert_eq!(iter.nth(10), None);
     }
 }
