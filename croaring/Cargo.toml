@@ -29,7 +29,7 @@ criterion = { version = "0.7", features = ["html_reports"] }
 [dependencies]
 # Support for allocators that use allocator-api2
 allocator-api2 = { version = "0.3.0", optional = true, default-features = false, features = ["alloc"] }
-ffi = { package = "croaring-sys", path = "../croaring-sys", version = "4.3.0" }
+ffi = { package = "croaring-sys", path = "../croaring-sys", version = "4.4.0" }
 
 [[bench]]
 name = "benches"
