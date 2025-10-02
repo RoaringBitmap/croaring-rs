@@ -72,7 +72,7 @@ fn empty_intersect_with_range() {
     init();
     let bitmap = Bitmap64::new();
     assert_eq!(0, bitmap.range_cardinality(0..1));
-    bitmap.intersect_with_range(0..1);
+    assert!(!bitmap.intersect_with_range(0..1));
 }
 
 #[test]
