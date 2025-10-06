@@ -49,7 +49,7 @@ checksum = "2fd1289c04a9ea8cb22300a459a72a385d7c73d3259e2ed7dcb2af674838cfa9"
 
 [[package]]
 name = "croaring"
-version = "2.4.0"
+version = "2.5.1"
 dependencies = [
  "allocator-api2",
  "croaring-sys",
@@ -66,7 +66,7 @@ dependencies = [
 
 [[package]]
 name = "croaring-sys"
-version = "4.4.0"
+version = "4.4.1"
 dependencies = [
  "cc",
 ]
