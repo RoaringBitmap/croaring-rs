@@ -31,7 +31,7 @@ jobs:
         tool: cargo-hack,cargo-minimal-versions${{ matrix.os == 'ubuntu-latest' && ',cargo-fuzz' || '' }}
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install LLVM
       if: matrix.os == 'windows-latest'
