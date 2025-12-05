@@ -1,4 +1,4 @@
-# croaring-rs [![https://travis-ci.org/RoaringBitmap/croaring-rs](https://travis-ci.org/RoaringBitmap/croaring-rs.svg?branch=master)](https://travis-ci.org/RoaringBitmap/croaring-rs)
+# croaring-rs [![Rust](https://github.com/RoaringBitmap/croaring-rs/actions/workflows/rust.yml/badge.svg)](https://github.com/RoaringBitmap/croaring-rs/actions/workflows/rust.yml)
 A [Rust](https://www.rust-lang.org) wrapper for CRoaring (a C/C++ implementation at https://github.com/RoaringBitmap/CRoaring)
 
 The original java version can be found at https://github.com/RoaringBitmap/RoaringBitmap
