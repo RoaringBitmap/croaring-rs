@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.2](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.5.1...croaring-v2.5.2) - 2026-01-02
+
+### Other
+- Update to croaring 4.5.1 (by @Dr-Emann) - #212
+- *(deps)* Bump allocator-api2 from 0.3.1 to 0.4.0 (by @dependabot[bot]) - #209
+- *(deps)* Bump criterion from 0.7.0 to 0.8.1 (by @dependabot[bot]) - #211
+- Update CI badge in README.md (by @lemire)
+- Update croaring to 4.4.1 (by @Dr-Emann) - #202
+
 ## [2.5.1](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.5.0...croaring-v2.5.1) - 2025-10-02
 
 ### Other
