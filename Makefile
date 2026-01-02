@@ -42,6 +42,8 @@ bindgen:
 		bindgen --generate-inline-functions \
 			--allowlist-item '(?i-u:roaring|bitset).*' \
 			--allowlist-var '(?i-u:roaring|bitset).*' \
+			--blocklist-item '.*(?i-u:(array|bitset|run)_container).*' \
+			--blocklist-var '.*(?i-u:(array|bitset|run)_container).*' \
 			--no-layout-tests \
 			--rust-target 1.70 \
 			--use-core \
