@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2025-12-30T22:56:55Z
+// Created by amalgamation.sh on 2026-03-09T14:59:44Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -742,6 +742,15 @@ class Roaring {
             ROARING_TERMINATE("failed alloc while reading");
         }
         return Roaring(r);
+    }
+
+    /**
+     * Compute how many bytes would be read by readSafe.  Returns 0 if the
+     * serialized data is invalid.
+     * This is meant to be compatible with the Java and Go versions.
+     */
+    static size_t serializedSizeInBytesSafe(const char *buf, size_t maxbytes) {
+        return api::roaring_bitmap_portable_deserialize_size(buf, maxbytes);
     }
 
     /**
@@ -2294,6 +2303,9 @@ class Roaring64Map {
             ROARING_TERMINATE("ran out of bytes");
         }
         Roaring64Map result;
+        if (maxbytes < sizeof(uint64_t)) {
+            ROARING_TERMINATE("ran out of bytes");
+        }
         uint64_t map_size;
         std::memcpy(&map_size, buf, sizeof(uint64_t));
         buf += sizeof(uint64_t);
@@ -2309,11 +2321,15 @@ class Roaring64Map {
             buf += sizeof(uint32_t);
             maxbytes -= sizeof(uint32_t);
             // read map value Roaring
+            size_t needed_bytes =
+                Roaring::serializedSizeInBytesSafe(buf, maxbytes);
+            if (needed_bytes == 0) {
+                ROARING_TERMINATE("invalid serialized data");
+            }
             Roaring read_var = Roaring::readSafe(buf, maxbytes);
             // forward buffer past the last Roaring Bitmap
-            size_t tz = read_var.getSizeInBytes(true);
-            buf += tz;
-            maxbytes -= tz;
+            buf += needed_bytes;
+            maxbytes -= needed_bytes;
             result.emplaceOrInsert(key, std::move(read_var));
         }
         return result;
