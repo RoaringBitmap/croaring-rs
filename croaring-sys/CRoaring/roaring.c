@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2025-12-30T22:56:55Z
+// Created by amalgamation.sh on 2026-03-09T14:59:44Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -819,9 +819,8 @@ static const uint8_t shuffle_mask16[] = {
  * Optimized by D. Lemire on May 3rd 2013
  */
 CROARING_TARGET_AVX2
-int32_t intersect_vector16(const uint16_t *__restrict__ A, size_t s_a,
-                           const uint16_t *__restrict__ B, size_t s_b,
-                           uint16_t *C) {
+int32_t intersect_vector16(const uint16_t *A, size_t s_a, const uint16_t *B,
+                           size_t s_b, uint16_t *C) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
     const int vectorlength = sizeof(__m128i) / sizeof(uint16_t);
@@ -920,8 +919,8 @@ int array_container_to_uint32_array_vector16(void *vout, const uint16_t *array,
     return outpos;
 }
 
-int32_t intersect_vector16_inplace(uint16_t *__restrict__ A, size_t s_a,
-                                   const uint16_t *__restrict__ B, size_t s_b) {
+int32_t intersect_vector16_inplace(uint16_t *A, size_t s_a, const uint16_t *B,
+                                   size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
     const int vectorlength = sizeof(__m128i) / sizeof(uint16_t);
@@ -1015,10 +1014,8 @@ int32_t intersect_vector16_inplace(uint16_t *__restrict__ A, size_t s_a,
 CROARING_UNTARGET_AVX2
 
 CROARING_TARGET_AVX2
-int32_t intersect_vector16_cardinality(const uint16_t *__restrict__ A,
-                                       size_t s_a,
-                                       const uint16_t *__restrict__ B,
-                                       size_t s_b) {
+int32_t intersect_vector16_cardinality(const uint16_t *A, size_t s_a,
+                                       const uint16_t *B, size_t s_b) {
     size_t count = 0;
     size_t i_a = 0, i_b = 0;
     const int vectorlength = sizeof(__m128i) / sizeof(uint16_t);
@@ -1091,9 +1088,8 @@ CROARING_TARGET_AVX2
 // Warning:
 // This function may not be safe if A == C or B == C.
 /////////
-int32_t difference_vector16(const uint16_t *__restrict__ A, size_t s_a,
-                            const uint16_t *__restrict__ B, size_t s_b,
-                            uint16_t *C) {
+int32_t difference_vector16(const uint16_t *A, size_t s_a, const uint16_t *B,
+                            size_t s_b, uint16_t *C) {
     // we handle the degenerate case
     if (s_a == 0) return 0;
     if (s_b == 0) {
@@ -2090,9 +2086,9 @@ static int uint16_compare(const void *a, const void *b) {
 CROARING_TARGET_AVX2
 // a one-pass SSE union algorithm
 // This function may not be safe if array1 == output or array2 == output.
-uint32_t union_vector16(const uint16_t *__restrict__ array1, uint32_t length1,
-                        const uint16_t *__restrict__ array2, uint32_t length2,
-                        uint16_t *__restrict__ output) {
+uint32_t union_vector16(const uint16_t *array1, uint32_t length1,
+                        const uint16_t *array2, uint32_t length2,
+                        uint16_t *output) {
     if ((length1 < 8) || (length2 < 8)) {
         return (uint32_t)union_uint16(array1, length1, array2, length2, output);
     }
@@ -2214,9 +2210,9 @@ static inline uint32_t unique_xor(uint16_t *out, uint32_t len) {
 }
 CROARING_TARGET_AVX2
 // a one-pass SSE xor algorithm
-uint32_t xor_vector16(const uint16_t *__restrict__ array1, uint32_t length1,
-                      const uint16_t *__restrict__ array2, uint32_t length2,
-                      uint16_t *__restrict__ output) {
+uint32_t xor_vector16(const uint16_t *array1, uint32_t length1,
+                      const uint16_t *array2, uint32_t length2,
+                      uint16_t *output) {
     if ((length1 < 8) || (length2 < 8)) {
         return xor_uint16(array1, length1, array2, length2, output);
     }
@@ -8561,6 +8557,10 @@ extern bool container_iterator_next(const container_t *c, uint8_t typecode,
 extern bool container_iterator_prev(const container_t *c, uint8_t typecode,
                                     roaring_container_iterator_t *it,
                                     uint16_t *value);
+extern bool container_contains(
+    const container_t *c, uint16_t val,
+    uint8_t typecode  // !!! should be second argument?
+);
 
 void container_free(container_t *c, uint8_t type) {
     switch (type) {
@@ -18195,6 +18195,43 @@ roaring64_bitmap_t *roaring64_bitmap_copy(const roaring64_bitmap_t *r) {
     return result;
 }
 
+void roaring64_bitmap_overwrite(roaring64_bitmap_t *dest,
+                                const roaring64_bitmap_t *src) {
+    if (dest == src) {
+        return;
+    }
+
+    // Free dest's containers.
+    art_iterator_t it = art_init_iterator(&dest->art, /*first=*/true);
+    while (it.value != NULL) {
+        leaf_t leaf = (leaf_t)*it.value;
+        container_free(get_container(dest, leaf), get_typecode(leaf));
+        art_iterator_next(&it);
+    }
+    art_free(&dest->art);
+
+    // Reinitialize dest.
+    art_init_cleared(&dest->art);
+    dest->flags = 0;
+    dest->first_free = 0;
+    if (dest->capacity > 0) {
+        memset(dest->containers, 0,
+               sizeof(dest->containers[0]) * dest->capacity);
+    }
+
+    // Copy src's containers into dest.
+    it = art_init_iterator((art_t *)&src->art, /*first=*/true);
+    while (it.value != NULL) {
+        leaf_t leaf = (leaf_t)*it.value;
+        uint8_t typecode = get_typecode(leaf);
+        container_t *container = get_copy_of_container(
+            get_container(src, leaf), &typecode, /*copy_on_write=*/false);
+        leaf_t dest_leaf = add_container(dest, container, typecode);
+        art_insert(&dest->art, it.key, (art_val_t)dest_leaf);
+        art_iterator_next(&it);
+    }
+}
+
 /**
  * Steal the containers from a 32-bit bitmap and insert them into a 64-bit
  * bitmap (with an offset)
@@ -18861,6 +18898,26 @@ uint64_t roaring64_bitmap_maximum(const roaring64_bitmap_t *r) {
     leaf_t leaf = (leaf_t)*it.value;
     return combine_key(
         it.key, container_maximum(get_container(r, leaf), get_typecode(leaf)));
+}
+
+bool roaring64_bitmap_remove_run_compression(roaring64_bitmap_t *r) {
+    art_iterator_t it = art_init_iterator(&r->art, /*first=*/true);
+    bool removed = false;
+    while (it.value != NULL) {
+        leaf_t *leaf = (leaf_t *)it.value;
+        if (get_typecode(*leaf) == RUN_CONTAINER_TYPE) {
+            run_container_t *run = CAST_run(get_container(r, *leaf));
+            int32_t card = run_container_cardinality(run);
+            uint8_t new_typecode;
+            container_t *new_container =
+                convert_to_bitset_or_array_container(run, card, &new_typecode);
+            run_container_free(run);
+            replace_container(r, leaf, new_container, new_typecode);
+            removed = true;
+        }
+        art_iterator_next(&it);
+    }
+    return removed;
 }
 
 bool roaring64_bitmap_run_optimize(roaring64_bitmap_t *r) {
@@ -19819,6 +19876,131 @@ void roaring64_bitmap_flip_closed_inplace(roaring64_bitmap_t *r, uint64_t min,
         roaring64_flip_leaf_inplace(r, current_high48_key, min_container,
                                     max_container);
     }
+}
+
+roaring64_bitmap_t *roaring64_bitmap_add_offset_signed(
+    const roaring64_bitmap_t *r, bool positive, uint64_t offset) {
+    if (offset == 0) {
+        return roaring64_bitmap_copy(r);
+    }
+
+    roaring64_bitmap_t *answer = roaring64_bitmap_create();
+
+    // Decompose the offset into a signed container-level shift and an
+    // intra-container shift. For negative offsets the low 16 bits wrap: e.g.
+    // -1 = container_offset(-1) + in_offset(0xffff), because shifting by -1
+    // container is a shift of -0x1_0000, so we need to shift up within
+    // containers to get back to -1
+    uint16_t low16 = (uint16_t)offset;
+    int64_t container_offset;
+    uint16_t in_offset;
+    if (positive) {
+        container_offset = (int64_t)(offset >> 16);
+        in_offset = low16;
+    } else if (low16 == 0) {
+        container_offset = -(int64_t)(offset >> 16);
+        in_offset = 0;
+    } else {
+        container_offset = -(int64_t)(offset >> 16) - 1;
+        in_offset = (uint16_t)-low16;
+    }
+
+    art_iterator_t it = art_init_iterator((art_t *)&r->art, /*first=*/true);
+
+    if (in_offset == 0) {
+        while (it.value != NULL) {
+            leaf_t leaf = (leaf_t)*it.value;
+            int64_t k =
+                (int64_t)(combine_key(it.key, 0) >> 16) + container_offset;
+            if ((uint64_t)k < (uint64_t)1 << 48) {
+                uint8_t new_high48[ART_KEY_BYTES];
+                split_key((uint64_t)k << 16, new_high48);
+                uint8_t typecode = get_typecode(leaf);
+                container_t *container =
+                    get_copy_of_container(get_container(r, leaf), &typecode,
+                                          /*copy_on_write=*/false);
+                leaf_t new_leaf = add_container(answer, container, typecode);
+                art_insert(&answer->art, new_high48, (art_val_t)new_leaf);
+            }
+            art_iterator_next(&it);
+        }
+        return answer;
+    }
+
+    // Track the most recently inserted hi container so that the next
+    // iteration's lo can merge with it without re-searching the ART.
+    leaf_t *prev_hi_leaf = NULL;
+    int64_t prev_hi_k = -1;
+
+    while (it.value != NULL) {
+        leaf_t leaf = (leaf_t)*it.value;
+        int64_t k = (int64_t)(combine_key(it.key, 0) >> 16) + container_offset;
+
+        container_t *lo = NULL, *hi = NULL;
+        container_t **lo_ptr = NULL, **hi_ptr = NULL;
+
+        if ((uint64_t)k < (uint64_t)1 << 48) {
+            lo_ptr = &lo;
+        }
+        if ((uint64_t)(k + 1) < (uint64_t)1 << 48) {
+            hi_ptr = &hi;
+        }
+        if (lo_ptr == NULL && hi_ptr == NULL) {
+            art_iterator_next(&it);
+            continue;
+        }
+
+        uint8_t typecode = get_typecode(leaf);
+        const container_t *c =
+            container_unwrap_shared(get_container(r, leaf), &typecode);
+        container_add_offset(c, typecode, lo_ptr, hi_ptr, in_offset);
+
+        if (lo != NULL) {
+            if (prev_hi_leaf != NULL && prev_hi_k == k) {
+                uint8_t existing_type = get_typecode(*prev_hi_leaf);
+                container_t *existing_c = get_container(answer, *prev_hi_leaf);
+                uint8_t merged_type;
+                container_t *merged_c = container_ior(
+                    existing_c, existing_type, lo, typecode, &merged_type);
+                if (merged_c != existing_c) {
+                    container_free(existing_c, existing_type);
+                }
+                replace_container(answer, prev_hi_leaf, merged_c, merged_type);
+                container_free(lo, typecode);
+            } else {
+                uint8_t lo_high48[ART_KEY_BYTES];
+                split_key((uint64_t)k << 16, lo_high48);
+                leaf_t new_leaf = add_container(answer, lo, typecode);
+                art_insert(&answer->art, lo_high48, (art_val_t)new_leaf);
+            }
+        }
+
+        prev_hi_leaf = NULL;
+        if (hi != NULL) {
+            uint8_t hi_high48[ART_KEY_BYTES];
+            split_key((uint64_t)(k + 1) << 16, hi_high48);
+            leaf_t new_leaf = add_container(answer, hi, typecode);
+            prev_hi_leaf = (leaf_t *)art_insert(&answer->art, hi_high48,
+                                                (art_val_t)new_leaf);
+            prev_hi_k = k + 1;
+        }
+
+        art_iterator_next(&it);
+    }
+
+    // Repair containers (e.g., convert low-cardinality bitset containers to
+    // array containers after lazy union operations).
+    art_iterator_t repair_it = art_init_iterator(&answer->art, /*first=*/true);
+    while (repair_it.value != NULL) {
+        leaf_t *leaf_ptr = (leaf_t *)repair_it.value;
+        uint8_t typecode = get_typecode(*leaf_ptr);
+        container_t *repaired = container_repair_after_lazy(
+            get_container(answer, *leaf_ptr), &typecode);
+        replace_container(answer, leaf_ptr, repaired, typecode);
+        art_iterator_next(&repair_it);
+    }
+
+    return answer;
 }
 
 // Returns the number of distinct high 32-bit entries in the bitmap.
