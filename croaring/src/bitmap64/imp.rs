@@ -527,6 +527,28 @@ impl Bitmap64 {
         unsafe { ffi::roaring64_bitmap_run_optimize(self.raw.as_ptr()) }
     }
 
+    /// Remove run-length encoding even when it is more space efficient
+    ///
+    /// Returns true if a change was applied
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let mut bitmap: Bitmap64 = (100..1000).collect();
+    ///
+    /// bitmap.run_optimize();
+    ///
+    /// assert!(bitmap.remove_run_compression());
+    /// assert!(!bitmap.remove_run_compression());
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_bitmap_remove_run_compression")]
+    pub fn remove_run_compression(&mut self) -> bool {
+        unsafe { ffi::roaring64_bitmap_remove_run_compression(self.raw.as_ptr()) }
+    }
+
     /// Returns true if the element is contained in the bitmap
     ///
     /// # Examples
@@ -753,6 +775,41 @@ impl Bitmap64 {
     pub fn flip_inplace<R: RangeBounds<u64>>(&mut self, range: R) {
         let (start, end) = range_to_inclusive(range);
         unsafe { ffi::roaring64_bitmap_flip_closed_inplace(self.raw.as_ptr(), start, end) };
+    }
+
+    /// Returns a new bitmap with all values shifted by the given offset
+    ///
+    /// Any values which would underflow or overflow `u64` are dropped.
+    ///
+    /// # Examples
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let bitmap1 = Bitmap64::of(&[0, 1, 1000, u64::MAX]);
+    /// let shifted_down = bitmap1.add_offset(-1);
+    /// assert_eq!(shifted_down.iter().collect::<Vec<_>>(), [0, 999, u64::MAX - 1]);
+    /// let shifted_up = bitmap1.add_offset(1);
+    /// assert_eq!(shifted_up.iter().collect::<Vec<_>>(), [1, 2, 1001]);
+    /// let big_shifted = bitmap1.add_offset(i128::from(u64::MAX) + 1);
+    /// assert_eq!(big_shifted.iter().collect::<Vec<_>>(), []);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_bitmap_add_offset_signed")]
+    #[must_use]
+    pub fn add_offset(&self, offset: i128) -> Self {
+        let positive = offset >= 0;
+        let offset = offset.unsigned_abs();
+        let Ok(offset) = u64::try_from(offset) else {
+            // If the offset doesn't fit in 64 bits, we shifted everything out
+            return Self::new();
+        };
+        unsafe {
+            Self::take_heap(ffi::roaring64_bitmap_add_offset_signed(
+                self.raw.as_ptr(),
+                positive,
+                offset,
+            ))
+        }
     }
 
     /// Returns a vector containing the values in the bitmap in sorted order

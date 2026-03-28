@@ -78,6 +78,14 @@ impl Clone for Bitmap64 {
             Self::take_heap(raw)
         }
     }
+
+    #[inline]
+    #[doc(alias = "roaring64_bitmap_overwrite")]
+    fn clone_from(&mut self, source: &Self) {
+        unsafe {
+            ffi::roaring64_bitmap_overwrite(self.raw.as_ptr(), source.raw.as_ptr());
+        }
+    }
 }
 
 impl Drop for Bitmap64 {
