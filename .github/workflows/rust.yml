@@ -18,12 +18,20 @@ jobs:
         rust: [stable, nightly]
         cargo_features: ['', 'alloc', 'default']
 
+    env:
+      CARGO_TERM_COLOR: always
+
     steps:
-    - uses: hecrj/setup-rust-action@v2
+    - uses: dtolnay/rust-toolchain@master
       with:
-        rust-version: ${{ matrix.rust }}
-        targets: ${{ matrix.target }}
+        toolchain: ${{ matrix.rust }}
         components: 'rustfmt, clippy'
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        env-vars: ROARING
+        # Allow us to cache croaring-sys when it doesn't change
+        cache-workspace-crates: true
 
     - name: Install cargo tools
       uses: taiki-e/install-action@v2
@@ -32,15 +40,8 @@ jobs:
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
 
     - uses: actions/checkout@v6
-
-    - name: Install LLVM
-      if: matrix.os == 'windows-latest'
-      run: choco upgrade llvm -y
-
-    - name: Set clang path
-      if: matrix.os =='windows-latest'
-      run: echo "LIBCLANG_PATH=C:\Program Files\LLVM\bin" >> $GITHUB_ENV
-      shell: bash
+      with:
+        persist-credentials: false
 
     - name: Cargo fmt
       run: cargo +${{ matrix.rust }} fmt --all -- --check
