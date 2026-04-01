@@ -149,21 +149,30 @@ fn cursor_return_from_the_edge() {
 #[test]
 fn test_portable_view() {
     init();
-    let buffer = fs::read("tests/data/portable_bitmap.bin").unwrap();
-    let bitmap = unsafe { BitmapView::deserialize::<Portable>(&buffer) };
-    let expected = expected_serialized_bitmap();
-    assert_eq!(bitmap, expected);
-    assert!(bitmap.iter().eq(expected.iter()))
+    let mut buffer = fs::read("tests/data/portable_bitmap.bin").unwrap();
+    buffer.reserve(32);
+    for offset in 0..32 {
+        let bitmap = unsafe { BitmapView::deserialize::<Portable>(&buffer[offset..]) };
+        let expected = expected_serialized_bitmap();
+        assert_eq!(bitmap, expected);
+        assert!(bitmap.iter().eq(expected.iter()));
+        drop(bitmap);
+        buffer.insert(0, 0xff);
+    }
 }
 
 #[test]
 fn test_native() {
     init();
-    let buffer = fs::read("tests/data/native_bitmap.bin").unwrap();
-    let bitmap = Bitmap::deserialize::<Native>(&buffer);
-    let expected = expected_serialized_bitmap();
-    assert_eq!(bitmap, expected);
-    assert!(bitmap.iter().eq(expected.iter()))
+    let mut buffer = fs::read("tests/data/native_bitmap.bin").unwrap();
+    buffer.reserve(32);
+    for offset in 0..32 {
+        let bitmap = Bitmap::deserialize::<Native>(&buffer[offset..]);
+        let expected = expected_serialized_bitmap();
+        assert_eq!(bitmap, expected);
+        assert!(bitmap.iter().eq(expected.iter()));
+        buffer.insert(0, 0xff);
+    }
 }
 
 #[test]
