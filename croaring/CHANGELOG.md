@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.5.2...croaring-v2.6.0) - 2026-04-02
+
+### Added
+- Remove_run_compression, add_offset, Clone::clone_from (by @Dr-Emann) - #220
+
+### Other
+- Update to croaring 4.6.1 (by @Dr-Emann) - #218
+- Test deserialing at offsets (by @Dr-Emann) - #219
+
 ## [2.5.2](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.5.1...croaring-v2.5.2) - 2026-01-02
 
 ### Other
