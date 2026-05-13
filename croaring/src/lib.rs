@@ -27,6 +27,8 @@ mod sealed {
     pub trait Sealed {}
 }
 
+use core::mem::offset_of;
+use core::ops::Bound;
 pub use serialization::*;
 
 pub use bitmap::{Bitmap, BitmapView};
@@ -40,3 +42,72 @@ pub use treemap::Treemap;
 pub use rust_alloc::configure_custom_alloc;
 #[cfg(feature = "alloc")]
 pub use rust_alloc::configure_rust_alloc;
+
+/// An inclusive range
+///
+/// `RangeInclusive<u32>` is guaranteed to be ABI compatible with `roaring_uint32_range_closed_t`,
+/// `RangeInclusive<u64>` is guaranteed to be ABI compatible with `roaring64_range_closed_t`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[repr(C)]
+pub struct RangeInclusive<Idx> {
+    /// The lower bound of the range (inclusive).
+    pub start: Idx,
+    /// The upper bound of the range (inclusive).
+    pub last: Idx,
+}
+impl<Idx> From<core::ops::RangeInclusive<Idx>> for RangeInclusive<Idx> {
+    fn from(value: core::ops::RangeInclusive<Idx>) -> Self {
+        let (start, last) = value.into_inner();
+        Self { start, last }
+    }
+}
+
+impl<Idx> From<RangeInclusive<Idx>> for core::ops::RangeInclusive<Idx> {
+    fn from(value: RangeInclusive<Idx>) -> Self {
+        core::ops::RangeInclusive::new(value.start, value.last)
+    }
+}
+
+impl<Idx> From<core::range::RangeInclusive<Idx>> for RangeInclusive<Idx> {
+    fn from(value: core::range::RangeInclusive<Idx>) -> Self {
+        let core::range::RangeInclusive { start, last } = value;
+        Self { start, last }
+    }
+}
+
+impl<Idx> From<RangeInclusive<Idx>> for core::range::RangeInclusive<Idx> {
+    fn from(value: RangeInclusive<Idx>) -> Self {
+        let RangeInclusive { start, last } = value;
+        core::range::RangeInclusive { start, last }
+    }
+}
+
+impl<Idx> core::ops::RangeBounds<Idx> for RangeInclusive<Idx> {
+    fn start_bound(&self) -> Bound<&Idx> {
+        Bound::Included(&self.start)
+    }
+
+    fn end_bound(&self) -> Bound<&Idx> {
+        Bound::Included(&self.last)
+    }
+}
+
+const _: () = {
+    type FFIRange = ffi::roaring_uint32_range_closed_t;
+    type RustRange = RangeInclusive<u32>;
+
+    assert!(size_of::<FFIRange>() == size_of::<RustRange>());
+    assert!(align_of::<FFIRange>() == align_of::<RustRange>());
+    assert!(offset_of!(FFIRange, min) == offset_of!(RustRange, start));
+    assert!(offset_of!(FFIRange, max) == offset_of!(RustRange, last));
+};
+
+const _: () = {
+    type FFIRange = ffi::roaring64_range_closed_t;
+    type RustRange = RangeInclusive<u64>;
+
+    assert!(size_of::<FFIRange>() == size_of::<RustRange>());
+    assert!(align_of::<FFIRange>() == align_of::<RustRange>());
+    assert!(offset_of!(FFIRange, min) == offset_of!(RustRange, start));
+    assert!(offset_of!(FFIRange, max) == offset_of!(RustRange, last));
+};

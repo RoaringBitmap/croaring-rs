@@ -1,4 +1,4 @@
-use crate::Bitmap64;
+use crate::{Bitmap64, RangeInclusive};
 use core::marker::PhantomData;
 use core::mem::{ManuallyDrop, MaybeUninit};
 use core::ptr::NonNull;
@@ -349,6 +349,164 @@ impl<'a> Bitmap64Cursor<'a> {
         debug_assert!(result <= count);
         self.has_value = unsafe { ffi::roaring64_iterator_has_value(self.raw.as_ptr()) };
         result as usize
+    }
+
+    /// Attempt to read many values from the iterator into `dst`, in reverse
+    ///
+    /// The current value _is_ included in the output.
+    ///
+    /// Returns the number of items read from the iterator, may be `< dst.len()` iff
+    /// the iterator is exhausted or `dst.len() > u64::MAX`.
+    ///
+    /// This can be much more efficient than repeated iteration.
+    ///
+    /// ```
+    /// use croaring::Bitmap64;
+    ///
+    /// let mut bitmap = Bitmap64::new();
+    /// bitmap.add_range(0..100);
+    /// bitmap.add(222);
+    /// bitmap.add(555);
+    /// bitmap.add(999);
+    ///
+    /// let mut buf = [0; 100];
+    /// let mut cursor = bitmap.cursor_to_last();
+    /// assert_eq!(cursor.read_many_rev(&mut buf), 100);
+    /// for (i, item) in buf.iter().enumerate() {
+    ///     let expected = match i {
+    ///         0 => 999,
+    ///         1 => 555,
+    ///         2 => 222,
+    ///         _ => 99 - (i - 3)
+    ///     };
+    ///     assert_eq!(*item, expected as u64);
+    /// }
+    /// // Calls to read_many_rev() can be interleaved with other cursor calls
+    /// assert_eq!(cursor.current(), Some(2));
+    /// assert_eq!(cursor.prev(), Some(1));
+    /// assert_eq!(cursor.read_many_rev(&mut buf), 2);
+    /// assert_eq!(buf[0], 1);
+    /// assert_eq!(buf[1], 0);
+    ///
+    /// assert_eq!(cursor.current(), None);
+    /// assert_eq!(cursor.read_many_rev(&mut buf), 0);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_iterator_read_backward")]
+    #[must_use]
+    pub fn read_many_rev(&mut self, dst: &mut [u64]) -> usize {
+        let count = u64::try_from(dst.len()).unwrap_or(u64::MAX);
+        let result = unsafe {
+            ffi::roaring64_iterator_read_backward(self.raw.as_ptr(), dst.as_mut_ptr(), count)
+        };
+        debug_assert!(result <= count);
+        self.has_value = unsafe { ffi::roaring64_iterator_has_value(self.raw.as_ptr()) };
+        result as usize
+    }
+
+    /// Attempt to read many ranges of consecutive values from the iterator into `dst`
+    ///
+    /// A range is a maximal interval of consecutive values: the set `{1, 2, 3, 5, 6}`
+    /// contains the two ranges `1..=3` and `5..=6`. The first range starts at the current
+    /// value, which _is_ included in the output.
+    ///
+    /// Returns the number of ranges written to `dst`, which may be `< dst.len()` if the
+    /// iterator is exhausted. After the call, the cursor is positioned just past the end of
+    /// the last range returned, or at the ghost position past the end if the bitmap is
+    /// exhausted.
+    ///
+    /// This can be much more efficient than reading individual values when the bitmap
+    /// contains long runs of consecutive values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Bitmap64, RangeInclusive};
+    ///
+    /// let mut bitmap = Bitmap64::new();
+    /// bitmap.add_range(0..100);
+    /// bitmap.add_range(200..300);
+    /// bitmap.add(555);
+    ///
+    /// let mut buf = [RangeInclusive::default(); 2];
+    /// let mut cursor = bitmap.cursor();
+    /// assert_eq!(cursor.read_many_ranges(&mut buf), 2);
+    /// assert_eq!((buf[0].start, buf[0].last), (0, 99));
+    /// assert_eq!((buf[1].start, buf[1].last), (200, 299));
+    /// // The cursor is positioned just past the last range returned
+    /// assert_eq!(cursor.current(), Some(555));
+    ///
+    /// assert_eq!(cursor.read_many_ranges(&mut buf), 1);
+    /// assert_eq!((buf[0].start, buf[0].last), (555, 555));
+    ///
+    /// assert_eq!(cursor.current(), None);
+    /// assert_eq!(cursor.read_many_ranges(&mut buf), 0);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_iterator_read_ranges")]
+    #[must_use]
+    pub fn read_many_ranges(&mut self, dst: &mut [RangeInclusive<u64>]) -> usize {
+        let len = dst.len();
+        let dst_ptr = dst.as_mut_ptr().cast::<ffi::roaring64_range_closed_t>();
+
+        let result =
+            unsafe { ffi::roaring64_iterator_read_ranges(self.raw.as_ptr(), dst_ptr, len) };
+        self.has_value = unsafe { ffi::roaring64_iterator_has_value(self.raw.as_ptr()) };
+        result
+    }
+
+    /// Attempt to read many ranges of consecutive values from the iterator into `dst`, in reverse
+    ///
+    /// A range is a maximal interval of consecutive values: the set `{1, 2, 3, 5, 6}`
+    /// contains the two ranges `1..=3` and `5..=6`. The first range ends at the current
+    /// value, which _is_ included in the output.
+    ///
+    /// Ranges are written in descending order: `dst[0]` is the highest range (ending at the
+    /// current value) and each subsequent range lies below the previous one.
+    ///
+    /// Returns the number of ranges written to `dst`, which may be `< dst.len()` if the
+    /// iterator is exhausted. After the call, the cursor is positioned just before the start of
+    /// the last range returned, or at the ghost position past the front if the bitmap is
+    /// exhausted.
+    ///
+    /// This can be much more efficient than reading individual values when the bitmap
+    /// contains long runs of consecutive values.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Bitmap64, RangeInclusive};
+    ///
+    /// let mut bitmap = Bitmap64::new();
+    /// bitmap.add(10);
+    /// bitmap.add_range(200..300);
+    /// bitmap.add_range(400..500);
+    ///
+    /// let mut buf = [RangeInclusive::default(); 2];
+    /// let mut cursor = bitmap.cursor_to_last();
+    /// assert_eq!(cursor.read_many_ranges_rev(&mut buf), 2);
+    /// assert_eq!((buf[0].start, buf[0].last), (400, 499));
+    /// assert_eq!((buf[1].start, buf[1].last), (200, 299));
+    /// // The cursor is positioned just before the last range returned
+    /// assert_eq!(cursor.current(), Some(10));
+    ///
+    /// assert_eq!(cursor.read_many_ranges_rev(&mut buf), 1);
+    /// assert_eq!((buf[0].start, buf[0].last), (10, 10));
+    ///
+    /// assert_eq!(cursor.current(), None);
+    /// assert_eq!(cursor.read_many_ranges_rev(&mut buf), 0);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring64_iterator_read_prev_ranges")]
+    #[must_use]
+    pub fn read_many_ranges_rev(&mut self, dst: &mut [RangeInclusive<u64>]) -> usize {
+        let len = dst.len();
+        let dst_ptr = dst.as_mut_ptr().cast::<ffi::roaring64_range_closed_t>();
+
+        let result =
+            unsafe { ffi::roaring64_iterator_read_prev_ranges(self.raw.as_ptr(), dst_ptr, len) };
+        self.has_value = unsafe { ffi::roaring64_iterator_has_value(self.raw.as_ptr()) };
+        result
     }
 
     /// Reset the iterator to the first value `>= val`
