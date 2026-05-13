@@ -2918,6 +2918,7 @@ static inline void array_container_add_range_nvals(array_container_t *array,
                                                    uint32_t min, uint32_t max,
                                                    int32_t nvals_less,
                                                    int32_t nvals_greater) {
+    if (min > max || nvals_greater < 0 || nvals_greater > array->cardinality) return;
     int32_t union_cardinality = nvals_less + (max - min + 1) + nvals_greater;
     if (union_cardinality > array->capacity) {
         array_container_grow(array, union_cardinality, true);
@@ -2948,7 +2949,7 @@ nvals_less, nvals_greater);
  */
 static inline void array_container_remove_range(array_container_t *array,
                                                 uint32_t pos, uint32_t count) {
-    if (count != 0) {
+    if (count != 0 && pos + count <= (uint32_t)array->cardinality) {
         memmove(&(array->array[pos]), &(array->array[pos + count]),
                 (array->cardinality - pos - count) * sizeof(uint16_t));
         array->cardinality -= count;
