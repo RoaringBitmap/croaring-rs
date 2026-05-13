@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2026-03-09T14:59:44Z
+// Created by amalgamation.sh on 2026-05-12T23:23:45Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -73,10 +73,8 @@ A C++ header for Roaring Bitmaps.
 #include <string>
 
 #if !defined(ROARING_EXCEPTIONS)
-// __cpp_exceptions is required by C++98 and we require C++11 or better.
-#ifndef __cpp_exceptions
-#error "__cpp_exceptions should be defined"
-#endif
+// We assume that if __cpp_exceptions is given a positive integer
+// value, then exceptions are enabled.
 #if __cpp_exceptions
 #define ROARING_EXCEPTIONS 1
 #else
@@ -773,7 +771,7 @@ class Roaring {
      * For advanced users.
      * This function may throw std::runtime_error.
      */
-    static const Roaring frozenView(const char *buf, size_t length) {
+    static Roaring frozenView(const char *buf, size_t length) {
         const roaring_bitmap_t *s =
             api::roaring_bitmap_frozen_view(buf, length);
         if (s == NULL) {
@@ -788,7 +786,7 @@ class Roaring {
      * For advanced users; see roaring_bitmap_portable_deserialize_frozen.
      * This function may throw std::runtime_error.
      */
-    static const Roaring portableDeserializeFrozen(const char *buf) {
+    static Roaring portableDeserializeFrozen(const char *buf) {
         const roaring_bitmap_t *s =
             api::roaring_bitmap_portable_deserialize_frozen(buf);
         if (s == NULL) {
@@ -1058,6 +1056,24 @@ class RoaringSetBitBiDirectionalIterator final {
     /** DEPRECATED, use `move_equalorlarger`.*/
     CROARING_DEPRECATED void equalorlarger(uint32_t val) {
         api::roaring_uint32_iterator_move_equalorlarger(&i, val);
+    }
+
+    /**
+     * Reads up to ${count} ranges into ${buf}. Returns the number of ranges
+     * read. See roaring_uint32_iterator_read_ranges for full semantics.
+     */
+    size_t read_ranges(api::roaring_uint32_range_closed_t *buf, size_t count) {
+        return api::roaring_uint32_iterator_read_ranges(&i, buf, count);
+    }
+
+    /**
+     * Reads up to ${count} ranges in reverse into ${buf}. Returns the number
+     * of ranges read. See roaring_uint32_iterator_read_prev_ranges for full
+     * semantics.
+     */
+    size_t read_prev_ranges(api::roaring_uint32_range_closed_t *buf,
+                            size_t count) {
+        return api::roaring_uint32_iterator_read_prev_ranges(&i, buf, count);
     }
 
     type_of_iterator &operator--() {  // prefix --
@@ -2359,7 +2375,7 @@ class Roaring64Map {
      * For advanced users only. This function is unsafe. You must ensure that
      * the provided buffer is 32-byte aligned.
      */
-    static const Roaring64Map frozenView(const char *buf) {
+    static Roaring64Map frozenView(const char *buf) {
         // We do not check that buf is 32-byte aligned. Caller is responsible.
         // size of bitmap buffer and key
         const size_t metadata_size = sizeof(size_t) + sizeof(uint32_t);
@@ -2386,8 +2402,8 @@ class Roaring64Map {
             buf += sizeof(uint32_t);
 
             // read map value Roaring
-            const Roaring read = Roaring::frozenView(buf, len);
-            result.emplaceOrInsert(key, read);
+            Roaring read = Roaring::frozenView(buf, len);
+            result.emplaceOrInsert(key, std::move(read));
 
             // forward buffer past the last Roaring Bitmap
             buf += len;
@@ -2399,7 +2415,7 @@ class Roaring64Map {
      * For advanced users only. This function is unsafe in the sense that
      * that it may trigger unaligned memory access. Use with caution.
      */
-    static const Roaring64Map portableDeserializeFrozen(const char *buf) {
+    static Roaring64Map portableDeserializeFrozen(const char *buf) {
         Roaring64Map result;
         // get map size
         uint64_t map_size;
