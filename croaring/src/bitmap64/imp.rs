@@ -590,24 +590,9 @@ impl Bitmap64 {
     #[must_use]
     #[doc(alias = "roaring64_bitmap_contains_range")]
     pub fn contains_range<R: RangeBounds<u64>>(&self, range: R) -> bool {
-        let Some(exclusive_range) = range_to_exclusive(range) else {
-            return true;
-        };
-        self._contains_range(exclusive_range)
-    }
+        let (start, last) = range_to_inclusive(range);
 
-    #[inline]
-    fn _contains_range(&self, exclusive_range: ExclusiveRangeRes) -> bool {
-        let ExclusiveRangeRes {
-            start,
-            end,
-            needs_max,
-        } = exclusive_range;
-
-        if needs_max && !self.contains(u64::MAX) {
-            return false;
-        }
-        unsafe { ffi::roaring64_bitmap_contains_range(self.raw.as_ptr(), start, end) }
+        unsafe { ffi::roaring64_bitmap_contains_range_closed(self.raw.as_ptr(), start, last) }
     }
 
     /// Selects the element at index 'rank' where the smallest element is at index 0
