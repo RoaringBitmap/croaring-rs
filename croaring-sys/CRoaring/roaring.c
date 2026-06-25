@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2026-05-12T23:23:45Z
+// Created by amalgamation.sh on 2026-06-11T01:03:40Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -2625,7 +2625,6 @@ CROARING_UNTARGET_AVX512
 #endif/* end file src/array_util.c */
 /* begin file src/art/art.c */
 #include <assert.h>
-#include <stdalign.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -7170,7 +7169,14 @@ int32_t array_container_number_of_runs(const array_container_t *ac) {
  *
  */
 int32_t array_container_write(const array_container_t *container, char *buf) {
+#if CROARING_IS_BIG_ENDIAN
+    for (int32_t i = 0; i < container->cardinality; ++i) {
+        uint16_t v_le = croaring_htole16(container->array[i]);
+        memcpy(buf + i * sizeof(uint16_t), &v_le, sizeof(uint16_t));
+    }
+#else
     memcpy(buf, container->array, container->cardinality * sizeof(uint16_t));
+#endif
     return array_container_size_in_bytes(container);
 }
 
@@ -7203,7 +7209,15 @@ int32_t array_container_read(int32_t cardinality, array_container_t *container,
         array_container_grow(container, cardinality, false);
     }
     container->cardinality = cardinality;
+#if CROARING_IS_BIG_ENDIAN
+    for (int32_t i = 0; i < cardinality; ++i) {
+        uint16_t v_le;
+        memcpy(&v_le, buf + i * sizeof(uint16_t), sizeof(uint16_t));
+        container->array[i] = croaring_letoh16(v_le);
+    }
+#else
     memcpy(container->array, buf, container->cardinality * sizeof(uint16_t));
+#endif
 
     return array_container_size_in_bytes(container);
 }
@@ -8275,7 +8289,14 @@ int bitset_container_number_of_runs(bitset_container_t *bc) {
 
 int32_t bitset_container_write(const bitset_container_t *container,
                                   char *buf) {
+#if CROARING_IS_BIG_ENDIAN
+	for (int32_t i = 0; i < BITSET_CONTAINER_SIZE_IN_WORDS; ++i) {
+		uint64_t w_le = croaring_htole64(container->words[i]);
+		memcpy(buf + i * sizeof(uint64_t), &w_le, sizeof(uint64_t));
+	}
+#else
 	memcpy(buf, container->words, BITSET_CONTAINER_SIZE_IN_WORDS * sizeof(uint64_t));
+#endif
 	return bitset_container_size_in_bytes(container);
 }
 
@@ -8283,7 +8304,15 @@ int32_t bitset_container_write(const bitset_container_t *container,
 int32_t bitset_container_read(int32_t cardinality, bitset_container_t *container,
 		const char *buf)  {
 	container->cardinality = cardinality;
+#if CROARING_IS_BIG_ENDIAN
+	for (int32_t i = 0; i < BITSET_CONTAINER_SIZE_IN_WORDS; ++i) {
+		uint64_t w_le;
+		memcpy(&w_le, buf + i * sizeof(uint64_t), sizeof(uint64_t));
+		container->words[i] = croaring_letoh64(w_le);
+	}
+#else
 	memcpy(container->words, buf, BITSET_CONTAINER_SIZE_IN_WORDS * sizeof(uint64_t));
+#endif
 	return bitset_container_size_in_bytes(container);
 }
 
@@ -12942,9 +12971,21 @@ bool run_container_validate(const run_container_t *run, const char **reason) {
 
 int32_t run_container_write(const run_container_t *container, char *buf) {
     uint16_t cast_16 = container->n_runs;
-    memcpy(buf, &cast_16, sizeof(uint16_t));
+    uint16_t n_runs_le = croaring_htole16(cast_16);
+    memcpy(buf, &n_runs_le, sizeof(uint16_t));
+#if CROARING_IS_BIG_ENDIAN
+    char *out = buf + sizeof(uint16_t);
+    for (int32_t i = 0; i < container->n_runs; ++i) {
+        uint16_t v_le = croaring_htole16(container->runs[i].value);
+        uint16_t l_le = croaring_htole16(container->runs[i].length);
+        memcpy(out, &v_le, sizeof(uint16_t));
+        memcpy(out + sizeof(uint16_t), &l_le, sizeof(uint16_t));
+        out += sizeof(rle16_t);
+    }
+#else
     memcpy(buf + sizeof(uint16_t), container->runs,
            container->n_runs * sizeof(rle16_t));
+#endif
     return run_container_size_in_bytes(container);
 }
 
@@ -12953,12 +12994,24 @@ int32_t run_container_read(int32_t cardinality, run_container_t *container,
     (void)cardinality;
     uint16_t cast_16;
     memcpy(&cast_16, buf, sizeof(uint16_t));
-    container->n_runs = cast_16;
+    container->n_runs = croaring_letoh16(cast_16);
     if (container->n_runs > container->capacity)
         run_container_grow(container, container->n_runs, false);
     if (container->n_runs > 0) {
+#if CROARING_IS_BIG_ENDIAN
+        const char *in = buf + sizeof(uint16_t);
+        for (int32_t i = 0; i < container->n_runs; ++i) {
+            uint16_t v_le, l_le;
+            memcpy(&v_le, in, sizeof(uint16_t));
+            memcpy(&l_le, in + sizeof(uint16_t), sizeof(uint16_t));
+            container->runs[i].value = croaring_letoh16(v_le);
+            container->runs[i].length = croaring_letoh16(l_le);
+            in += sizeof(rle16_t);
+        }
+#else
         memcpy(container->runs, buf + sizeof(uint16_t),
                container->n_runs * sizeof(rle16_t));
+#endif
     }
     return run_container_size_in_bytes(container);
 }
@@ -14237,15 +14290,17 @@ size_t ra_portable_size_in_bytes(const roaring_array_t *ra) {
     return count;
 }
 
-// This function is endian-sensitive.
+// The portable serialization format is little-endian. On big-endian hosts we
+// byte-swap multi-byte fields before writing them to the buffer.
 size_t ra_portable_serialize(const roaring_array_t *ra, char *buf) {
     char *initbuf = buf;
     uint32_t startOffset = 0;
     bool hasrun = ra_has_run_container(ra);
     if (hasrun) {
         uint32_t cookie = SERIAL_COOKIE | ((uint32_t)(ra->size - 1) << 16);
-        memcpy(buf, &cookie, sizeof(cookie));
-        buf += sizeof(cookie);
+        uint32_t cookie_le = croaring_htole32(cookie);
+        memcpy(buf, &cookie_le, sizeof(cookie_le));
+        buf += sizeof(cookie_le);
         uint32_t s = (ra->size + 7) / 8;
         memset(buf, 0, s);
         for (int32_t i = 0; i < ra->size; ++i) {
@@ -14262,30 +14317,34 @@ size_t ra_portable_serialize(const roaring_array_t *ra, char *buf) {
         }
     } else {  // backwards compatibility
         uint32_t cookie = SERIAL_COOKIE_NO_RUNCONTAINER;
-
-        memcpy(buf, &cookie, sizeof(cookie));
-        buf += sizeof(cookie);
-        memcpy(buf, &ra->size, sizeof(ra->size));
-        buf += sizeof(ra->size);
+        uint32_t cookie_le = croaring_htole32(cookie);
+        memcpy(buf, &cookie_le, sizeof(cookie_le));
+        buf += sizeof(cookie_le);
+        uint32_t size_le = croaring_htole32((uint32_t)ra->size);
+        memcpy(buf, &size_le, sizeof(size_le));
+        buf += sizeof(size_le);
 
         startOffset = 4 + 4 + 4 * ra->size + 4 * ra->size;
     }
     for (int32_t k = 0; k < ra->size; ++k) {
-        memcpy(buf, &ra->keys[k], sizeof(ra->keys[k]));
-        buf += sizeof(ra->keys[k]);
+        uint16_t key_le = croaring_htole16(ra->keys[k]);
+        memcpy(buf, &key_le, sizeof(key_le));
+        buf += sizeof(key_le);
         // get_cardinality returns a value in [1,1<<16], subtracting one
         // we get [0,1<<16 - 1] which fits in 16 bits
         uint16_t card = (uint16_t)(container_get_cardinality(ra->containers[k],
                                                              ra->typecodes[k]) -
                                    1);
-        memcpy(buf, &card, sizeof(card));
-        buf += sizeof(card);
+        uint16_t card_le = croaring_htole16(card);
+        memcpy(buf, &card_le, sizeof(card_le));
+        buf += sizeof(card_le);
     }
     if ((!hasrun) || (ra->size >= NO_OFFSET_THRESHOLD)) {
         // writing the containers offsets
         for (int32_t k = 0; k < ra->size; k++) {
-            memcpy(buf, &startOffset, sizeof(startOffset));
-            buf += sizeof(startOffset);
+            uint32_t off_le = croaring_htole32(startOffset);
+            memcpy(buf, &off_le, sizeof(off_le));
+            buf += sizeof(off_le);
             startOffset =
                 startOffset +
                 container_size_in_bytes(ra->containers[k], ra->typecodes[k]);
@@ -14309,6 +14368,7 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
     if (bytestotal > maxbytes) return 0;
     uint32_t cookie;
     memcpy(&cookie, buf, sizeof(int32_t));
+    cookie = croaring_letoh32(cookie);
     buf += sizeof(uint32_t);
     if ((cookie & 0xFFFF) != SERIAL_COOKIE &&
         cookie != SERIAL_COOKIE_NO_RUNCONTAINER) {
@@ -14321,7 +14381,9 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
     else {
         bytestotal += sizeof(int32_t);
         if (bytestotal > maxbytes) return 0;
-        memcpy(&size, buf, sizeof(int32_t));
+        uint32_t size_le;
+        memcpy(&size_le, buf, sizeof(int32_t));
+        size = (int32_t)croaring_letoh32(size_le);
         buf += sizeof(uint32_t);
     }
     if (size > (1 << 16) || size < 0) {
@@ -14350,6 +14412,7 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
     for (int32_t k = 0; k < size; ++k) {
         uint16_t tmp;
         memcpy(&tmp, keyscards + 4 * k + 2, sizeof(tmp));
+        tmp = croaring_letoh16(tmp);
         uint32_t thiscard = tmp + 1;
         bool isbitmap = (thiscard > DEFAULT_MAX_SIZE);
         bool isrun = false;
@@ -14370,6 +14433,7 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
             if (bytestotal > maxbytes) return 0;
             uint16_t n_runs;
             memcpy(&n_runs, buf, sizeof(uint16_t));
+            n_runs = croaring_letoh16(n_runs);
             buf += sizeof(uint16_t);
             size_t containersize = n_runs * sizeof(rle16_t);
             bytestotal += containersize;
@@ -14390,7 +14454,8 @@ size_t ra_portable_deserialize_size(const char *buf, const size_t maxbytes) {
 // cannot be found. If it returns true, readbytes is populated by how many bytes
 // were read, we have that *readbytes <= maxbytes.
 //
-// This function is endian-sensitive.
+// The portable serialization format is little-endian. On big-endian hosts we
+// byte-swap multi-byte fields after reading them from the buffer.
 bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
                              const size_t maxbytes, size_t *readbytes) {
     *readbytes = sizeof(int32_t);  // for cookie
@@ -14400,6 +14465,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
     }
     uint32_t cookie;
     memcpy(&cookie, buf, sizeof(int32_t));
+    cookie = croaring_letoh32(cookie);
     buf += sizeof(uint32_t);
     if ((cookie & 0xFFFF) != SERIAL_COOKIE &&
         cookie != SERIAL_COOKIE_NO_RUNCONTAINER) {
@@ -14416,7 +14482,9 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
             // Ran out of bytes while reading second part of the cookie.
             return false;
         }
-        memcpy(&size, buf, sizeof(int32_t));
+        uint32_t size_le;
+        memcpy(&size_le, buf, sizeof(int32_t));
+        size = (int32_t)croaring_letoh32(size_le);
         buf += sizeof(uint32_t);
     }
     if (size < 0) {
@@ -14458,7 +14526,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
     for (int32_t k = 0; k < size; ++k) {
         uint16_t tmp;
         memcpy(&tmp, keyscards + 4 * k, sizeof(tmp));
-        answer->keys[k] = tmp;
+        answer->keys[k] = croaring_letoh16(tmp);
     }
     if ((!hasrun) || (size >= NO_OFFSET_THRESHOLD)) {
         *readbytes += size * 4;
@@ -14476,6 +14544,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
     for (int32_t k = 0; k < size; ++k) {
         uint16_t tmp;
         memcpy(&tmp, keyscards + 4 * k + 2, sizeof(tmp));
+        tmp = croaring_letoh16(tmp);
         uint32_t thiscard = tmp + 1;
         bool isbitmap = (thiscard > DEFAULT_MAX_SIZE);
         bool isrun = false;
@@ -14519,6 +14588,7 @@ bool ra_portable_deserialize(roaring_array_t *answer, const char *buf,
             }
             uint16_t n_runs;
             memcpy(&n_runs, buf, sizeof(uint16_t));
+            n_runs = croaring_letoh16(n_runs);
             size_t containersize = n_runs * sizeof(rle16_t);
             *readbytes += containersize;
             if (*readbytes > maxbytes) {  // data is corrupted?
@@ -16344,9 +16414,18 @@ size_t roaring_bitmap_serialize(const roaring_bitmap_t *r, char *buf) {
         return roaring_bitmap_portable_serialize(r, buf + 1) + 1;
     } else {
         buf[0] = CROARING_SERIALIZATION_ARRAY_UINT32;
-        memcpy(buf + 1, &cardinality, sizeof(uint32_t));
-        roaring_bitmap_to_uint32_array(
-            r, (uint32_t *)(buf + 1 + sizeof(uint32_t)));
+        uint32_t card_le = croaring_htole32((uint32_t)cardinality);
+        memcpy(buf + 1, &card_le, sizeof(uint32_t));
+        uint32_t *out = (uint32_t *)(buf + 1 + sizeof(uint32_t));
+        roaring_bitmap_to_uint32_array(r, out);
+#if CROARING_IS_BIG_ENDIAN
+        for (uint64_t i = 0; i < cardinality; ++i) {
+            uint32_t v;
+            memcpy(&v, out + i, sizeof(uint32_t));
+            v = croaring_htole32(v);
+            memcpy(out + i, &v, sizeof(uint32_t));
+        }
+#endif
         return 1 + (size_t)sizeasarray;
     }
 }
@@ -16405,6 +16484,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf) {
         uint32_t card;
 
         memcpy(&card, bufaschar + 1, sizeof(uint32_t));
+        card = croaring_letoh32(card);
 
         const uint32_t *elems =
             (const uint32_t *)(bufaschar + 1 + sizeof(uint32_t));
@@ -16418,6 +16498,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf) {
             // elems may not be aligned, read with memcpy
             uint32_t elem;
             memcpy(&elem, elems + i, sizeof(elem));
+            elem = croaring_letoh32(elem);
             roaring_bitmap_add_bulk(bitmap, &context, elem);
         }
         return bitmap;
@@ -16443,6 +16524,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize_safe(const void *buf,
         /* This looks like a compressed set of uint32_t elements */
         uint32_t card;
         memcpy(&card, bufaschar + 1, sizeof(uint32_t));
+        card = croaring_letoh32(card);
 
         // Check the buffer is big enough to contain card uint32_t elements
         if (maxbytes < 1 + sizeof(uint32_t) + card * sizeof(uint32_t)) {
@@ -16461,6 +16543,7 @@ roaring_bitmap_t *roaring_bitmap_deserialize_safe(const void *buf,
             // elems may not be aligned, read with memcpy
             uint32_t elem;
             memcpy((char *)&elem, (char *)(elems + i), sizeof(elem));
+            elem = croaring_letoh32(elem);
             roaring_bitmap_add_bulk(bitmap, &context, elem);
         }
         return bitmap;
@@ -18392,7 +18475,6 @@ bool roaring_bitmap_to_bitset(const roaring_bitmap_t *r, bitset_t *bitset) {
 /* end file src/roaring.c */
 /* begin file src/roaring64.c */
 #include <assert.h>
-#include <stdalign.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
@@ -18946,12 +19028,20 @@ bool roaring64_bitmap_contains_range(const roaring64_bitmap_t *r, uint64_t min,
     if (min >= max) {
         return true;
     }
+    return roaring64_bitmap_contains_range_closed(r, min, max - 1);
+}
+
+bool roaring64_bitmap_contains_range_closed(const roaring64_bitmap_t *r,
+                                            uint64_t min, uint64_t max) {
+    if (min > max) {
+        return true;
+    }
 
     uint8_t min_high48[ART_KEY_BYTES];
     uint16_t min_low16 = split_key(min, min_high48);
     uint8_t max_high48[ART_KEY_BYTES];
     uint16_t max_low16 = split_key(max, max_high48);
-    uint64_t max_high48_bits = (max - 1) & 0xFFFFFFFFFFFF0000;  // Inclusive
+    uint64_t max_high48_bits = max & 0xFFFFFFFFFFFF0000;
 
     art_iterator_t it = art_lower_bound((art_t *)&r->art, min_high48);
     if (it.value == NULL || combine_key(it.key, 0) > min) {
@@ -18977,7 +19067,7 @@ bool roaring64_bitmap_contains_range(const roaring64_bitmap_t *r, uint64_t min,
         }
         uint32_t container_max = 0xFFFF + 1;  // Exclusive
         if (compare_high48(it.key, max_high48) == 0) {
-            container_max = max_low16;
+            container_max = (uint32_t)max_low16 + 1;
         }
 
         // For the first and last containers we use container_contains_range,
@@ -20559,7 +20649,8 @@ size_t roaring64_bitmap_portable_serialize(const roaring64_bitmap_t *r,
     // Write as uint64 the distinct number of "buckets", where a bucket is
     // defined as the most significant 32 bits of an element.
     uint64_t high32_count = count_high32(r);
-    memcpy(buf, &high32_count, sizeof(high32_count));
+    uint64_t high32_count_le = croaring_htole64(high32_count);
+    memcpy(buf, &high32_count_le, sizeof(high32_count_le));
     buf += sizeof(high32_count);
 
     art_iterator_t it = art_init_iterator((art_t *)&r->art, /*first=*/true);
@@ -20574,7 +20665,8 @@ size_t roaring64_bitmap_portable_serialize(const roaring64_bitmap_t *r,
             if (bitmap32 != NULL) {
                 // Write as uint32 the most significant 32 bits of the
                 // bucket.
-                memcpy(buf, &prev_high32, sizeof(prev_high32));
+                uint32_t prev_high32_le = croaring_htole32(prev_high32);
+                memcpy(buf, &prev_high32_le, sizeof(prev_high32_le));
                 buf += sizeof(prev_high32);
 
                 // Write the 32-bit Roaring bitmaps representing the least
@@ -20605,7 +20697,8 @@ size_t roaring64_bitmap_portable_serialize(const roaring64_bitmap_t *r,
 
     if (bitmap32 != NULL) {
         // Write as uint32 the most significant 32 bits of the bucket.
-        memcpy(buf, &prev_high32, sizeof(prev_high32));
+        uint32_t prev_high32_le = croaring_htole32(prev_high32);
+        memcpy(buf, &prev_high32_le, sizeof(prev_high32_le));
         buf += sizeof(prev_high32);
 
         // Write the 32-bit Roaring bitmaps representing the least
@@ -20632,6 +20725,7 @@ size_t roaring64_bitmap_portable_deserialize_size(const char *buf,
         return 0;
     }
     memcpy(&buckets, buf, sizeof(buckets));
+    buckets = croaring_letoh64(buckets);
     buf += sizeof(buckets);
     read_bytes += sizeof(buckets);
 
@@ -20678,6 +20772,7 @@ roaring64_bitmap_t *roaring64_bitmap_portable_deserialize_safe(
         return NULL;
     }
     memcpy(&buckets, buf, sizeof(buckets));
+    buckets = croaring_letoh64(buckets);
     buf += sizeof(buckets);
     read_bytes += sizeof(buckets);
 
@@ -20697,6 +20792,7 @@ roaring64_bitmap_t *roaring64_bitmap_portable_deserialize_safe(
             return NULL;
         }
         memcpy(&high32, buf, sizeof(high32));
+        high32 = croaring_letoh32(high32);
         buf += sizeof(high32);
         read_bytes += sizeof(high32);
         // High 32 bits must be strictly increasing.
