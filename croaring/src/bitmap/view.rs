@@ -21,23 +21,25 @@ impl<'a> BitmapView<'a> {
     #[inline]
     #[allow(clippy::assertions_on_constants)]
     pub(crate) unsafe fn take_heap(p: *const roaring_bitmap_t) -> Self {
-        // This depends somewhat heavily on the implementation of croaring,
-        // In particular, that `roaring_bitmap_t` doesn't store any pointers into itself
-        // (it can be moved safely), and a "frozen" bitmap is stored in an arena, and the
-        // `containers` array is stored immediately after the roaring_bitmap_t data.
-        // Ensure this is still valid every time we update
-        // the version of croaring.
-        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4);
+        unsafe {
+            // This depends somewhat heavily on the implementation of croaring,
+            // In particular, that `roaring_bitmap_t` doesn't store any pointers into itself
+            // (it can be moved safely), and a "frozen" bitmap is stored in an arena, and the
+            // `containers` array is stored immediately after the roaring_bitmap_t data.
+            // Ensure this is still valid every time we update
+            // the version of croaring.
+            const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4);
 
-        assert!(!p.is_null());
+            assert!(!p.is_null());
 
-        // We will use this in the Drop implementation to re-create this pointer to pass to roaring_bitmap_free
-        // If this fails, we would pass junk to roaring_bitmap_free in Drop.
-        assert_eq!(p, original_bitmap_ptr(&*p));
+            // We will use this in the Drop implementation to re-create this pointer to pass to roaring_bitmap_free
+            // If this fails, we would pass junk to roaring_bitmap_free in Drop.
+            assert_eq!(p, original_bitmap_ptr(&*p));
 
-        Self {
-            bitmap: *p,
-            phantom: PhantomData,
+            Self {
+                bitmap: *p,
+                phantom: PhantomData,
+            }
         }
     }
 
@@ -60,7 +62,7 @@ impl<'a> BitmapView<'a> {
     /// The data must be the result of serializing a bitmap with the same serialization format
     #[must_use]
     pub unsafe fn deserialize<S: ViewDeserializer>(data: &'a [u8]) -> Self {
-        S::deserialize_view(data)
+        unsafe { S::deserialize_view(data) }
     }
 
     /// Create an owned, mutable bitmap from this view

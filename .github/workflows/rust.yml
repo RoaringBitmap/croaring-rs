@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        rust: [stable, nightly]
+        rust: ["1.95", stable, nightly]
         cargo_features: ['', 'alloc', 'default']
 
     env:

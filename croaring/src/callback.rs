@@ -24,19 +24,21 @@ impl<F, O> CallbackWrapper<F, O> {
         F: FnMut(I) -> ControlFlow<O>,
         I: panic::UnwindSafe,
     {
-        let wrapper = &mut *(arg as *mut Self);
-        let f = &mut wrapper.f;
-        let f = AssertUnwindSafe(|| f(value));
-        let result = std::panic::catch_unwind(f);
-        match result {
-            Ok(ControlFlow::Continue(())) => true,
-            Ok(cf @ ControlFlow::Break(_)) => {
-                wrapper.result = Ok(cf);
-                false
-            }
-            Err(err) => {
-                wrapper.result = Err(err);
-                false
+        unsafe {
+            let wrapper = &mut *(arg as *mut Self);
+            let f = &mut wrapper.f;
+            let f = AssertUnwindSafe(|| f(value));
+            let result = std::panic::catch_unwind(f);
+            match result {
+                Ok(ControlFlow::Continue(())) => true,
+                Ok(cf @ ControlFlow::Break(_)) => {
+                    wrapper.result = Ok(cf);
+                    false
+                }
+                Err(err) => {
+                    wrapper.result = Err(err);
+                    false
+                }
             }
         }
     }

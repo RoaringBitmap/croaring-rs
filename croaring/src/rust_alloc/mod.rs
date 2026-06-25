@@ -57,21 +57,25 @@ impl AlignedLayout {
     }
 
     unsafe fn store_and_return(&self, allocated_ptr: *mut u8) -> *mut u8 {
-        let size_ptr = allocated_ptr.add(self.padding()).cast::<SizeAlign>();
-        size_ptr.write(SizeAlign {
-            size: self.0.size(),
-            align: self.0.align(),
-        });
-        size_ptr.add(1).cast()
+        unsafe {
+            let size_ptr = allocated_ptr.add(self.padding()).cast::<SizeAlign>();
+            size_ptr.write(SizeAlign {
+                size: self.0.size(),
+                align: self.0.align(),
+            });
+            size_ptr.add(1).cast()
+        }
     }
 
     unsafe fn from_raw(raw_ptr: *mut core::ffi::c_void) -> (*mut core::ffi::c_void, Self) {
-        let size_ptr = raw_ptr.cast::<SizeAlign>().sub(1);
-        let SizeAlign { size, align } = size_ptr.read();
-        let padding = padding_for_align(align);
-        let orig_ptr = size_ptr.cast::<u8>().sub(padding);
-        let layout = Layout::from_size_align_unchecked(size, align);
-        (orig_ptr.cast(), Self(layout))
+        unsafe {
+            let size_ptr = raw_ptr.cast::<SizeAlign>().sub(1);
+            let SizeAlign { size, align } = size_ptr.read();
+            let padding = padding_for_align(align);
+            let orig_ptr = size_ptr.cast::<u8>().sub(padding);
+            let layout = Layout::from_size_align_unchecked(size, align);
+            (orig_ptr.cast(), Self(layout))
+        }
     }
 }
 
