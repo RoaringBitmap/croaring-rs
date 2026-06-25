@@ -1,9 +1,10 @@
 use croaring::Bitmap;
 use roaring::RoaringBitmap;
+use std::hint::black_box;
 
 use criterion::measurement::Measurement;
 use criterion::{
-    black_box, criterion_group, criterion_main, BatchSize, BenchmarkGroup, BenchmarkId, Criterion,
+    BatchSize, BenchmarkGroup, BenchmarkId, Criterion, criterion_group, criterion_main,
 };
 
 fn compare<Prep1, Prep2, Bench1, Bench2, In1, In2, Out1, Out2, M>(
@@ -151,7 +152,7 @@ fn binops(c: &mut Criterion) {
     };
 
     macro_rules! comp_op {
-        ($new1:ident, $inplace1:ident, $new2:expr, $inplace2:expr $(,)?) => {{
+        ($new1:ident, $inplace1:ident, $new2:expr_2021, $inplace2:expr_2021 $(,)?) => {{
             compare(
                 &mut c.benchmark_group(concat!(stringify!($new1), "_new")),
                 gen_ours,

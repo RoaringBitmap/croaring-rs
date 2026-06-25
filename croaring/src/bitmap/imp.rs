@@ -16,18 +16,20 @@ impl Bitmap {
     #[allow(clippy::assertions_on_constants)]
     #[must_use]
     pub(crate) unsafe fn take_heap(p: *mut roaring_bitmap_t) -> Self {
-        // Based heavily on the `roaring.hh` cpp header from croaring
+        unsafe {
+            // Based heavily on the `roaring.hh` cpp header from croaring
 
-        assert!(!p.is_null());
-        let result = Self { bitmap: *p };
-        // This depends somewhat heavily on the implementation of croaring,
-        // In particular, that `roaring_bitmap_t` doesn't store any pointers into itself
-        // (it can be moved safely), and can be freed with `free`, without freeing the underlying
-        // containers and auxiliary data. Ensure this is still valid every time we update
-        // the version of croaring.
-        const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4);
-        ffi::roaring_free(p.cast::<c_void>());
-        result
+            assert!(!p.is_null());
+            let result = Self { bitmap: *p };
+            // This depends somewhat heavily on the implementation of croaring,
+            // In particular, that `roaring_bitmap_t` doesn't store any pointers into itself
+            // (it can be moved safely), and can be freed with `free`, without freeing the underlying
+            // containers and auxiliary data. Ensure this is still valid every time we update
+            // the version of croaring.
+            const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4);
+            ffi::roaring_free(p.cast::<c_void>());
+            result
+        }
     }
 
     /// Creates a new bitmap (initially empty)
@@ -1523,11 +1525,7 @@ impl Bitmap {
         let mut element: u32 = 0;
         let result = unsafe { ffi::roaring_bitmap_select(&self.bitmap, position, &mut element) };
 
-        if result {
-            Some(element)
-        } else {
-            None
-        }
+        if result { Some(element) } else { None }
     }
 
     /// Returns statistics about the composition of a roaring bitmap.

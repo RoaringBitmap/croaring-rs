@@ -1,7 +1,7 @@
 [package]
 name = "croaring"
 version = "2.6.0"
-edition = "2021"
+edition = "2024"
 authors = ["croaring-rs developers"]
 license = "Apache-2.0"
 description = "Rust wrapper for CRoaring"
@@ -10,6 +10,7 @@ readme = "../README.md"
 keywords = ["RoaringBitmap", "croaring", "bitmap"]
 categories = ["data-structures", "api-bindings", "no-std::no-alloc"]
 documentation = "https://docs.rs/croaring"
+rust-version = "1.95.0"
 
 [features]
 default = ["std", "allocator-api2"]

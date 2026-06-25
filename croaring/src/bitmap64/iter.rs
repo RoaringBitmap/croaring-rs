@@ -129,7 +129,7 @@ impl<'a> Bitmap64Cursor<'a> {
     }
 
     unsafe fn current_unchecked(&self) -> u64 {
-        ffi::roaring64_iterator_value(self.raw.as_ptr())
+        unsafe { ffi::roaring64_iterator_value(self.raw.as_ptr()) }
     }
 
     /// Moves the cursor to the next value in the bitmap

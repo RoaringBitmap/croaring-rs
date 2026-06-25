@@ -159,7 +159,7 @@ impl Deserializer for Portable {
     }
 
     unsafe fn try_deserialize_unchecked(buffer: &[u8]) -> Bitmap64 {
-        Self::try_deserialize(buffer).unwrap_unchecked()
+        unsafe { Self::try_deserialize(buffer).unwrap_unchecked() }
     }
 
     fn find_end(buffer: &[u8]) -> Option<NonZeroUsize> {

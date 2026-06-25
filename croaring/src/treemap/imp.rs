@@ -3,8 +3,8 @@ use crate::Treemap;
 
 use super::util;
 use crate::treemap::{Deserializer, Serializer};
-use alloc::collections::btree_map::Entry;
 use alloc::collections::BTreeMap;
+use alloc::collections::btree_map::Entry;
 use alloc::vec::Vec;
 use core::cmp::Ordering;
 use core::ops::{Bound, RangeBounds};
@@ -553,7 +553,7 @@ impl Treemap {
         let mut index = u64::from(
             range
                 .next_back()
-                .filter(|(&key, _)| key == hi)
+                .filter(|&(&key, _)| key == hi)
                 .and_then(|(_, bitmap)| bitmap.position(lo))?,
         );
         for (_, bitmap) in range {

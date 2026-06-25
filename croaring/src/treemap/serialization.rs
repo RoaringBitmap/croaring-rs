@@ -1,6 +1,6 @@
 use crate::serialization::{Frozen, Native, Portable};
-use crate::{bitmap, Treemap};
 use crate::{Bitmap, JvmLegacy};
+use crate::{Treemap, bitmap};
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
 use core::prelude::v1::*;

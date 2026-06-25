@@ -1,6 +1,5 @@
-use criterion::{
-    black_box, criterion_group, criterion_main, BatchSize, BenchmarkId, Criterion, Throughput,
-};
+use criterion::{BatchSize, BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use std::hint::black_box;
 use std::ops::ControlFlow;
 
 use croaring::{Bitmap, Bitmap64, Portable};
