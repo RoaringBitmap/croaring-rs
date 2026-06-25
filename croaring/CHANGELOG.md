@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.6.0...croaring-v2.7.0) - 2026-06-25
+
+### Added
+- Add reverse and range bulk-read cursor methods (by @Dr-Emann) - #230
+
+### Other
+- Switch croaring to edition 2024 (by @Dr-Emann) - #231
+- *(croaring-sys)* Update to CRoaring 4.7.0 (by @Dr-Emann) - #226
+
 ## [2.6.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.5.2...croaring-v2.6.0) - 2026-04-02
 
 ### Added
