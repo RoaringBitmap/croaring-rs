@@ -8,9 +8,9 @@ impl Bitset {
         unsafe {
             assert!(!p.is_null());
             let result = Self { bitset: p.read() };
-            // It seems unlikely that the bitset type will meaningfully change, but check if we ever go
-            // to a version 3.
-            const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4);
+            // It seems unlikely that the bitset type will meaningfully change, but check every
+            // major version bump
+            const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 5);
             ffi::roaring_free(p.cast());
             result
         }
