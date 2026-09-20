@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.7.0...croaring-v2.8.0) - 2026-09-20
+
+### Added
+- Add the ability to deserialize a portable 64 bit without copies (by @Dr-Emann) - #242
+
+### Other
+- Optimize 64-bit iterator access (by @Dr-Emann) - #243
+- *(deps)* Update croaring to work with croaring-sys (by @Dr-Emann) - #242
+- Update to croaring 4.6.2 (by @Dr-Emann) - #237
+- Use new roaring64_bitmap_contains_range_closed function for intersect_with_range (by @Dr-Emann) - #234
+- *(croaring-sys)* Update to CRoaring 4.7.1 (by @Dr-Emann) - #233
+
 ## [2.7.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.6.0...croaring-v2.7.0) - 2026-06-25
 
 ### Added
