@@ -173,6 +173,15 @@ impl Deserializer for Portable {
     }
 }
 
+impl ViewDeserializer for Portable {
+    #[doc(alias = "roaring64_bitmap_portable_deserialize_frozen")]
+    unsafe fn deserialize_view(data: &[u8]) -> *mut ffi::roaring64_bitmap_t {
+        unsafe {
+            ffi::roaring64_bitmap_portable_deserialize_frozen(data.as_ptr().cast(), data.len())
+        }
+    }
+}
+
 impl Serializer for Frozen {
     // Unlike 32 bit bitmaps, 64 bit bitmaps require 64 byte alignment
     const REQUIRED_ALIGNMENT: usize = 64;

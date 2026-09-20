@@ -21,12 +21,11 @@ impl<'a> Bitmap64View<'a> {
     /// # Examples
     ///
     /// ```
-    /// use croaring::{Bitmap64, Bitmap64View, Frozen};
-    /// let mut orig_bitmap = Bitmap64::of(&[1, 2, 3, 4]);
-    /// orig_bitmap.shrink_to_fit();
+    /// use croaring::{Bitmap64, Bitmap64View, Portable};
+    /// let orig_bitmap = Bitmap64::of(&[1, 2, 3, 4]);
     /// let mut buf = [0; 1024];
-    /// let data: &[u8] = orig_bitmap.try_serialize_into::<Frozen>(&mut buf).unwrap();
-    /// let view = unsafe { Bitmap64View::deserialize::<Frozen>(data) }.unwrap();
+    /// let data: &[u8] = orig_bitmap.try_serialize_into::<Portable>(&mut buf).unwrap();
+    /// let view = unsafe { Bitmap64View::deserialize::<Portable>(data) }.unwrap();
     /// assert!(view.contains_range(1..=4));
     /// assert_eq!(orig_bitmap, view);
     /// ```
