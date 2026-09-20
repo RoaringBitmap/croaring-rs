@@ -39,6 +39,36 @@ fn test_portable_deserialize() {
 }
 
 #[test]
+fn test_portable_view() {
+    init();
+    let mut buffer = fs::read("tests/data/portable_bitmap64.bin").unwrap();
+    buffer.reserve(64);
+    for offset in 0..64 {
+        let view = unsafe { Bitmap64View::deserialize::<Portable>(&buffer[offset..]) }.unwrap();
+        let expected = expected_serialized_bitmap();
+        assert_eq!(view, expected);
+        assert!(view.iter().eq(expected.iter()));
+
+        let mut bitmap = view.to_bitmap64();
+        bitmap.add(u64::MAX);
+        assert!(!view.contains(u64::MAX));
+        assert!(bitmap.contains(u64::MAX));
+
+        drop(view);
+        buffer.insert(0, 0xff);
+    }
+}
+
+#[test]
+fn invalid_portable_view_returns_none() {
+    init();
+    let buffer = fs::read("tests/data/portable_bitmap64.bin").unwrap();
+    let truncated = &buffer[..buffer.len() - 1];
+    assert!(unsafe { Bitmap64View::deserialize::<Portable>(truncated) }.is_none());
+    assert!(unsafe { Bitmap64View::deserialize::<Portable>(&[0xff; 8]) }.is_none());
+}
+
+#[test]
 fn test_r64_contains_max() {
     init();
     let mut bitmap = Bitmap64::new();

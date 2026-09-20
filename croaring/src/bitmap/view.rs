@@ -28,7 +28,7 @@ impl<'a> BitmapView<'a> {
             // `containers` array is stored immediately after the roaring_bitmap_t data.
             // Ensure this is still valid every time we update
             // the version of croaring.
-            const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 4);
+            const _: () = assert!(ffi::ROARING_VERSION_MAJOR == 5);
 
             assert!(!p.is_null());
 
@@ -43,7 +43,7 @@ impl<'a> BitmapView<'a> {
         }
     }
 
-    /// Create a bitmap view of a slice of data without copying
+    /// Creates a bitmap view of a slice of data without copying.
     ///
     /// # Examples
     ///
@@ -57,9 +57,14 @@ impl<'a> BitmapView<'a> {
     /// assert_eq!(orig_bitmap, view);
     /// ```
     ///
+    /// # Panics
+    ///
+    /// Panics when creating a [`Portable`][crate::Portable] view on a big-endian system. Use
+    /// [`Bitmap::try_deserialize`] to create an owned bitmap on those systems.
+    ///
     /// # Safety
     ///
-    /// The data must be the result of serializing a bitmap with the same serialization format
+    /// The data must be the result of serializing a bitmap with the same serialization format.
     #[must_use]
     pub unsafe fn deserialize<S: ViewDeserializer>(data: &'a [u8]) -> Self {
         unsafe { S::deserialize_view(data) }

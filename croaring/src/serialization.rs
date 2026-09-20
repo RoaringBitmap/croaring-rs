@@ -1,6 +1,7 @@
-/// The `Portable` format is meant to be compatible with other roaring bitmap libraries, such as Go or Java.
+/// The `Portable` format is compatible with other roaring bitmap libraries, such as Go or Java.
 ///
-/// Note despite the name, it is not fully portable: it depends on native endianness.
+/// Its serialized representation is little-endian on every platform. Zero-copy portable bitmap
+/// views are unavailable on big-endian systems; owned deserialization converts the data instead.
 ///
 /// It's defined here: <https://github.com/RoaringBitmap/RoaringFormatSpec>
 pub enum Portable {}
