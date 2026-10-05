@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2026-09-17T17:49:11Z
+// Created by amalgamation.sh on 2026-10-04T13:26:56Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -263,6 +263,21 @@ void art_iterator_insert(art_iterator_t *iterator, const art_key_chunk_t *key,
  * if any.
  */
 bool art_iterator_erase(art_iterator_t *iterator, art_val_t *erased_val);
+
+/**
+ * Ensures the ART has room for at least `num_leaves` leaves in total before
+ * further leaf allocations are needed. Only leaf storage is reserved; inner
+ * nodes keep growing on demand. Invalidates pointers to values previously
+ * returned by `art_insert` and `art_find`.
+ */
+void art_reserve(art_t *art, uint64_t num_leaves);
+
+/**
+ * Returns the number of leaves (key/value pairs) in the ART. This walks the
+ * free list of leaves, so it is O(1) for an ART that has had no erasures or
+ * that has been shrunken, and O(number of free leaf slots) otherwise.
+ */
+uint64_t art_num_leaves(const art_t *art);
 
 /**
  * Shrinks the internal arrays in the ART to remove any unused elements. Returns
@@ -3953,6 +3968,29 @@ static uint8_t art_common_prefix(const art_key_chunk_t key1[],
 }
 
 /**
+ * Grows the array of nodes of the given typecode to `new_capacity` elements,
+ * linking the new elements at the end of the free list. Does nothing if
+ * `new_capacity` is not larger than the current capacity. Invalidates pointers
+ * into the array obtained by `art_deref`.
+ */
+static void art_grow_to(art_t *art, art_typecode_t typecode,
+                        uint64_t new_capacity) {
+    uint64_t capacity = art->capacities[typecode];
+    if (new_capacity <= capacity) {
+        return;
+    }
+    art->capacities[typecode] = new_capacity;
+    art->nodes[typecode] = roaring_realloc(
+        art->nodes[typecode], new_capacity * ART_NODE_SIZES[typecode]);
+    uint64_t increase = new_capacity - capacity;
+    memset(art_get_node(art, capacity, typecode), 0,
+           increase * ART_NODE_SIZES[typecode]);
+    for (uint64_t i = capacity; i < new_capacity; ++i) {
+        art_node_set_next_free(art_get_node(art, i, typecode), typecode, i + 1);
+    }
+}
+
+/**
  * Extends the array of nodes of the given typecode. Invalidates pointers into
  * the array obtained by `art_deref`.
  */
@@ -3970,15 +4008,7 @@ static void art_extend(art_t *art, art_typecode_t typecode) {
     } else {
         new_capacity = 5 * capacity / 4;
     }
-    art->capacities[typecode] = new_capacity;
-    art->nodes[typecode] = roaring_realloc(
-        art->nodes[typecode], new_capacity * ART_NODE_SIZES[typecode]);
-    uint64_t increase = new_capacity - capacity;
-    memset(art_get_node(art, capacity, typecode), 0,
-           increase * ART_NODE_SIZES[typecode]);
-    for (uint64_t i = capacity; i < new_capacity; ++i) {
-        art_node_set_next_free(art_get_node(art, i, typecode), typecode, i + 1);
-    }
+    art_grow_to(art, typecode, new_capacity);
 }
 
 /**
@@ -4525,6 +4555,21 @@ void art_free(art_t *art) {
          ++t) {
         roaring_free(art->nodes[t]);
     }
+}
+
+void art_reserve(art_t *art, uint64_t num_leaves) {
+    art_grow_to(art, CROARING_ART_LEAF_TYPE, num_leaves);
+}
+
+uint64_t art_num_leaves(const art_t *art) {
+    uint64_t num_free = 0;
+    for (uint64_t i = art->first_free[CROARING_ART_LEAF_TYPE];
+         i < art->capacities[CROARING_ART_LEAF_TYPE];
+         i = art_node_get_next_free(art,
+                                    art_to_ref(i, CROARING_ART_LEAF_TYPE))) {
+        num_free++;
+    }
+    return art->capacities[CROARING_ART_LEAF_TYPE] - num_free;
 }
 
 void art_printf(const art_t *art) {
@@ -13635,6 +13680,45 @@ POSSIBILITY OF SUCH DAMAGE.
 #endif  // CROARING_COMPILER_SUPPORTS_AVX512
 #endif
 
+#if CROARING_IS_ARM64 && defined(__linux__)
+#include <sys/auxv.h>
+// The kernel advertises SVE in AT_HWCAP and SVE2 in AT_HWCAP2. Older
+// headers may not define these constants, so we provide the kernel's values
+// (we deliberately do not include <asm/hwcap.h>, which is not available on
+// all toolchains, e.g., musl without linux-headers).
+#ifndef AT_HWCAP2
+#define AT_HWCAP2 26
+#endif
+#ifndef HWCAP_SVE
+#define HWCAP_SVE (1 << 22)
+#endif
+#ifndef HWCAP2_SVE2
+#define HWCAP2_SVE2 (1 << 1)
+#endif
+#endif  // CROARING_IS_ARM64 && defined(__linux__)
+
+#if CROARING_IS_ARM64 && defined(_WIN32)
+#ifndef _WINDOWS_
+// We avoid including <windows.h> (macro pollution); this matches the
+// declaration in the Windows SDK (BOOL WINAPI
+// IsProcessorFeaturePresent(DWORD)).
+#ifdef __cplusplus
+#define CROARING_EXTERN_C extern "C"
+#else
+#define CROARING_EXTERN_C
+#endif
+CROARING_EXTERN_C __declspec(dllimport) int __stdcall IsProcessorFeaturePresent(
+    unsigned long ProcessorFeature);
+#endif  // _WINDOWS_
+// Only recent Windows SDKs define these processor features.
+#ifndef PF_ARM_SVE_INSTRUCTIONS_AVAILABLE
+#define PF_ARM_SVE_INSTRUCTIONS_AVAILABLE 46
+#endif
+#ifndef PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE
+#define PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE 47
+#endif
+#endif  // CROARING_IS_ARM64 && defined(_WIN32)
+
 #ifdef __cplusplus
 extern "C" {
 namespace roaring {
@@ -13655,7 +13739,9 @@ enum croaring_instruction_set {
     CROARING_AVX512VBMI2 = 0x800,
     CROARING_AVX512BITALG = 0x1000,
     CROARING_AVX512VPOPCNTDQ = 0x2000,
-    CROARING_UNINITIALIZED = 0x8000
+    CROARING_SVE = 0x4000,
+    CROARING_UNINITIALIZED = 0x8000,
+    CROARING_SVE2 = 0x10000
 };
 
 #if CROARING_COMPILER_SUPPORTS_AVX512
@@ -13812,7 +13898,41 @@ static inline uint32_t dynamic_croaring_detect_supported_architectures(void) {
 
 #endif  // end SIMD extension detection code
 
-#if CROARING_IS_X64  // x64
+#if CROARING_IS_ARM64
+
+static inline uint32_t dynamic_croaring_detect_supported_architectures(void) {
+    // NEON is mandatory on AArch64.
+    uint32_t host_isa = CROARING_NEON;
+#if defined(__linux__)
+    unsigned long hwcap = getauxval(AT_HWCAP);
+    unsigned long hwcap2 = getauxval(AT_HWCAP2);
+    if (hwcap & HWCAP_SVE) {
+        host_isa |= CROARING_SVE;
+        // We only claim SVE2 when SVE is also present. Before Linux 6.14, the
+        // kernel set HWCAP2_SVE2 on processors implementing SME(2) but not
+        // SVE, because SVE2 instructions are available in streaming mode. Our
+        // SVE2 code runs in non-streaming mode and needs actual SVE.
+        if (hwcap2 & HWCAP2_SVE2) {
+            host_isa |= CROARING_SVE2;
+        }
+    }
+#elif defined(_WIN32)
+    if (IsProcessorFeaturePresent(PF_ARM_SVE_INSTRUCTIONS_AVAILABLE)) {
+        host_isa |= CROARING_SVE;
+        // As on Linux, require SVE before claiming SVE2.
+        if (IsProcessorFeaturePresent(PF_ARM_SVE2_INSTRUCTIONS_AVAILABLE)) {
+            host_isa |= CROARING_SVE2;
+        }
+    }
+#endif
+    // On other systems (e.g., macOS, where Apple Silicon has no SVE), we only
+    // report NEON.
+    return host_isa;
+}
+
+#endif  // CROARING_IS_ARM64
+
+#if CROARING_IS_X64 || CROARING_IS_ARM64
 
 #if CROARING_ATOMIC_IMPL == CROARING_ATOMIC_IMPL_CPP
 static inline uint32_t croaring_detect_supported_architectures(void) {
@@ -13840,6 +13960,10 @@ static inline uint32_t croaring_detect_supported_architectures(void) {
     return buffer;
 }
 #endif  // CROARING_C_ATOMIC
+
+#endif  // CROARING_IS_X64 || CROARING_IS_ARM64
+
+#if CROARING_IS_X64  // x64
 
 #ifdef ROARING_DISABLE_AVX
 
@@ -13895,6 +14019,24 @@ int croaring_hardware_support(void) {
 #endif
 
 #endif  // CROARING_IS_X64 // x64
+
+#if CROARING_IS_ARM64
+
+int croaring_hardware_support(void) {
+    static
+#if CROARING_ATOMIC_IMPL == CROARING_ATOMIC_IMPL_C
+        _Atomic
+#endif
+        int support = 0xFFFFFFF;
+    if (support == 0xFFFFFFF) {
+        uint32_t isa = croaring_detect_supported_architectures();
+        support = ((isa & CROARING_SVE) ? ROARING_SUPPORTS_SVE : 0) |
+                  ((isa & CROARING_SVE2) ? ROARING_SUPPORTS_SVE2 : 0);
+    }
+    return support;
+}
+
+#endif  // CROARING_IS_ARM64
 #ifdef __cplusplus
 }
 }
@@ -14668,6 +14810,10 @@ void roaring_bitmap_remove_many(roaring_bitmap_t *r, size_t n_args,
         uint16_t key = (uint16_t)(vals[i] >> 16);
         if (pos < 0 || key != r->high_low_container.keys[pos]) {
             pos = ra_get_index(&r->high_low_container, key);
+            if (pos >= 0) {
+                ra_unshare_container_at_index(&r->high_low_container,
+                                              (uint16_t)pos);
+            }
         }
         if (pos >= 0) {
             uint8_t new_typecode;
@@ -14747,7 +14893,8 @@ roaring_bitmap_t *roaring_bitmap_or_many(size_t number,
     roaring_bitmap_t *answer =
         roaring_bitmap_lazy_or(x[0], x[1], CROARING_LAZY_OR_BITSET_CONVERSION);
     for (size_t i = 2; i < number; i++) {
-        roaring_bitmap_lazy_or_inplace(answer, x[i], CROARING_LAZY_OR_BITSET_CONVERSION);
+        roaring_bitmap_lazy_or_inplace(answer, x[i],
+                                       CROARING_LAZY_OR_BITSET_CONVERSION);
     }
     roaring_bitmap_repair_after_lazy(answer);
     return answer;
@@ -15636,8 +15783,9 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf) {
         memcpy(&card, bufaschar + 1, sizeof(uint32_t));
         card = croaring_letoh32(card);
 
-        const uint32_t *elems =
-            (const uint32_t *)(bufaschar + 1 + sizeof(uint32_t));
+        // The elements may not be aligned: keep a byte pointer and read
+        // with memcpy rather than forming a misaligned uint32_t pointer.
+        const char *elems = bufaschar + 1 + sizeof(uint32_t);
 
         roaring_bitmap_t *bitmap = roaring_bitmap_create();
         if (bitmap == NULL) {
@@ -15645,9 +15793,8 @@ roaring_bitmap_t *roaring_bitmap_deserialize(const void *buf) {
         }
         roaring_bulk_context_t context = CROARING_ZERO_INITIALIZER;
         for (uint32_t i = 0; i < card; i++) {
-            // elems may not be aligned, read with memcpy
             uint32_t elem;
-            memcpy(&elem, elems + i, sizeof(elem));
+            memcpy(&elem, elems + i * sizeof(uint32_t), sizeof(elem));
             elem = croaring_letoh32(elem);
             roaring_bitmap_add_bulk(bitmap, &context, elem);
         }
@@ -15681,8 +15828,9 @@ roaring_bitmap_t *roaring_bitmap_deserialize_safe(const void *buf,
             return NULL;
         }
 
-        const uint32_t *elems =
-            (const uint32_t *)(bufaschar + 1 + sizeof(uint32_t));
+        // The elements may not be aligned: keep a byte pointer and read
+        // with memcpy rather than forming a misaligned uint32_t pointer.
+        const char *elems = bufaschar + 1 + sizeof(uint32_t);
 
         roaring_bitmap_t *bitmap = roaring_bitmap_create();
         if (bitmap == NULL) {
@@ -15690,9 +15838,8 @@ roaring_bitmap_t *roaring_bitmap_deserialize_safe(const void *buf,
         }
         roaring_bulk_context_t context = CROARING_ZERO_INITIALIZER;
         for (uint32_t i = 0; i < card; i++) {
-            // elems may not be aligned, read with memcpy
             uint32_t elem;
-            memcpy((char *)&elem, (char *)(elems + i), sizeof(elem));
+            memcpy(&elem, elems + i * sizeof(uint32_t), sizeof(elem));
             elem = croaring_letoh32(elem);
             roaring_bitmap_add_bulk(bitmap, &context, elem);
         }
@@ -17805,6 +17952,24 @@ static inline leaf_t replace_container(roaring64_bitmap_t *r, leaf_t *leaf,
 }
 
 /**
+ * Grows the array of container pointers (and the parallel typecode array) to
+ * `new_capacity` entries. Does nothing if `new_capacity` is not larger than
+ * the current capacity.
+ */
+static void grow_containers_to(roaring64_bitmap_t *r, uint64_t new_capacity) {
+    if (new_capacity <= r->capacity) {
+        return;
+    }
+    uint64_t increase = new_capacity - r->capacity;
+    r->containers = (container_t **)roaring_realloc(
+        r->containers, new_capacity * sizeof(container_t *));
+    memset(r->containers + r->capacity, 0, increase * sizeof(container_t *));
+    r->typecodes = (uint8_t *)roaring_realloc(r->typecodes,
+                                              new_capacity * sizeof(uint8_t));
+    r->capacity = new_capacity;
+}
+
+/**
  * Extends the array of container pointers (and the parallel typecode array).
  */
 static void extend_containers(roaring64_bitmap_t *r) {
@@ -17820,13 +17985,17 @@ static void extend_containers(roaring64_bitmap_t *r) {
     } else {
         new_capacity = 5 * r->capacity / 4;
     }
-    uint64_t increase = new_capacity - r->capacity;
-    r->containers = (container_t **)roaring_realloc(
-        r->containers, new_capacity * sizeof(container_t *));
-    memset(r->containers + r->capacity, 0, increase * sizeof(container_t *));
-    r->typecodes = (uint8_t *)roaring_realloc(r->typecodes,
-                                              new_capacity * sizeof(uint8_t));
-    r->capacity = new_capacity;
+    grow_containers_to(r, new_capacity);
+}
+
+/**
+ * Reserves room for `num_containers` containers in the ART and in the
+ * container array, so that a result of known maximum size can be built
+ * without repeatedly reallocating both. Intended for freshly created bitmaps.
+ */
+static void reserve_containers(roaring64_bitmap_t *r, uint64_t num_containers) {
+    art_reserve(&r->art, num_containers);
+    grow_containers_to(r, num_containers);
 }
 
 static uint64_t next_free_container_idx(const roaring64_bitmap_t *r) {
@@ -18021,6 +18190,7 @@ void roaring64_bitmap_free(roaring64_bitmap_t *r) {
 
 roaring64_bitmap_t *roaring64_bitmap_copy(const roaring64_bitmap_t *r) {
     roaring64_bitmap_t *result = roaring64_bitmap_create();
+    reserve_containers(result, art_num_leaves(&r->art));
 
     art_iterator_t it = art_init_iterator((art_t *)&r->art, /*first=*/true);
     while (it.value != NULL) {
@@ -18572,9 +18742,12 @@ void roaring64_bitmap_remove_bulk(roaring64_bitmap_t *r,
         // We're not positioned anywhere yet or the high bits of the key
         // differ.
         leaf_t *leaf = (leaf_t *)art_find(art, high48);
-        containerptr_roaring64_bitmap_remove(r, high48, low16, leaf);
-        context->leaf = leaf;
-        memcpy(context->high_bytes, high48, ART_KEY_BYTES);
+        if (containerptr_roaring64_bitmap_remove(r, high48, low16, leaf)) {
+            context->leaf = NULL;
+        } else {
+            context->leaf = leaf;
+            memcpy(context->high_bytes, high48, ART_KEY_BYTES);
+        }
     }
 }
 
@@ -19172,6 +19345,10 @@ double roaring64_bitmap_jaccard_index(const roaring64_bitmap_t *r1,
 roaring64_bitmap_t *roaring64_bitmap_or(const roaring64_bitmap_t *r1,
                                         const roaring64_bitmap_t *r2) {
     roaring64_bitmap_t *result = roaring64_bitmap_create();
+    // The result has at least max(n1, n2) containers and at most n1 + n2, so
+    // reserving the upper bound is at most a 2x overestimate.
+    reserve_containers(result,
+                       art_num_leaves(&r1->art) + art_num_leaves(&r2->art));
 
     art_iterator_t it1 = art_init_iterator((art_t *)&r1->art, /*first=*/true);
     art_iterator_t it2 = art_init_iterator((art_t *)&r2->art, /*first=*/true);
@@ -20247,29 +20424,31 @@ size_t roaring64_bitmap_frozen_size_in_bytes(const roaring64_bitmap_t *r) {
     return size;
 }
 
+// The output cursors are byte pointers rather than typed pointers: the output
+// buffer itself need not be aligned (only `roaring64_bitmap_frozen_view`
+// requires alignment), and forming a misaligned typed pointer is undefined
+// behavior even if it is only ever passed to memcpy.
 static inline void container_frozen_serialize(const container_t *container,
-                                              uint8_t typecode,
-                                              uint64_t **bitsets,
-                                              uint16_t **arrays,
-                                              rle16_t **runs) {
+                                              uint8_t typecode, char **bitsets,
+                                              char **arrays, char **runs) {
     size_t size = container_get_frozen_size(container, typecode);
     switch (typecode) {
         case BITSET_CONTAINER_TYPE: {
             bitset_container_t *bitset = (bitset_container_t *)container;
             memcpy(*bitsets, bitset->words, size);
-            *bitsets += BITSET_CONTAINER_SIZE_IN_WORDS;
+            *bitsets += size;
             break;
         }
         case ARRAY_CONTAINER_TYPE: {
             array_container_t *array = (array_container_t *)container;
             memcpy(*arrays, array->array, size);
-            *arrays += container_get_element_count(container, typecode);
+            *arrays += size;
             break;
         }
         case RUN_CONTAINER_TYPE: {
             run_container_t *run = (run_container_t *)container;
             memcpy(*runs, run->runs, size);
-            *runs += container_get_element_count(container, typecode);
+            *runs += size;
             break;
         }
         default: {
@@ -20339,13 +20518,13 @@ size_t roaring64_bitmap_frozen_serialize(const roaring64_bitmap_t *r,
     // Runs before arrays as run elements are larger than array elements and
     // smaller than bitset elements.
     buf = pad_align(buf, initial_buf, CROARING_BITSET_ALIGNMENT);
-    uint64_t *bitsets = (uint64_t *)buf;
+    char *bitsets = buf;
     buf += total_sizes[BITSET_CONTAINER_TYPE];
     buf = pad_align(buf, initial_buf, alignof(rle16_t));
-    rle16_t *runs = (rle16_t *)buf;
+    char *runs = buf;
     buf += total_sizes[RUN_CONTAINER_TYPE];
     buf = pad_align(buf, initial_buf, alignof(uint16_t));
-    uint16_t *arrays = (uint16_t *)buf;
+    char *arrays = buf;
     buf += total_sizes[ARRAY_CONTAINER_TYPE];
 
     it = art_init_iterator((art_t *)&r->art, /*first=*/true);
