@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2026-09-17T17:49:11Z
+// Created by amalgamation.sh on 2026-10-04T13:26:56Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -540,6 +540,14 @@ class Roaring {
      */
     bool removeRunCompression() noexcept {
         return api::roaring_bitmap_remove_run_compression(&roaring);
+    }
+
+    /**
+     * Validate the structure of a bitmap read from an untrusted source.
+     * Returns false and sets *reason (when not null) if it is invalid.
+     */
+    bool internal_validate(const char **reason = nullptr) const noexcept {
+        return api::roaring_bitmap_internal_validate(&roaring, reason);
     }
 
     /**
@@ -2881,6 +2889,19 @@ class Roaring64Map {
             [](bool previous, std::pair<const uint32_t, Roaring> &map_entry) {
                 return map_entry.second.removeRunCompression() && previous;
             });
+    }
+
+    /**
+     * Validate the structure of every inner bitmap.
+     * Returns false and sets *reason (when not null) on the first invalid one.
+     */
+    bool internal_validate(const char **reason = nullptr) const {
+        for (const auto &map_entry : roarings) {
+            if (!map_entry.second.internal_validate(reason)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
