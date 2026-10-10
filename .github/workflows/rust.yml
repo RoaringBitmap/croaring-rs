@@ -34,7 +34,7 @@ jobs:
         cache-workspace-crates: true
 
     - name: Install cargo tools
-      uses: taiki-e/install-action@v2
+      uses: taiki-e/install-action@v2.85.4
       with:
         tool: cargo-hack,cargo-minimal-versions${{ matrix.os == 'ubuntu-latest' && ',cargo-fuzz' || '' }}
       if: matrix.rust == 'nightly' && matrix.cargo_features == 'default'
