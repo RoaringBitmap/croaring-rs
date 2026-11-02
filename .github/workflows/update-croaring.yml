@@ -40,6 +40,16 @@ jobs:
       with:
         tool: bindgen-cli
 
+    # bindgen loads whichever libclang it finds first, which can be older than the clang resource
+    # headers of the runner's default clang and then fails to parse the x86 intrinsics.
+    - name: Install libclang matching the runner's default clang
+      if: steps.check.outputs.version
+      run: |
+        major=$(clang -dumpversion | cut -d. -f1)
+        sudo apt-get update
+        sudo apt-get install -y "libclang-$major-dev"
+        echo "LIBCLANG_PATH=/usr/lib/llvm-$major/lib" >> "$GITHUB_ENV"
+
     - name: Update CRoaring
       if: steps.check.outputs.version
       run: make update_croaring version=${{ steps.check.outputs.version }}
