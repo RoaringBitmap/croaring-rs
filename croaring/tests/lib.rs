@@ -505,3 +505,58 @@ proptest! {
         assert!(original.iter().eq(deserialized.iter()));
     }
 }
+
+fn expected_words(bitmap: &Bitmap, first_word: u32, n_words: usize) -> Vec<u64> {
+    let mut expected = vec![0u64; n_words];
+    let start = u64::from(first_word) * 64;
+    let end = start + n_words as u64 * 64;
+    for value in bitmap.iter() {
+        let value = u64::from(value);
+        if value >= start && value < end {
+            let bit = value - start;
+            expected[(bit / 64) as usize] |= 1 << (bit % 64);
+        }
+    }
+    expected
+}
+
+#[test]
+fn word_range_to_bitset_matches_values() {
+    init();
+    let bitmap = expected_serialized_bitmap();
+    for (first_word, n_words) in [(0, 0), (0, 16), (1000, 300), (2040, 8), (1 << 14, 3000)] {
+        let expected = expected_words(&bitmap, first_word, n_words);
+
+        let mut words = vec![u64::MAX; n_words];
+        bitmap.word_range_to_bitset(first_word, &mut words);
+        assert_eq!(words, expected);
+
+        let mut uninit = Vec::<u64>::with_capacity(n_words);
+        let initialized = bitmap
+            .word_range_to_bitset_uninit(first_word, &mut uninit.spare_capacity_mut()[..n_words]);
+        assert_eq!(initialized, expected);
+    }
+}
+
+#[test]
+fn word_range_to_bitset_end_of_range() {
+    init();
+    let bitmap = Bitmap::of(&[0, u32::MAX]);
+    let mut words = [0u64; 2];
+    bitmap.word_range_to_bitset((1 << 26) - 2, &mut words);
+    assert_eq!(words, [0, 1 << 63]);
+}
+
+#[test]
+#[should_panic(expected = "exceeds the 32-bit value range")]
+fn word_range_to_bitset_out_of_range() {
+    init();
+    let mut words = [0u64; 2];
+    Bitmap::new().word_range_to_bitset((1 << 26) - 1, &mut words);
+}
+
+#[test]
+fn word_range_to_bitset_empty_ignores_first_word() {
+    init();
+    Bitmap::of(&[1]).word_range_to_bitset(u32::MAX, &mut []);
+}
