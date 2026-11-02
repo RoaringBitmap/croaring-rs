@@ -107,7 +107,8 @@ pub trait ViewDeserializer: crate::sealed::Sealed {
     ///
     /// # Safety
     /// * `data` must be the result of serializing a roaring bitmap in this format.
-    /// * Its beginning must be aligned properly for this format.
+    /// * If the format requires alignment (such as [`Frozen`]), its beginning must be aligned
+    ///   accordingly. [`Portable`] does not require alignment.
     /// * data.len() must be equal exactly to the size of the serialized bitmap.
     ///
     /// See [`BitmapView::deserialize`] for examples.
@@ -173,7 +174,8 @@ impl ViewDeserializer for Portable {
     /// * `data` must be the result of serializing a roaring bitmap in portable mode
     ///   (following `https://github.com/RoaringBitmap/RoaringFormatSpec`), for example, with
     ///   [`Bitmap::serialize`]
-    /// * Using this function (or the returned bitmap in any way) may execute unaligned memory accesses
+    /// * `data` does not need to be aligned
+    /// * `data` must remain valid and unmodified while the returned view is in use
     ///
     #[doc(alias = "roaring_bitmap_portable_deserialize_frozen")]
     unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_> {
