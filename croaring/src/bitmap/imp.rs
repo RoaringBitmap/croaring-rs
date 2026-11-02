@@ -1637,6 +1637,99 @@ impl Bitmap {
         success.then_some(bitset)
     }
 
+    /// Writes a range of the bitmap's values into `words` as a bitset.
+    ///
+    /// Value `64 * (first_word + k) + i`, if present, sets bit `i` of `words[k]`. Every word in
+    /// `words` is overwritten, so it does not need to be zeroed first. The cost is proportional
+    /// to `words.len()` plus the number of values and runs in the range, not to the size of the
+    /// bitmap.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `words` is not empty and `first_word + words.len()` is greater than
+    /// 2<sup>26</sup> (that is, 2<sup>32</sup> / 64), as values outside the 32-bit range cannot
+    /// be represented.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap = Bitmap::of(&[1024, 1030, 2047]);
+    /// let mut words = [0; 16];
+    /// bitmap.word_range_to_bitset(16, &mut words);
+    /// assert_eq!(words[0], 1 | (1 << 6));
+    /// assert_eq!(words[15], 1 << 63);
+    /// assert_eq!(words[1..15], [0; 14]);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_bitmap_word_range_to_bitset")]
+    pub fn word_range_to_bitset(&self, first_word: u32, words: &mut [u64]) {
+        let n_words = Self::checked_word_range(first_word, words.len());
+        unsafe {
+            ffi::roaring_bitmap_word_range_to_bitset(
+                &self.bitmap,
+                first_word,
+                n_words,
+                words.as_mut_ptr(),
+            );
+        }
+    }
+
+    /// Writes a range of the bitmap's values into uninitialized `words` as a bitset.
+    ///
+    /// This is the same as [`Bitmap::word_range_to_bitset`], but does not require `words` to be
+    /// initialized. Returns `words`, now known to be initialized.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `words` is not empty and `first_word + words.len()` is greater than
+    /// 2<sup>26</sup> (that is, 2<sup>32</sup> / 64).
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::Bitmap;
+    ///
+    /// let bitmap = Bitmap::of(&[1024, 1030, 2047]);
+    /// let mut words: Vec<u64> = Vec::with_capacity(16);
+    /// let initialized = bitmap.word_range_to_bitset_uninit(16, &mut words.spare_capacity_mut()[..16]);
+    /// let len = initialized.len();
+    /// // SAFETY: the first `len` words were initialized by `word_range_to_bitset_uninit`
+    /// unsafe { words.set_len(len) };
+    /// assert_eq!(words[0], 1 | (1 << 6));
+    /// assert_eq!(words[15], 1 << 63);
+    /// ```
+    #[inline]
+    #[doc(alias = "roaring_bitmap_word_range_to_bitset")]
+    pub fn word_range_to_bitset_uninit<'a>(
+        &self,
+        first_word: u32,
+        words: &'a mut [mem::MaybeUninit<u64>],
+    ) -> &'a mut [u64] {
+        let n_words = Self::checked_word_range(first_word, words.len());
+        unsafe {
+            ffi::roaring_bitmap_word_range_to_bitset(
+                &self.bitmap,
+                first_word,
+                n_words,
+                words.as_mut_ptr().cast::<u64>(),
+            );
+            // SAFETY: the C function writes all `n_words` words
+            words.assume_init_mut()
+        }
+    }
+
+    fn checked_word_range(first_word: u32, len: usize) -> u32 {
+        const MAX_WORDS: u64 = 1 << 26;
+        let end = u64::from(first_word).saturating_add(len as u64);
+        assert!(
+            len == 0 || end <= MAX_WORDS,
+            "word range {first_word}..{end} exceeds the 32-bit value range",
+        );
+        len as u32
+    }
+
     /// Ensure the bitmap is internally valid
     ///
     /// This is useful for development, but is not needed for normal use:
