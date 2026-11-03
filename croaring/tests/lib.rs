@@ -569,6 +569,7 @@ fn full_bitmap() -> Bitmap {
 
 #[test]
 fn flip_unbounded_end_includes_max() {
+    init();
     let flipped = Bitmap::new().flip(..);
     assert_eq!(flipped.cardinality(), FULL_CARDINALITY);
     assert!(flipped.contains(u32::MAX));
@@ -580,6 +581,7 @@ fn flip_unbounded_end_includes_max() {
 
 #[test]
 fn flip_inplace_unbounded_end_includes_max() {
+    init();
     let mut bitmap = Bitmap::new();
     bitmap.flip_inplace(..);
     assert_eq!(bitmap.cardinality(), FULL_CARDINALITY);
@@ -592,6 +594,7 @@ fn flip_inplace_unbounded_end_includes_max() {
 
 #[test]
 fn range_cardinality_unbounded_end_includes_max() {
+    init();
     assert_eq!(full_bitmap().range_cardinality(..), FULL_CARDINALITY);
     assert_eq!(full_bitmap().range_cardinality(1..), FULL_CARDINALITY - 1);
 
@@ -602,6 +605,7 @@ fn range_cardinality_unbounded_end_includes_max() {
 
 #[test]
 fn contains_range_unbounded_end_includes_max() {
+    init();
     assert!(full_bitmap().contains_range(..));
     assert!(full_bitmap().contains_range(5..));
 
@@ -614,6 +618,7 @@ fn contains_range_unbounded_end_includes_max() {
 
 #[test]
 fn intersect_with_range_unbounded_end_includes_max() {
+    init();
     let bitmap = Bitmap::of(&[u32::MAX]);
     assert!(bitmap.intersect_with_range(..));
     assert!(bitmap.intersect_with_range(u32::MAX..));
