@@ -658,3 +658,34 @@ fn bitset_iter_size_hint_after_trailing_unset_bits() {
         assert_eq!(iter.size_hint(), (0, Some(0)));
     }
 }
+
+#[test]
+fn bitset_self_comparison_when_empty() {
+    init();
+    let mut allocated_but_clear = croaring::Bitset::new();
+    allocated_but_clear.resize_words(2, false);
+
+    for bitset in [croaring::Bitset::new(), allocated_but_clear] {
+        assert!(bitset.is_empty());
+        assert!(bitset.is_disjoint(&bitset));
+        assert!(!bitset.has_intersect(&bitset));
+        assert!(bitset.is_superset(&bitset));
+        assert_eq!(bitset.intersection_count(&bitset), 0);
+        assert_eq!(bitset.union_count(&bitset), 0);
+        assert_eq!(bitset.difference_count(&bitset), 0);
+        assert_eq!(bitset.symmetric_difference_count(&bitset), 0);
+    }
+}
+
+#[test]
+fn bitset_self_comparison_when_non_empty() {
+    init();
+    let bitset: croaring::Bitset = [1, 2, 100].into_iter().collect();
+    assert!(!bitset.is_disjoint(&bitset));
+    assert!(bitset.has_intersect(&bitset));
+    assert!(bitset.is_superset(&bitset));
+    assert_eq!(bitset.intersection_count(&bitset), 3);
+    assert_eq!(bitset.union_count(&bitset), 3);
+    assert_eq!(bitset.difference_count(&bitset), 0);
+    assert_eq!(bitset.symmetric_difference_count(&bitset), 0);
+}
