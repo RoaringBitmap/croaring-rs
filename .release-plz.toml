@@ -56,3 +56,4 @@ body = """
 [[package]]
 name = "croaring-sys"
 git_release_enable = false
+changelog_update = false
