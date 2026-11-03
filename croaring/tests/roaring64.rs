@@ -131,3 +131,49 @@ fn copy_from_view() {
     assert!(!view.contains(10));
     assert!(mutable_bitmap.contains(10));
 }
+
+#[test]
+fn from_range_single_max_value() {
+    init();
+    let bitmap = Bitmap64::from_range(u64::MAX..=u64::MAX);
+    assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![u64::MAX]);
+
+    let bitmap = Bitmap64::from_range(u64::MAX..);
+    assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![u64::MAX]);
+
+    let bitmap = Bitmap64::from_range_with_step(u64::MAX..=u64::MAX, 7);
+    assert_eq!(bitmap.iter().collect::<Vec<_>>(), vec![u64::MAX]);
+}
+
+#[test]
+fn from_range_exclusive_max_start_is_empty() {
+    init();
+    assert!(Bitmap64::from_range(u64::MAX..u64::MAX).is_empty());
+    assert!(Bitmap64::from_range_with_step(u64::MAX..u64::MAX, 3).is_empty());
+}
+
+#[test]
+fn from_range_with_zero_step_is_empty() {
+    init();
+    assert!(Bitmap64::from_range_with_step(0..10, 0).is_empty());
+    assert!(Bitmap64::from_range_with_step(0..=u64::MAX, 0).is_empty());
+    assert!(Bitmap64::from_range_with_step(5.., 0).is_empty());
+    assert!(Bitmap64::from_range_with_step(u64::MAX..=u64::MAX, 0).is_empty());
+}
+
+#[test]
+fn from_range_with_step_max_alignment() {
+    init();
+    let start = u64::MAX - 9;
+    let bitmap = Bitmap64::from_range_with_step(start..=u64::MAX, 3);
+    assert_eq!(
+        bitmap.iter().collect::<Vec<_>>(),
+        vec![start, start + 3, start + 6, start + 9]
+    );
+
+    let bitmap = Bitmap64::from_range_with_step(start..=u64::MAX, 4);
+    assert_eq!(
+        bitmap.iter().collect::<Vec<_>>(),
+        vec![start, start + 4, start + 8]
+    );
+}
