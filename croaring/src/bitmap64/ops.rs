@@ -215,7 +215,7 @@ impl_binop! {
     impl BitOr {
         type Output = Bitmap64;
 
-        /// Syntatic sugar for `.or`
+        /// Syntactic sugar for `.or`
         ///
         /// # Examples
         ///
@@ -241,7 +241,7 @@ impl_binop! {
     impl BitXor {
         type Output = Bitmap64;
 
-        /// Syntatic sugar for `.xor`
+        /// Syntactic sugar for `.xor`
         ///
         /// # Examples
         ///
@@ -268,7 +268,7 @@ impl_binop! {
     impl Sub {
         type Output = Bitmap64;
 
-        /// Syntatic sugar for `.andnot`
+        /// Syntactic sugar for `.andnot`
         ///
         /// # Examples
         ///
@@ -326,7 +326,7 @@ impl_binop_assign! {
 
 impl_binop_assign! {
     impl BitOrAssign {
-        /// Syntatic sugar for `.or_inplace`
+        /// Syntactic sugar for `.or_inplace`
         ///
         /// # Examples
         ///
@@ -350,7 +350,7 @@ impl_binop_assign! {
 
 impl_binop_assign! {
     impl BitXorAssign {
-        /// Syntatic sugar for `.xor_inplace`
+        /// Syntactic sugar for `.xor_inplace`
         ///
         /// # Examples
         ///
@@ -375,7 +375,7 @@ impl_binop_assign! {
 
 impl_binop_assign! {
     impl SubAssign {
-        /// Syntatic sugar for `.andnot_inplace`
+        /// Syntactic sugar for `.andnot_inplace`
         ///
         /// # Examples
         ///

@@ -1020,6 +1020,7 @@ impl Bitmap {
     ///
     /// let bitmap3 = Bitmap::from_range((Bound::Excluded(2), Bound::Excluded(6)));
     /// assert_eq!(bitmap3.iter().collect::<Vec<_>>(), [3, 4, 5]);
+    /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_from_range")]
     #[must_use]
@@ -1332,6 +1333,7 @@ impl Bitmap {
     /// let bitmap2 = Bitmap::of(&[25]);
     ///
     /// assert_eq!(bitmap1.or_cardinality(&bitmap2), 2);
+    /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_or_cardinality")]
     #[must_use]
@@ -1467,7 +1469,7 @@ impl Bitmap {
     /// If the roaring bitmap doesn't contain x, this function will return None.
     /// The difference with the [rank][Self::rank] function is that this function
     /// will return None when x is not the element of roaring bitmap, but the rank
-    /// function will return the the number of items less than x, and would require
+    /// function will return the number of items less than x, and would require
     /// a call to [contains][Self::contains] to check if x is in the roaring bitmap.
     ///
     /// # Examples
