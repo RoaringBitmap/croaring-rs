@@ -28,9 +28,13 @@ impl<'a> Iterator for BitsetIterator<'a> {
     #[doc(alias = "bitset_next_set_bit")]
     fn next(&mut self) -> Option<Self::Item> {
         let has_value = unsafe { ffi::bitset_next_set_bit(&self.bitset.bitset, &mut self.current) };
+        if !has_value {
+            self.current = self.bitset.size_in_bits();
+            return None;
+        }
         let value = self.current;
         self.current += 1;
-        has_value.then_some(value)
+        Some(value)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
