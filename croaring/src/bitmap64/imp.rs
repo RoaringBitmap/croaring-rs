@@ -1008,8 +1008,11 @@ impl Bitmap64 {
 
     /// Iterate over the values in the bitmap in sorted order
     ///
-    /// If `f` returns `Break`, iteration will stop and the value will be returned,
-    /// Otherwise, iteration continues. If `f` never returns break, `None` is returned after all values are visited.
+    /// If `f` returns [`ControlFlow::Break`](core::ops::ControlFlow::Break), iteration stops and that `Break` is returned.
+    /// Otherwise, iteration continues, and `ControlFlow::Continue(())` is returned after all
+    /// values have been visited.
+    ///
+    /// If `f` panics, the panic is propagated to the caller.
     ///
     /// # Examples
     ///

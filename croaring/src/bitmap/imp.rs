@@ -267,8 +267,8 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_remove(&mut self.bitmap, element) }
     }
 
-    /// Remove the integer element from the bitmap. Returns true if a the value
-    /// was removed, false if the value was present in the bitmap.
+    /// Remove the integer element from the bitmap. Returns true if the value
+    /// was removed, false if the value was not in the bitmap.
     ///
     /// # Examples
     ///
@@ -290,8 +290,8 @@ impl Bitmap {
     ///
     /// This should be faster than calling `remove` multiple times.
     ///
-    /// In order to exploit this optimization, the caller should attempt to keep values with the same high 48 bits of
-    /// the value as consecutive elements in `vals`
+    /// In order to exploit this optimization, the caller should attempt to keep values with the same high 16 bits of
+    /// the value as consecutive elements in `elements`
     ///
     /// # Examples
     ///
@@ -531,8 +531,12 @@ impl Bitmap {
         unsafe { Self::take_heap(ffi::roaring_bitmap_or_many(bms.len(), bms.as_mut_ptr())) }
     }
 
-    /// Compute the union of 'number' bitmaps using a heap. This can
-    /// sometimes be faster than Bitmap::fast_or.
+    /// Compute the union of all the passed bitmaps using a heap. This can
+    /// sometimes be faster than [`Bitmap::fast_or`].
+    ///
+    /// # Panics
+    ///
+    /// Panics if more than `u32::MAX` bitmaps are passed.
     ///
     /// # Examples
     ///
@@ -757,8 +761,11 @@ impl Bitmap {
 
     /// Iterate over the values in the bitmap in sorted order
     ///
-    /// If `f` returns `Break`, iteration will stop and the value will be returned,
-    /// Otherwise, iteration continues. If `f` never returns break, `None` is returned after all values are visited.
+    /// If `f` returns [`ControlFlow::Break`], iteration stops and that `Break` is returned.
+    /// Otherwise, iteration continues, and `ControlFlow::Continue(())` is returned after all
+    /// values have been visited.
+    ///
+    /// If `f` panics, the panic is propagated to the caller.
     ///
     /// # Examples
     ///
