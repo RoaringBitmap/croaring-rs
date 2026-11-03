@@ -54,6 +54,11 @@ jobs:
     - name: Test
       run: cargo +${{ matrix.rust }} test --no-default-features --features "${{ matrix.cargo_features }}" --all-targets
 
+    - name: Doc tests
+      # `--all-targets` does not run doctests. Limited to croaring, since the doc comments copied
+      # from the C headers into croaring-sys are not valid doctests.
+      run: cargo +${{ matrix.rust }} test --doc -p croaring --no-default-features --features "${{ matrix.cargo_features }}"
+
     - name: Minimal versions
       # cargo-minimal-versions won't detach the path deps if we're using dev dependencies
       # so we won't catch the case where we compile but fail tests because of path dependencies
