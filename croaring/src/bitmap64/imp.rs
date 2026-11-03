@@ -95,6 +95,9 @@ impl Bitmap64 {
     #[doc(alias = "roaring64_bitmap_from_range")]
     #[must_use]
     pub fn from_range_with_step<R: RangeBounds<u64>>(range: R, step: u64) -> Self {
+        if step == 0 {
+            return Self::new();
+        }
         // This can't use `range_to_exclusive` because when the start is excluded, we want
         // to start at the next step, not one more
         let start = match range.start_bound() {
@@ -121,18 +124,18 @@ impl Bitmap64 {
             None => (u64::MAX, (u64::MAX - start) % step == 0),
         };
 
-        unsafe {
+        let mut result = unsafe {
             let result = ffi::roaring64_bitmap_from_range(start, end, step);
             if result.is_null() {
                 Self::new()
             } else {
-                let mut result = Self::take_heap(result);
-                if add_max {
-                    result.add(u64::MAX);
-                }
-                result
+                Self::take_heap(result)
             }
+        };
+        if add_max {
+            result.add(u64::MAX);
         }
+        result
     }
 
     /// Add a value to the bitmap
