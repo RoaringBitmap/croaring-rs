@@ -1,0 +1,58 @@
+[workspace]
+repo_url = "https://github.com/RoaringBitmap/croaring-rs"
+git_release_body = """
+{{ changelog }}
+{% if remote.contributors %}
+### Contributors
+{% for contributor in remote.contributors %}
+* @{{ contributor.username }}
+{% endfor %}
+{% endif %}
+"""
+
+[changelog]
+commit_parsers = [
+    { message = "^feat", group = "added" },
+    { message = "^changed", group = "changed" },
+    { message = "^deprecated", group = "deprecated" },
+    { message = "^fix", group = "fixed" },
+    { message = "^security", group = "security" },
+    { message = "^ci", skip = true },
+    { message = "^chore.*bindings", skip = true },
+    { message = "^chore.*cargo update", skip = true },
+    { message = "^chore(\\(.*\\))?: release", skip = true },
+    { message = "^.*", group = "other" },
+]
+
+body = """
+
+## [{{ version | trim_start_matches(pat="v") }}]\
+    {%- if release_link -%}\
+        ({{ release_link }})\
+    {% endif %} \
+    - {{ timestamp | date(format="%Y-%m-%d") }}
+{% for group, commits in commits | filter(attribute="merge_commit", value=false) | group_by(attribute="group") %}
+### {{ group | upper_first }}
+    {% for commit in commits %}
+        {%- if commit.scope -%}
+            - *({{commit.scope}})* {% if commit.breaking %}[**breaking**] {% endif %}\
+                {{ commit.message | upper_first }}{{ self::username(commit=commit) }}{{ self::pr(commit=commit) }}\
+                {%- if commit.links %} \
+                    ({% for link in commit.links %}[{{link.text}}]({{link.href}}) {% endfor -%})\
+                {% endif %}
+        {% else -%}
+            - {% if commit.breaking %}[**breaking**] {% endif %}{{ commit.message | upper_first }}{{ self::username(commit=commit) }}{{ self::pr(commit=commit) }}
+        {% endif -%}
+    {% endfor -%}
+{% endfor %}
+{%- macro username(commit) -%}
+    {% if commit.remote.username %} (by @{{ commit.remote.username }}){% endif -%}
+{% endmacro -%}
+{%- macro pr(commit) -%}
+    {% if commit.remote.pr_number %} - #{{ commit.remote.pr_number }}{% endif -%}
+{% endmacro -%}
+"""
+
+[[package]]
+name = "croaring-sys"
+git_release_enable = false
