@@ -183,7 +183,7 @@ fn test_native() {
     let mut buffer = fs::read("tests/data/native_bitmap.bin").unwrap();
     buffer.reserve(32);
     for offset in 0..32 {
-        let bitmap = Bitmap::deserialize::<Native>(&buffer[offset..]);
+        let bitmap = Bitmap::try_deserialize::<Native>(&buffer[offset..]).unwrap();
         let expected = expected_serialized_bitmap();
         assert_eq!(bitmap, expected);
         assert!(bitmap.iter().eq(expected.iter()));
@@ -438,7 +438,7 @@ proptest! {
 
         let buffer = original.serialize::<Portable>();
 
-        let deserialized = Bitmap::deserialize::<Portable>(&buffer);
+        let deserialized = Bitmap::try_deserialize::<Portable>(&buffer).unwrap();
 
         prop_assert_eq!(original , deserialized);
     }
@@ -500,7 +500,7 @@ proptest! {
 
         let original = Bitmap::of(&indices);
         let serialized = original.serialize::<Native>();
-        let deserialized = Bitmap::deserialize::<Native>(&serialized[..]);
+        let deserialized = Bitmap::try_deserialize::<Native>(&serialized[..]).unwrap();
         assert_eq!(&original, &deserialized);
         assert!(original.iter().eq(deserialized.iter()));
     }

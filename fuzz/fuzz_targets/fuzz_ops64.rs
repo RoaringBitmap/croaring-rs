@@ -10,7 +10,7 @@ use std::collections::HashSet;
 mod arbitrary_ops64;
 
 fuzz_target!(|input: FuzzInput| {
-    let mut lhs64 = Bitmap64::deserialize::<Portable>(input.initial_input);
+    let mut lhs64 = Bitmap64::try_deserialize::<Portable>(input.initial_input).unwrap_or_default();
     let mut rhs64 = Bitmap64::new();
     let mut lhs_tree = Treemap::from_iter(lhs64.iter());
     let mut rhs_tree = Treemap::new();

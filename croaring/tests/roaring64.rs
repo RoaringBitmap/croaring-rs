@@ -32,7 +32,7 @@ fn expected_serialized_bitmap() -> Bitmap64 {
 fn test_portable_deserialize() {
     init();
     let buffer = fs::read("tests/data/portable_bitmap64.bin").unwrap();
-    let bitmap = Bitmap64::deserialize::<Portable>(&buffer);
+    let bitmap = Bitmap64::try_deserialize::<Portable>(&buffer).unwrap();
     let expected = expected_serialized_bitmap();
     assert_eq!(bitmap, expected);
     assert!(bitmap.iter().eq(expected.iter()))

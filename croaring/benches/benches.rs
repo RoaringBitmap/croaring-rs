@@ -220,7 +220,7 @@ fn deserialize(c: &mut Criterion) {
             .unwrap();
         group.throughput(Throughput::Elements(size.into()));
         group.bench_with_input(BenchmarkId::from_parameter(size), &size, |b, _| {
-            b.iter(|| Bitmap::deserialize::<Portable>(&serialized_buffer));
+            b.iter(|| Bitmap::try_deserialize::<Portable>(&serialized_buffer));
         });
     }
 }
