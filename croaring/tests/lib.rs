@@ -619,3 +619,42 @@ fn intersect_with_range_unbounded_end_includes_max() {
     assert!(bitmap.intersect_with_range(u32::MAX..));
     assert!(!bitmap.intersect_with_range(..u32::MAX));
 }
+
+#[test]
+fn bitset_iter_size_hint_after_exhaustion() {
+    init();
+    let bitset: croaring::Bitset = [63].into_iter().collect();
+    assert_eq!(bitset.size_in_bits(), 64);
+
+    let mut iter = bitset.iter();
+    assert_eq!(iter.size_hint(), (0, Some(64)));
+    assert_eq!(iter.next(), Some(63));
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+    for _ in 0..3 {
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+    }
+}
+
+#[test]
+fn bitset_iter_size_hint_empty_bitset() {
+    init();
+    let bitset = croaring::Bitset::new();
+    let mut iter = bitset.iter();
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+    assert_eq!(iter.next(), None);
+    assert_eq!(iter.size_hint(), (0, Some(0)));
+}
+
+#[test]
+fn bitset_iter_size_hint_after_trailing_unset_bits() {
+    init();
+    let bitset: croaring::Bitset = [1, 130].into_iter().collect();
+    let mut iter = bitset.iter();
+    assert_eq!(iter.next(), Some(1));
+    assert_eq!(iter.next(), Some(130));
+    for _ in 0..200 {
+        assert_eq!(iter.next(), None);
+        assert_eq!(iter.size_hint(), (0, Some(0)));
+    }
+}
