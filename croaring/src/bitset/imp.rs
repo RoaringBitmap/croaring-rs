@@ -405,7 +405,7 @@ impl Bitset {
     pub fn is_disjoint(&self, other: &Self) -> bool {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
-            return false;
+            return self.is_empty();
         }
         unsafe { ffi::bitsets_disjoint(&self.bitset, &other.bitset) }
     }
@@ -427,7 +427,7 @@ impl Bitset {
     pub fn has_intersect(&self, other: &Self) -> bool {
         // CRoaring uses restrict pointers, so we can't use the same pointer for both
         if ptr::eq(self, other) {
-            return true;
+            return !self.is_empty();
         }
         unsafe { ffi::bitsets_intersect(&self.bitset, &other.bitset) }
     }
