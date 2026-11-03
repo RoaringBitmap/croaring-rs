@@ -1794,7 +1794,7 @@ fn range_to_exclusive<R: RangeBounds<u32>>(range: R) -> (u64, u64) {
     let end = match range.end_bound() {
         Bound::Included(&i) => u64::from(i) + 1,
         Bound::Excluded(&i) => u64::from(i),
-        Bound::Unbounded => u64::MAX,
+        Bound::Unbounded => 1 << 32,
     };
     (start, end)
 }
