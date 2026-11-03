@@ -570,7 +570,7 @@ impl Bitmap64 {
         unsafe { ffi::roaring64_bitmap_contains(self.raw.as_ptr(), value) }
     }
 
-    /// Check whether a range of values of range are ALL present
+    /// Returns `true` if every value in `range` is in the bitmap. An empty range is always contained.
     ///
     /// # Examples
     ///
@@ -701,8 +701,8 @@ impl Bitmap64 {
         has_index.then_some(index)
     }
 
-    /// Negates the bits in the given range
-    /// any integer present in this range and in the bitmap is removed.
+    /// Flips every value in `range`: values present in the bitmap are removed, and values absent
+    /// from it are added. Values outside `range` are unchanged.
     /// Returns result as a new bitmap.
     ///
     /// # Examples
@@ -738,8 +738,8 @@ impl Bitmap64 {
         }
     }
 
-    /// Negates the bits in the given range
-    /// any integer present in this range and in the bitmap is removed.
+    /// Flips every value in `range`: values present in the bitmap are removed, and values absent
+    /// from it are added. Values outside `range` are unchanged.
     /// Stores the result in the current bitmap.
     ///
     /// # Examples
@@ -963,7 +963,7 @@ impl Bitmap64 {
         S::try_serialize_into_aligned(self, dst)
     }
 
-    /// Given a serialized bitmap as slice of bytes in format `S`, returns a `Bitmap64` instance.
+    /// Given a serialized bitmap as slice of bytes in format `D`, returns a `Bitmap64` instance.
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns None.
@@ -990,7 +990,7 @@ impl Bitmap64 {
         D::try_deserialize(buffer)
     }
 
-    /// Given a serialized bitmap as slice of bytes in format `S `, returns a bitmap instance.
+    /// Given a serialized bitmap as slice of bytes in format `D`, returns a bitmap instance.
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns empty bitmap.
@@ -1208,7 +1208,7 @@ impl Bitmap64 {
 
     /// Computes the Jaccard index between two bitmaps
     ///
-    /// This is also known as the Tanimoto distance, or the Jaccard similarity coefficient
+    /// This is also known as the Jaccard similarity coefficient, or the Tanimoto coefficient
     ///
     /// The Jaccard index is NaN if both bitmaps are empty
     ///
