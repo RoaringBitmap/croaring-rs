@@ -1,4 +1,4 @@
-use super::{Bitmap, BitmapView};
+use super::Bitmap;
 use crate::serialization::{Frozen, Native, Portable};
 
 use core::ffi::{c_char, c_void};
@@ -111,9 +111,12 @@ pub trait ViewDeserializer: crate::sealed::Sealed {
     ///   accordingly. [`Portable`] does not require alignment.
     /// * data.len() must be equal exactly to the size of the serialized bitmap.
     ///
-    /// See [`BitmapView::deserialize`] for examples.
+    /// Returns null if the data cannot be used to create a view. This is only checked on a
+    /// best-effort basis.
+    ///
+    /// See [`BitmapView::deserialize`](crate::BitmapView::deserialize) for examples.
     #[doc(hidden)]
-    unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_>;
+    unsafe fn deserialize_view(data: &[u8]) -> *const ffi::roaring_bitmap_t;
 }
 
 impl crate::sealed::Sealed for Portable {}
@@ -178,15 +181,14 @@ impl ViewDeserializer for Portable {
     /// * `data` must remain valid and unmodified while the returned view is in use
     ///
     #[doc(alias = "roaring_bitmap_portable_deserialize_frozen")]
-    unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_> {
+    unsafe fn deserialize_view(data: &[u8]) -> *const ffi::roaring_bitmap_t {
         unsafe {
             // portable_deserialize_size does some amount of checks, and returns zero if data cannot be valid
-            debug_assert_ne!(
-                ffi::roaring_bitmap_portable_deserialize_size(data.as_ptr().cast(), data.len()),
-                0,
-            );
-            let roaring = ffi::roaring_bitmap_portable_deserialize_frozen(data.as_ptr().cast());
-            BitmapView::take_heap(roaring)
+            if ffi::roaring_bitmap_portable_deserialize_size(data.as_ptr().cast(), data.len()) == 0
+            {
+                return core::ptr::null();
+            }
+            ffi::roaring_bitmap_portable_deserialize_frozen(data.as_ptr().cast())
         }
     }
 }
@@ -267,13 +269,13 @@ impl ViewDeserializer for Frozen {
     /// * Its beginning must be aligned by 32 bytes.
     /// * data.len() must be equal exactly to the size of the frozen bitmap.
     ///
-    /// See [`BitmapView::deserialize`] for examples.
-    unsafe fn deserialize_view(data: &[u8]) -> BitmapView<'_> {
+    /// See [`BitmapView::deserialize`](crate::BitmapView::deserialize) for examples.
+    unsafe fn deserialize_view(data: &[u8]) -> *const ffi::roaring_bitmap_t {
         unsafe {
-            assert_eq!(data.as_ptr() as usize % Self::REQUIRED_ALIGNMENT, 0);
-
-            let roaring = ffi::roaring_bitmap_frozen_view(data.as_ptr().cast(), data.len());
-            BitmapView::take_heap(roaring)
+            if !(data.as_ptr() as usize).is_multiple_of(Self::REQUIRED_ALIGNMENT) {
+                return core::ptr::null();
+            }
+            ffi::roaring_bitmap_frozen_view(data.as_ptr().cast(), data.len())
         }
     }
 }
