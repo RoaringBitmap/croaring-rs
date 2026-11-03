@@ -6,6 +6,22 @@ use proptest::prelude::*;
 #[cfg(feature = "alloc")]
 use croaring::{JvmLegacy, Treemap};
 
+const _: () = {
+    const fn assert_send_sync<T: Send + Sync>() {}
+
+    assert_send_sync::<Bitmap>();
+    assert_send_sync::<BitmapView<'static>>();
+    assert_send_sync::<croaring::bitmap::BitmapCursor<'static>>();
+    assert_send_sync::<croaring::bitmap::BitmapIterator<'static>>();
+    assert_send_sync::<croaring::bitmap::LazyBitmap<'static>>();
+    assert_send_sync::<croaring::Bitmap64>();
+    assert_send_sync::<croaring::Bitmap64View<'static>>();
+    assert_send_sync::<croaring::bitmap64::Bitmap64Cursor<'static>>();
+    assert_send_sync::<croaring::bitmap64::Bitmap64Iterator<'static>>();
+    assert_send_sync::<croaring::Bitset>();
+    assert_send_sync::<croaring::bitset::BitsetIterator<'static>>();
+};
+
 fn init() {
     #[cfg(feature = "alloc")]
     {
