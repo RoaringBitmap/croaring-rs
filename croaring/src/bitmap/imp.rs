@@ -516,7 +516,7 @@ impl Bitmap {
     /// assert_eq!(bitmap4.cardinality(), 3);
     /// assert!(bitmap4.contains(15));
     /// assert!(bitmap4.contains(25));
-    /// assert!(bitmap4.contains(25));
+    /// assert!(bitmap4.contains(35));
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_or_many")]
@@ -552,7 +552,7 @@ impl Bitmap {
     /// assert_eq!(bitmap4.cardinality(), 3);
     /// assert!(bitmap4.contains(15));
     /// assert!(bitmap4.contains(25));
-    /// assert!(bitmap4.contains(25));
+    /// assert!(bitmap4.contains(35));
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_or_many_heap")]
@@ -1223,9 +1223,10 @@ impl Bitmap {
     /// let bitmap3: Bitmap = (5..10).collect();
     /// let bitmap4: Bitmap = (9..11).collect();
     ///
-    /// assert!(bitmap2.is_subset(&bitmap1));
-    /// assert!(!bitmap3.is_subset(&bitmap1));
-    /// assert!(!bitmap4.is_subset(&bitmap1));
+    /// assert!(bitmap2.is_strict_subset(&bitmap1));
+    /// assert!(!bitmap1.is_strict_subset(&bitmap1));
+    /// assert!(!bitmap3.is_strict_subset(&bitmap1));
+    /// assert!(!bitmap4.is_strict_subset(&bitmap1));
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_is_strict_subset")]
