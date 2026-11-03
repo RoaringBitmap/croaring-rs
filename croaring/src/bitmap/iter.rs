@@ -719,7 +719,7 @@ impl Bitmap {
     /// assert_eq!(iterator.next(), None);
     /// ```
     #[inline]
-    #[doc(alias = "roaring_init_iterator")]
+    #[doc(alias = "roaring_iterator_init")]
     #[must_use]
     pub fn iter(&self) -> BitmapIterator<'_> {
         BitmapIterator::new(self)

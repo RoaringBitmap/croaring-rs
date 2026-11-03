@@ -144,8 +144,8 @@ impl Drop for Bitmap {
         // > By contract, calling roaring_bitmap_clear() is enough to
         // > release all auxiliary memory used by the structure.
         //
-        // We do not currently expose a way to get a frozen bitmap, but if we ever do,
-        // look at the roaring.hh destructor for implementation
+        // Frozen bitmaps are only reachable through `BitmapView`, which frees its arena in its
+        // own `Drop`. This implementation is only correct for bitmaps which are not frozen.
         unsafe { ffi::roaring_bitmap_clear(&mut self.bitmap) }
     }
 }
