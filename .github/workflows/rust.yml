@@ -59,6 +59,10 @@ jobs:
       # from the C headers into croaring-sys are not valid doctests.
       run: cargo +${{ matrix.rust }} test --doc -p croaring --no-default-features --features "${{ matrix.cargo_features }}"
 
+    - name: Feature combinations
+      run: cargo +${{ matrix.rust }} hack test --feature-powerset --exclude-features default -p croaring
+      if: matrix.rust == 'nightly' && matrix.cargo_features == 'default' && matrix.os == 'ubuntu-latest'
+
     - name: Minimal versions
       # cargo-minimal-versions won't detach the path deps if we're using dev dependencies
       # so we won't catch the case where we compile but fail tests because of path dependencies
