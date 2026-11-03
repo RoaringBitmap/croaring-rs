@@ -560,3 +560,62 @@ fn word_range_to_bitset_empty_ignores_first_word() {
     init();
     Bitmap::of(&[1]).word_range_to_bitset(u32::MAX, &mut []);
 }
+
+const FULL_CARDINALITY: u64 = 1 << 32;
+
+fn full_bitmap() -> Bitmap {
+    Bitmap::from_range(0..=u32::MAX)
+}
+
+#[test]
+fn flip_unbounded_end_includes_max() {
+    let flipped = Bitmap::new().flip(..);
+    assert_eq!(flipped.cardinality(), FULL_CARDINALITY);
+    assert!(flipped.contains(u32::MAX));
+
+    let flipped = Bitmap::new().flip(1..);
+    assert_eq!(flipped.cardinality(), FULL_CARDINALITY - 1);
+    assert!(flipped.contains(u32::MAX));
+}
+
+#[test]
+fn flip_inplace_unbounded_end_includes_max() {
+    let mut bitmap = Bitmap::new();
+    bitmap.flip_inplace(..);
+    assert_eq!(bitmap.cardinality(), FULL_CARDINALITY);
+    assert!(bitmap.contains(u32::MAX));
+
+    bitmap.flip_inplace(u32::MAX..);
+    assert_eq!(bitmap.cardinality(), FULL_CARDINALITY - 1);
+    assert!(!bitmap.contains(u32::MAX));
+}
+
+#[test]
+fn range_cardinality_unbounded_end_includes_max() {
+    assert_eq!(full_bitmap().range_cardinality(..), FULL_CARDINALITY);
+    assert_eq!(full_bitmap().range_cardinality(1..), FULL_CARDINALITY - 1);
+
+    let bitmap = Bitmap::of(&[u32::MAX]);
+    assert_eq!(bitmap.range_cardinality(..), 1);
+    assert_eq!(bitmap.range_cardinality(u32::MAX..), 1);
+}
+
+#[test]
+fn contains_range_unbounded_end_includes_max() {
+    assert!(full_bitmap().contains_range(..));
+    assert!(full_bitmap().contains_range(5..));
+
+    let mut missing_max = Bitmap::from_range(0..u32::MAX);
+    assert!(!missing_max.contains_range(..));
+    assert!(!missing_max.contains_range(u32::MAX..));
+    missing_max.add(u32::MAX);
+    assert!(missing_max.contains_range(..));
+}
+
+#[test]
+fn intersect_with_range_unbounded_end_includes_max() {
+    let bitmap = Bitmap::of(&[u32::MAX]);
+    assert!(bitmap.intersect_with_range(..));
+    assert!(bitmap.intersect_with_range(u32::MAX..));
+    assert!(!bitmap.intersect_with_range(..u32::MAX));
+}
