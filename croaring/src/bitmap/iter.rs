@@ -43,6 +43,7 @@ impl<'a> BitmapCursor<'a> {
     /// Returns true if the cursor is pointing at a value in the bitmap.
     ///
     /// If this returns false, then the cursor is pointing at a "ghost" position,
+    /// either before the first value or after the last value.
     ///
     /// # Examples
     ///
@@ -263,7 +264,7 @@ impl<'a> BitmapCursor<'a> {
     /// for (i, item) in buf.iter().enumerate() {
     ///     assert_eq!(*item, i as u32);
     /// }
-    /// // Calls to next_many() can be interleaved with other cursor calls
+    /// // Calls to read_many() can be interleaved with other cursor calls
     /// assert_eq!(cursor.current(), Some(222));
     /// assert_eq!(cursor.next(), Some(555));
     /// assert_eq!(cursor.read_many(&mut buf), 2);
@@ -332,7 +333,7 @@ impl<'a> BitmapCursor<'a> {
     ///     };
     ///     assert_eq!(*item, expected as u32);
     /// }
-    /// // Calls to next_many() can be interleaved with other cursor calls
+    /// // Calls to read_many_rev() can be interleaved with other cursor calls
     /// assert_eq!(cursor.current(), Some(2));
     /// assert_eq!(cursor.prev(), Some(1));
     /// assert_eq!(cursor.read_many_rev(&mut buf), 2);

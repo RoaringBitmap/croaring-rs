@@ -86,6 +86,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// Returns true if the cursor is pointing at a value in the bitmap.
     ///
     /// If this returns false, then the cursor is pointing at a "ghost" position,
+    /// either before the first value or after the last value.
     ///
     /// # Examples
     ///
@@ -289,7 +290,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// The current value _is_ included in the output.
     ///
     /// Returns the number of items read from the iterator, may be `< dst.len()` iff
-    /// the iterator is exhausted or `dst.len() > u64::MAX`.
+    /// the iterator is exhausted.
     ///
     /// This can be much more efficient than repeated iteration.
     ///
@@ -311,7 +312,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// for (i, item) in buf.iter().enumerate() {
     ///     assert_eq!(*item, i as u64);
     /// }
-    /// // Calls to next_many() can be interleaved with other cursor calls
+    /// // Calls to read_many() can be interleaved with other cursor calls
     /// assert_eq!(cursor.current(), Some(222));
     /// assert_eq!(cursor.next(), Some(555));
     /// assert_eq!(cursor.read_many(&mut buf), 2);
@@ -354,7 +355,7 @@ impl<'a> Bitmap64Cursor<'a> {
     /// The current value _is_ included in the output.
     ///
     /// Returns the number of items read from the iterator, may be `< dst.len()` iff
-    /// the iterator is exhausted or `dst.len() > u64::MAX`.
+    /// the iterator is exhausted.
     ///
     /// This can be much more efficient than repeated iteration.
     ///
@@ -608,7 +609,7 @@ impl<'a> Bitmap64Iterator<'a> {
     /// Attempt to read many values from the iterator into `dst`
     ///
     /// Returns the number of items read from the iterator, may be `< dst.len()` iff
-    /// the iterator is exhausted or `dst.len() > u64::MAX`.
+    /// the iterator is exhausted.
     ///
     /// This can be much more efficient than repeated iteration.
     ///

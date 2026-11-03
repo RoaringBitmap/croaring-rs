@@ -205,7 +205,7 @@ impl Bitmap {
         }
     }
 
-    /// Check whether a range of values of range are present
+    /// Returns `true` if every value in `range` is in the bitmap. An empty range is always contained.
     ///
     /// # Examples
     ///
@@ -702,8 +702,8 @@ impl Bitmap {
         unsafe { ffi::roaring_bitmap_andnot_inplace(&mut self.bitmap, &other.bitmap) }
     }
 
-    /// Negates the bits in the given range
-    /// any integer present in this range and in the bitmap is removed.
+    /// Flips every value in `range`: values present in the bitmap are removed, and values absent
+    /// from it are added. Values outside `range` are unchanged.
     /// Returns result as a new bitmap.
     ///
     /// # Examples
@@ -732,8 +732,8 @@ impl Bitmap {
         unsafe { Self::take_heap(ffi::roaring_bitmap_flip(&self.bitmap, start, end)) }
     }
 
-    /// Negates the bits in the given range
-    /// any integer present in this range and in the bitmap is removed.
+    /// Flips every value in `range`: values present in the bitmap are removed, and values absent
+    /// from it are added. Values outside `range` are unchanged.
     /// Stores the result in the current bitmap.
     ///
     /// # Examples
@@ -927,7 +927,7 @@ impl Bitmap {
         S::try_serialize_into_aligned(self, dst)
     }
 
-    /// Given a serialized bitmap as slice of bytes in format `S`, returns a `Bitmap` instance.
+    /// Given a serialized bitmap as slice of bytes in format `D`, returns a `Bitmap` instance.
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns None.
@@ -956,7 +956,7 @@ impl Bitmap {
         D::try_deserialize(buffer)
     }
 
-    /// Given a serialized bitmap as slice of bytes in format `S `, returns a bitmap instance.
+    /// Given a serialized bitmap as slice of bytes in format `D`, returns a bitmap instance.
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns empty bitmap.
@@ -1166,7 +1166,7 @@ impl Bitmap {
     }
 
     /// Returns true if the Bitmap is empty.
-    /// Faster than doing: bitmap.cardinality() == 0)
+    /// Faster than doing: `bitmap.cardinality() == 0`
     ///
     /// # Examples
     ///
@@ -1285,6 +1285,10 @@ impl Bitmap {
 
     /// Return the Jaccard index between Self and &other
     ///
+    /// The Jaccard index is NaN if both bitmaps are empty
+    ///
+    /// # Examples
+    ///
     /// ```
     /// use croaring::Bitmap;
     ///
@@ -1295,6 +1299,8 @@ impl Bitmap {
     /// assert_eq!(bitmap1.jaccard_index(&bitmap2), 0.0);
     /// assert_eq!(bitmap1.jaccard_index(&bitmap3), 0.25);
     /// assert_eq!(bitmap2.jaccard_index(&bitmap3), 0.6666666666666666);
+    ///
+    /// assert!(Bitmap::new().jaccard_index(&Bitmap::new()).is_nan());
     /// ```
     #[inline]
     #[doc(alias = "roaring_bitmap_jaccard_index")]
@@ -1633,9 +1639,7 @@ impl Bitmap {
     ///
     /// This can be useful for those who need the performance and simplicity of a standard bitset.
     ///
-    /// # Errors
-    ///
-    /// This function will return None on allocation failure
+    /// Returns `None` on allocation failure.
     ///
     /// # Examples
     /// ```
