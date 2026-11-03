@@ -689,3 +689,45 @@ fn bitset_self_comparison_when_non_empty() {
     assert_eq!(bitset.difference_count(&bitset), 0);
     assert_eq!(bitset.symmetric_difference_count(&bitset), 0);
 }
+
+#[test]
+fn lazy_batch_repairs_bitmap_when_closure_panics() {
+    init();
+    for use_xor in [false, true] {
+        let mut bitmap = Bitmap::of(&[1]);
+        bitmap.add_range(65536..65546);
+        let other = Bitmap::from_range(0..60000);
+
+        let mut expected = bitmap.clone();
+        if use_xor {
+            expected ^= &other;
+        } else {
+            expected |= &other;
+        }
+
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            bitmap.lazy_batch(|lazy| {
+                if use_xor {
+                    lazy.xor_inplace(&other);
+                } else {
+                    lazy.or_inplace(&other, true);
+                }
+                panic!("closure panics after a lazy operation");
+            })
+        }));
+        assert!(result.is_err());
+
+        assert_eq!(
+            bitmap.cardinality(),
+            expected.cardinality(),
+            "xor: {use_xor}"
+        );
+        assert_eq!(
+            u64::try_from(bitmap.iter().count()).unwrap(),
+            bitmap.cardinality(),
+            "xor: {use_xor}"
+        );
+        assert_eq!(bitmap, expected, "xor: {use_xor}");
+        bitmap.internal_validate().unwrap();
+    }
+}
