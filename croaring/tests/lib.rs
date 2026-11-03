@@ -731,3 +731,42 @@ fn lazy_batch_repairs_bitmap_when_closure_panics() {
         bitmap.internal_validate().unwrap();
     }
 }
+
+#[test]
+fn bitmap_iter_nth_matches_slice_iter() {
+    init();
+    let values = [1, 5, 9, 70_000, 70_001, u32::MAX];
+    let bitmap = Bitmap::of(&values);
+
+    for n in 0..values.len() + 3 {
+        assert_eq!(
+            bitmap.iter().nth(n),
+            values.iter().copied().nth(n),
+            "n = {n}"
+        );
+    }
+
+    let mut actual = bitmap.iter();
+    let mut expected = values.iter().copied();
+    for n in [1, 0, 2, 0, 0, 0] {
+        assert_eq!(actual.nth(n), expected.nth(n), "n = {n}");
+    }
+}
+
+#[test]
+#[cfg(target_pointer_width = "64")]
+fn bitmap_iter_nth_beyond_u32_range() {
+    init();
+    let full = Bitmap::from_range(0..=u32::MAX);
+    assert_eq!(full.cardinality(), 1 << 32);
+
+    assert_eq!(full.iter().nth((1 << 32) - 1), Some(u32::MAX));
+    assert_eq!(full.iter().nth(1 << 32), None);
+    assert_eq!(full.iter().nth((1 << 32) + 1), None);
+    assert_eq!(full.iter().nth(1 << 33), None);
+    assert_eq!(full.iter().nth(usize::MAX), None);
+
+    let mut iter = full.iter();
+    assert_eq!(iter.nth(u32::MAX as usize), Some(u32::MAX));
+    assert_eq!(iter.nth(0), None);
+}

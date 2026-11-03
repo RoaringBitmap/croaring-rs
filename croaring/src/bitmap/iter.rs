@@ -686,13 +686,13 @@ impl<'a> Iterator for BitmapIterator<'a> {
         }
     }
 
-    fn nth(&mut self, n: usize) -> Option<Self::Item> {
-        if n > 0 {
-            // `next` yeilds the current value from the cursor, so if we skip `n` values,
-            // the next call to `next` will return the `n`th value.
-            //
-            // Unlike most calls to `nth`, we want to skip `n` values, not `n-1`.
-            self.cursor.skip(u32::try_from(n).unwrap_or(u32::MAX));
+    fn nth(&mut self, mut n: usize) -> Option<Self::Item> {
+        while n > 0 {
+            let chunk = u32::try_from(n).unwrap_or(u32::MAX);
+            if self.cursor.skip(chunk) < chunk {
+                return None;
+            }
+            n -= chunk as usize;
         }
         self.next()
     }
