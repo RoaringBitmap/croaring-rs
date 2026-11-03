@@ -118,18 +118,18 @@ const MEMORY_HOOKS: ffi::roaring_memory_t = ffi::roaring_memory_t {
     aligned_free: Some(aligned_free),
 };
 
-struct AllocatorSlot(UnsafeCell<MaybeUninit<&'static dyn Allocator>>);
+struct AllocatorSlot(UnsafeCell<MaybeUninit<&'static (dyn Allocator + Sync)>>);
 
 impl AllocatorSlot {
     pub const fn new() -> Self {
         Self(UnsafeCell::new(MaybeUninit::uninit()))
     }
 
-    pub unsafe fn get(&self) -> &'static dyn Allocator {
+    pub unsafe fn get(&self) -> &'static (dyn Allocator + Sync) {
         unsafe { (*self.0.get()).assume_init() }
     }
 
-    pub unsafe fn set(&self, allocator: &'static dyn Allocator) {
+    pub unsafe fn set(&self, allocator: &'static (dyn Allocator + Sync)) {
         unsafe {
             (*self.0.get()).write(allocator);
         }
@@ -143,6 +143,27 @@ static ALLOCATOR: AllocatorSlot = AllocatorSlot::new();
 
 /// Install custom memory allocation hooks for `CRoaring` which will use the passed allocator.
 ///
+/// `CRoaring` objects are `Send`, so they may be allocated, resized, and freed on any thread.
+/// The allocator must therefore be [`Sync`]:
+///
+/// ```compile_fail,E0277
+/// use allocator_api2::alloc::{AllocError, Allocator, Layout};
+/// use core::marker::PhantomData;
+/// use core::ptr::NonNull;
+///
+/// struct NotSync(PhantomData<*const ()>);
+///
+/// unsafe impl Allocator for NotSync {
+///     fn allocate(&self, _: Layout) -> Result<NonNull<[u8]>, AllocError> {
+///         Err(AllocError)
+///     }
+///     unsafe fn deallocate(&self, _: NonNull<u8>, _: Layout) {}
+/// }
+///
+/// let allocator: &'static NotSync = &NotSync(PhantomData);
+/// unsafe { croaring::configure_custom_alloc(allocator) };
+/// ```
+///
 /// # Safety
 ///
 /// The caller must ensure that:
@@ -152,12 +173,10 @@ static ALLOCATOR: AllocatorSlot = AllocatorSlot::new();
 /// - no other thread is calling into `CRoaring`, or either of the `configure_*` functions,
 ///   while this function runs. The hooks are process-global and are updated without
 ///   synchronization.
-/// - `allocator` can be used from any thread concurrently, as if it were [`Sync`].
-///   `CRoaring` objects are `Send`, so they may be allocated, resized, and freed on any thread.
 ///
 /// Ideally, this function should be called early in the program's execution, before any other
 /// `CRoaring` functions are called.
-pub unsafe fn configure_custom_alloc(allocator: &'static dyn Allocator) {
+pub unsafe fn configure_custom_alloc(allocator: &'static (dyn Allocator + Sync)) {
     unsafe {
         ALLOCATOR.set(allocator);
         ffi::roaring_init_memory_hook(MEMORY_HOOKS);
