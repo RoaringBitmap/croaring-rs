@@ -249,7 +249,7 @@ impl Bitmap64 {
         unsafe { ffi::roaring64_bitmap_remove(self.raw.as_ptr(), value) }
     }
 
-    /// Remove a value from the bit map if present, and return if the value was previously present
+    /// Remove a value from the bitmap if present, and return if the value was previously present
     ///
     /// # Examples
     ///
@@ -450,7 +450,7 @@ impl Bitmap64 {
     /// assert!(!bitmap3.is_strict_subset(&bitmap1));
     /// assert!(!bitmap4.is_strict_subset(&bitmap1));
     /// assert!(!bitmap1.is_strict_subset(&bitmap1));
-    ///
+    /// ```
     #[inline]
     #[must_use]
     #[doc(alias = "roaring64_bitmap_is_strict_subset")]
@@ -663,7 +663,7 @@ impl Bitmap64 {
     /// If the roaring bitmap doesn't contain x, this function will return None.
     /// The difference with the [rank][Self::rank] function is that this function
     /// will return None when x is not the element of roaring bitmap, but the rank
-    /// function will return the the number of items less than x, and would require
+    /// function will return the number of items less than x, and would require
     /// a call to [contains][Self::contains] to check if x is in the roaring bitmap.
     ///
     /// # Examples

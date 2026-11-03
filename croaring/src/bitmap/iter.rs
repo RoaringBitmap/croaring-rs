@@ -746,7 +746,7 @@ impl Bitmap {
 
 /// Converts this iterator into a cursor
 ///
-/// The cursor's current value will be the the item which would have been returned by the next call to `next()`
+/// The cursor's current value will be the item which would have been returned by the next call to `next()`
 /// or one past the end of the bitmap if the iterator is exhausted.
 ///
 /// # Examples

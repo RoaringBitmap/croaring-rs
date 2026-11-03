@@ -117,6 +117,7 @@ impl Bitmap {
     ///     total
     /// });
     /// assert_eq!(total_added, 7);
+    /// ```
     #[doc(alias = "roaring_bitmap_repair_after_lazy")]
     pub fn lazy_batch<F, O>(&mut self, f: F) -> O
     where
