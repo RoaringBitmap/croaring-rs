@@ -45,7 +45,10 @@ unsafe extern "C" fn realloc(ptr: *mut core::ffi::c_void, size: usize) -> *mut c
             alloc::alloc::dealloc(size_ptr.cast::<u8>(), old_layout);
             return core::ptr::null_mut();
         }
-        let new_ptr = alloc::alloc::realloc(size_ptr.cast(), old_layout, size + size_of::<usize>());
+        let Some(new_layout) = layout(size) else {
+            return core::ptr::null_mut();
+        };
+        let new_ptr = alloc::alloc::realloc(size_ptr.cast(), old_layout, new_layout.size());
         if new_ptr.is_null() {
             return core::ptr::null_mut();
         }
@@ -128,5 +131,54 @@ fn impossible_aligned_alloc() {
         let max_pow_2_isize = 1usize << (size_of::<usize>() * 8 - 2);
         let ptr = aligned_malloc(max_pow_2_isize, max_pow_2_isize);
         assert!(ptr.is_null());
+    }
+}
+
+#[test]
+fn realloc_preserves_data() {
+    unsafe {
+        let ptr = malloc(16);
+        for i in 0..16 {
+            ptr.cast::<u8>().add(i).write(i as u8);
+        }
+
+        let ptr = realloc(ptr, 64);
+        assert!(!ptr.is_null());
+        for i in 0..16 {
+            assert_eq!(ptr.cast::<u8>().add(i).read(), i as u8);
+        }
+
+        let ptr = realloc(ptr, 8);
+        assert!(!ptr.is_null());
+        for i in 0..8 {
+            assert_eq!(ptr.cast::<u8>().add(i).read(), i as u8);
+        }
+        free(ptr);
+    }
+}
+
+#[test]
+fn impossible_realloc() {
+    unsafe {
+        let ptr = malloc(16);
+        for i in 0..16 {
+            ptr.cast::<u8>().add(i).write(i as u8);
+        }
+
+        let header = size_of::<usize>();
+        let max_isize = isize::MAX as usize;
+        for size in [
+            usize::MAX,
+            usize::MAX - header + 1,
+            max_isize,
+            max_isize - header + 1,
+        ] {
+            assert!(realloc(ptr, size).is_null(), "realloc({size:#x})");
+        }
+
+        for i in 0..16 {
+            assert_eq!(ptr.cast::<u8>().add(i).read(), i as u8);
+        }
+        free(ptr);
     }
 }
