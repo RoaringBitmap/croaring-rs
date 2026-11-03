@@ -70,7 +70,9 @@ jobs:
       run: |
         cargo +${{ matrix.rust }} install cargo-fuzz --locked
         cd fuzz || exit 1
-        CFLAGS="-fsanitize=address -g -fno-omit-frame-pointer"
+        # Build the C code with the same sanitizer (and runtime) as the Rust code, like `make fuzz`
+        export CC=clang
+        export CFLAGS="-fsanitize=address -g -fno-omit-frame-pointer"
         targets=( $(cargo metadata --format-version 1 --no-deps | jq -r ".packages[].targets[].name") )
         target_triple=$(cargo --version --verbose | grep 'host:' | cut -d ' ' -f 2)
         for target in "${targets[@]}"; do
