@@ -20,10 +20,18 @@ pub enum Native {}
 /// Note that because frozen serialization format imitates C memory layout
 /// of `roaring_bitmap_t`, it is not fixed. It is different on big/little endian
 /// platforms and can be changed in future.
+///
+/// Frozen data must be aligned in memory. [`Bitmap`](crate::Bitmap) data must be aligned to 32
+/// bytes ([`Frozen::REQUIRED_ALIGNMENT`]), but [`Bitmap64`](crate::Bitmap64) data must be
+/// aligned to 64 bytes.
 pub enum Frozen {}
 
 impl Frozen {
-    /// The frozen format requires bitmaps are aligned to 32 bytes.
+    /// The alignment required by frozen [`Bitmap`](crate::Bitmap) data: 32 bytes.
+    ///
+    /// This is **not** the alignment required by [`Bitmap64`](crate::Bitmap64), which is 64
+    /// bytes. Data aligned only to this value is rejected when deserializing a
+    /// [`Bitmap64`](crate::Bitmap64) or a [`Bitmap64View`](crate::Bitmap64View).
     pub const REQUIRED_ALIGNMENT: usize = 32;
 }
 
