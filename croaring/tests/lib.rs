@@ -1,3 +1,4 @@
+use std::ops::Bound;
 use std::{fs, iter};
 
 use croaring::{Bitmap, BitmapView, Frozen, Native, Portable};
@@ -866,4 +867,72 @@ fn bitmap_view_deserialize_panics_on_misaligned_frozen() {
 
     let _ =
         unsafe { BitmapView::deserialize::<Frozen>(&storage[misaligned..misaligned + data.len()]) };
+}
+
+fn expected_stepped(range: (Bound<u32>, Bound<u32>), step: u32) -> Bitmap {
+    let (start_bound, end_bound) = range;
+    let step = u64::from(step);
+    let mut value = match start_bound {
+        Bound::Included(i) => u64::from(i),
+        Bound::Excluded(i) => u64::from(i) + step,
+        Bound::Unbounded => 0,
+    };
+    let end = match end_bound {
+        Bound::Included(i) => u64::from(i) + 1,
+        Bound::Excluded(i) => u64::from(i),
+        Bound::Unbounded => 1 << 32,
+    };
+    let mut expected = Bitmap::new();
+    while value < end {
+        expected.add(u32::try_from(value).unwrap());
+        value += step;
+    }
+    expected
+}
+
+#[test]
+fn from_range_with_step_large_step_reaching_max() {
+    init();
+    let max = u32::MAX;
+    for step in [1 << 16, (1 << 16) + 1, 100_000, 1 << 31, max] {
+        let mut ranges = vec![
+            (Bound::Unbounded, Bound::Included(max)),
+            (Bound::Unbounded, Bound::Unbounded),
+        ];
+        for start in [0, 1, 5, max - 70_000, max - 1, max] {
+            ranges.push((Bound::Included(start), Bound::Included(max)));
+            ranges.push((Bound::Excluded(start), Bound::Included(max)));
+            ranges.push((Bound::Included(start), Bound::Unbounded));
+            ranges.push((Bound::Included(start), Bound::Excluded(max)));
+        }
+        for range in ranges {
+            let actual = Bitmap::from_range_with_step(range, step);
+            assert_eq!(
+                actual,
+                expected_stepped(range, step),
+                "{range:?} step {step}"
+            );
+        }
+    }
+}
+
+#[test]
+fn from_range_with_step_small_step_reaching_max() {
+    init();
+    let max = u32::MAX;
+    for step in [1, 2, 3, 65_535] {
+        let ranges = [
+            (Bound::Included(max - 100_000), Bound::Included(max)),
+            (Bound::Excluded(max - 100_000), Bound::Unbounded),
+            (Bound::Included(max - 3), Bound::Excluded(max)),
+        ];
+        for range in ranges {
+            let actual = Bitmap::from_range_with_step(range, step);
+            assert_eq!(
+                actual,
+                expected_stepped(range, step),
+                "{range:?} step {step}"
+            );
+        }
+    }
 }
