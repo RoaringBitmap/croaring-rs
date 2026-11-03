@@ -59,15 +59,66 @@ impl<'a> BitmapView<'a> {
     ///
     /// # Panics
     ///
-    /// Panics when creating a [`Portable`][crate::Portable] view on a big-endian system. Use
-    /// [`Bitmap::try_deserialize`] to create an owned bitmap on those systems.
+    /// Panics if the view cannot be created, which is the case when [`Self::try_deserialize`]
+    /// returns `None`: for example when creating a [`Portable`][crate::Portable] view on a
+    /// big-endian system, or when [`Frozen`][crate::Frozen] data is not aligned. Use
+    /// [`Self::try_deserialize`] to handle these cases, or [`Bitmap::try_deserialize`] to
+    /// create an owned bitmap on big-endian systems.
     ///
     /// # Safety
     ///
     /// The data must be the result of serializing a bitmap with the same serialization format.
+    /// It must remain unchanged for the lifetime of the returned view and meet the alignment
+    /// and length requirements of the selected format.
     #[must_use]
     pub unsafe fn deserialize<S: ViewDeserializer>(data: &'a [u8]) -> Self {
-        unsafe { S::deserialize_view(data) }
+        unsafe { Self::try_deserialize::<S>(data) }.expect(
+            "could not create a bitmap view: the data is invalid or misaligned, \
+             or the format is unsupported on this platform",
+        )
+    }
+
+    /// Creates a bitmap view of a slice of data without copying, or `None` if that is not possible.
+    ///
+    /// This returns `None` if the data is not a valid bitmap, however, this is only done on a
+    /// best-effort basis, and may not catch all invalid data. This function is _only_ safe to call
+    /// if the caller _knows_ that the data is a valid bitmap.
+    ///
+    /// [`Portable`][crate::Portable] data does not require alignment. [`Frozen`][crate::Frozen]
+    /// data must be aligned to 32 bytes, and misaligned data always returns `None`.
+    ///
+    /// Portable views are unavailable on big-endian systems, where this function returns `None`.
+    /// Use [`Bitmap::try_deserialize`] to create an owned bitmap on those systems.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use croaring::{Bitmap, BitmapView, Portable};
+    ///
+    /// let orig_bitmap = Bitmap::of(&[1, 2, 3, 4]);
+    /// let mut buf = [0; 1024];
+    /// let data: &[u8] = orig_bitmap.try_serialize_into::<Portable>(&mut buf).unwrap();
+    /// match unsafe { BitmapView::try_deserialize::<Portable>(data) } {
+    ///     Some(view) => assert_eq!(view, orig_bitmap),
+    ///     // Portable views are not available on big-endian systems
+    ///     None => assert!(cfg!(target_endian = "big")),
+    /// }
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// The data must be the result of serializing a bitmap with the same serialization format.
+    /// It must remain unchanged for the lifetime of the returned view and meet the length
+    /// requirements of the selected format.
+    #[must_use]
+    pub unsafe fn try_deserialize<S: ViewDeserializer>(data: &'a [u8]) -> Option<Self> {
+        unsafe {
+            let bitmap = S::deserialize_view(data);
+            if bitmap.is_null() {
+                return None;
+            }
+            Some(Self::take_heap(bitmap))
+        }
     }
 
     /// Create an owned, mutable bitmap from this view

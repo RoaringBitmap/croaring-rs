@@ -791,3 +791,79 @@ fn bitmap_iter_nth_beyond_u32_range() {
     assert_eq!(iter.nth(u32::MAX as usize), Some(u32::MAX));
     assert_eq!(iter.nth(0), None);
 }
+
+fn frozen_bytes(bitmap: &Bitmap) -> Vec<u8> {
+    let len = bitmap.get_serialized_size_in_bytes::<Frozen>();
+    let mut storage = vec![0; len + Frozen::REQUIRED_ALIGNMENT];
+    bitmap
+        .try_serialize_into::<Frozen>(&mut storage)
+        .unwrap()
+        .to_vec()
+}
+
+fn sample_view_bitmap() -> Bitmap {
+    let mut bitmap = Bitmap::of(&[1, 2, 3, 100_000, u32::MAX]);
+    bitmap.add_range(500_000..510_000);
+    bitmap.run_optimize();
+    bitmap
+}
+
+#[test]
+fn bitmap_view_try_deserialize_portable() {
+    init();
+    let bitmap = sample_view_bitmap();
+    let mut storage = vec![0; bitmap.get_serialized_size_in_bytes::<Portable>()];
+    let data = bitmap.try_serialize_into::<Portable>(&mut storage).unwrap();
+
+    let view = unsafe { BitmapView::try_deserialize::<Portable>(data) }.unwrap();
+    assert_eq!(view, bitmap);
+
+    assert!(unsafe { BitmapView::try_deserialize::<Portable>(&data[..data.len() - 1]) }.is_none());
+    assert!(unsafe { BitmapView::try_deserialize::<Portable>(&[]) }.is_none());
+    assert!(unsafe { BitmapView::try_deserialize::<Portable>(&[0xff; 8]) }.is_none());
+}
+
+#[test]
+fn bitmap_view_try_deserialize_frozen() {
+    init();
+    let bitmap = sample_view_bitmap();
+    let len = bitmap.get_serialized_size_in_bytes::<Frozen>();
+    let mut storage = vec![0; len + Frozen::REQUIRED_ALIGNMENT];
+    let data = bitmap.try_serialize_into::<Frozen>(&mut storage).unwrap();
+    assert_eq!(data.as_ptr() as usize % Frozen::REQUIRED_ALIGNMENT, 0);
+
+    let view = unsafe { BitmapView::try_deserialize::<Frozen>(data) }.unwrap();
+    assert_eq!(view, bitmap);
+
+    assert!(unsafe { BitmapView::try_deserialize::<Frozen>(&data[..len - 1]) }.is_none());
+}
+
+#[test]
+fn bitmap_view_try_deserialize_misaligned_frozen() {
+    init();
+    let bitmap = sample_view_bitmap();
+    let data = frozen_bytes(&bitmap);
+
+    let mut storage = vec![0; data.len() + 2 * Frozen::REQUIRED_ALIGNMENT];
+    let aligned_start = storage.as_ptr().align_offset(Frozen::REQUIRED_ALIGNMENT);
+    let misaligned = aligned_start + 1;
+    storage[misaligned..misaligned + data.len()].copy_from_slice(&data);
+
+    let view = unsafe {
+        BitmapView::try_deserialize::<Frozen>(&storage[misaligned..misaligned + data.len()])
+    };
+    assert!(view.is_none());
+}
+
+#[test]
+#[should_panic(expected = "bitmap view")]
+fn bitmap_view_deserialize_panics_on_misaligned_frozen() {
+    init();
+    let data = frozen_bytes(&sample_view_bitmap());
+    let mut storage = vec![0; data.len() + 2 * Frozen::REQUIRED_ALIGNMENT];
+    let misaligned = storage.as_ptr().align_offset(Frozen::REQUIRED_ALIGNMENT) + 1;
+    storage[misaligned..misaligned + data.len()].copy_from_slice(&data);
+
+    let _ =
+        unsafe { BitmapView::deserialize::<Frozen>(&storage[misaligned..misaligned + data.len()]) };
+}
