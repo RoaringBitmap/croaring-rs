@@ -867,7 +867,7 @@ impl Bitmap64 {
     ///
     /// let serialized_buffer = original_bitmap.serialize::<Portable>();
     ///
-    /// let deserialized_bitmap = Bitmap64::deserialize::<Portable>(&serialized_buffer);
+    /// let deserialized_bitmap = Bitmap64::try_deserialize::<Portable>(&serialized_buffer).unwrap();
     ///
     /// assert_eq!(original_bitmap, deserialized_bitmap);
     /// ```
@@ -994,6 +994,12 @@ impl Bitmap64 {
     /// See example of [`Self::serialize`] function.
     ///
     /// On invalid input returns empty bitmap.
+    ///
+    /// This silently turns corrupt, truncated, or wrongly-typed input into an empty bitmap, use
+    /// [`Self::try_deserialize`] to detect these cases instead.
+    #[deprecated(
+        note = "returns an empty bitmap on invalid input, use `try_deserialize` to detect failure"
+    )]
     #[inline]
     #[must_use]
     pub fn deserialize<D: Deserializer>(buffer: &[u8]) -> Self {
