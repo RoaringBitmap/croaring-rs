@@ -107,8 +107,13 @@ const MEMORY_HOOKS: ffi::roaring_memory_t = ffi::roaring_memory_t {
 ///
 /// # Safety
 ///
-/// The caller must ensure there are not any objects allocated by `CRoaring` at the time this
-/// function is called.
+/// The caller must ensure that:
+/// - there are not any objects allocated by `CRoaring` at the time this function is called.
+///   This includes objects allocated while a different allocator was configured, for example by
+///   `configure_custom_alloc`: memory must be freed by the allocator which allocated it.
+/// - no other thread is calling into `CRoaring`, or either of the `configure_*` functions,
+///   while this function runs. The hooks are process-global and are updated without
+///   synchronization.
 ///
 /// Ideally, this function should be called early in the program's execution, before any other
 /// `CRoaring` functions are called.
