@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.8.0...croaring-v2.9.0) - 2026-11-03
+
+### Added
+- [**breaking**] Require configure_custom_alloc allocators to be Sync (by @Dr-Emann) - #259
+  - This is actually a breaking change, but it is a soundness fix.
+- Add BitmapView::try_deserialize (by @Dr-Emann) - #259
+- Add Bitmap::word_range_to_bitset and word_range_to_bitset_uninit (by @Dr-Emann) - #254
+
+### Fixed
+- Handle counts above u32::MAX in BitmapIterator::nth (by @Dr-Emann) - #259
+- Repair bitmap after lazy_batch even if the closure panics (by @Dr-Emann) - #259
+- Reject oversized sizes in global allocator realloc (by @Dr-Emann) - #258
+- Correct Bitset self-comparison for empty bitsets (by @Dr-Emann) - #258
+- Keep BitsetIterator size_hint from underflowing after exhaustion (by @Dr-Emann) - #258
+- Handle u64::MAX and zero step in Bitmap64::from_range_with_step (by @Dr-Emann) - #258
+- Include u32::MAX in unbounded Bitmap ranges (by @Dr-Emann) - #258
+- Pass allocation start to custom allocator in realloc (by @Dr-Emann) - #258
+
+### Other
+- Use associated numeric constants in tests instead of std::u32 (by @Dr-Emann) - #259
+- Fix unclear and truncated Bitmap and Bitmap64 documentation (by @Dr-Emann) - #259
+- Fix typos and close unclosed code blocks (by @Dr-Emann) - #259
+- Make is_strict_subset and fast_or examples test what they document (by @Dr-Emann) - #259
+- Correct inaccurate descriptions of Bitmap and Bitmap64 methods (by @Dr-Emann) - #259
+- Deprecate Bitmap and Bitmap64 deserialize in favor of try_deserialize (by @Dr-Emann) - #259
+- Note that Bitmap64 frozen data needs 64 byte alignment (by @Dr-Emann) - #259
+- Assert Send and Sync for public types with manual impls (by @Dr-Emann) - #259
+- Call init() in the unbounded range tests (by @Dr-Emann) - #259
+- Document concurrency and mixing requirements of configure_* allocator hooks (by @Dr-Emann) - #259
+- Portable frozen view no longer requires aligned data (by @Dr-Emann) - #254
+- *(deps)* Bump roaring from 0.11.5 to 0.12.0 (by @dependabot[bot]) - #249
+- Update to croaring-sys 5.4.0 (by @github-actions[bot]) - #253
+- Update to croaring-sys 5.2.3 (by @Dr-Emann) - #246
+
 ## [2.8.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.7.0...croaring-v2.8.0) - 2026-09-20
 
 ### Added
