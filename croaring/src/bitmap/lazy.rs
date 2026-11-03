@@ -39,6 +39,17 @@ impl<'a> LazyBitmap<'a> {
     }
 }
 
+impl Drop for LazyBitmap<'_> {
+    #[inline]
+    fn drop(&mut self) {
+        // Runs on unwind too, so a panic in the closure cannot leave the bitmap with
+        // unknown cardinalities.
+        unsafe {
+            ffi::roaring_bitmap_repair_after_lazy(&mut self.bitmap.bitmap);
+        }
+    }
+}
+
 impl<'a> core::ops::BitOrAssign<&Bitmap> for LazyBitmap<'a> {
     #[inline]
     fn bitor_assign(&mut self, other: &Bitmap) {
@@ -112,10 +123,6 @@ impl Bitmap {
         F: FnOnce(&mut LazyBitmap<'_>) -> O,
     {
         let mut lazy_bitmap = LazyBitmap { bitmap: self };
-        let result = f(&mut lazy_bitmap);
-        unsafe {
-            ffi::roaring_bitmap_repair_after_lazy(&mut self.bitmap);
-        }
-        result
+        f(&mut lazy_bitmap)
     }
 }
