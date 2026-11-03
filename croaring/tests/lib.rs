@@ -1,4 +1,4 @@
-use std::{fs, iter, u32};
+use std::{fs, iter};
 
 use croaring::{Bitmap, BitmapView, Frozen, Native, Portable};
 use proptest::prelude::*;
@@ -218,8 +218,8 @@ fn test_treemap_deserialize_cpp() {
                 assert!(treemap.contains(i));
             }
 
-            assert!(treemap.contains(std::u32::MAX as u64));
-            assert!(treemap.contains(std::u64::MAX));
+            assert!(treemap.contains(u32::MAX as u64));
+            assert!(treemap.contains(u64::MAX));
         }
         Err(err) => panic!("Cannot read test file {}", err),
     }
@@ -237,8 +237,8 @@ fn test_treemap_deserialize_jvm() {
                 assert!(treemap.contains(i));
             }
 
-            assert!(treemap.contains(std::u32::MAX as u64));
-            assert!(treemap.contains(std::u64::MAX));
+            assert!(treemap.contains(u32::MAX as u64));
+            assert!(treemap.contains(u64::MAX));
         }
         Err(err) => panic!("Cannot read test file {}", err),
     }
@@ -248,7 +248,7 @@ fn test_treemap_deserialize_jvm() {
 #[cfg(feature = "alloc")]
 fn test_treemap_max_andnot_empty() {
     init();
-    let single_max = Treemap::of(&[std::u64::MAX]);
+    let single_max = Treemap::of(&[u64::MAX]);
     let empty = Treemap::new();
     let diff = single_max.andnot(&empty);
     assert_eq!(diff, single_max);
