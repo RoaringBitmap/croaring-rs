@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2026-10-26T18:51:42Z
+// Created by amalgamation.sh on 2026-11-04T04:16:04Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -553,6 +553,15 @@ class Roaring {
     /**
      * Convert array and bitmap containers to run containers when it is more
      * efficient; also convert from run containers when more space efficient.
+     *
+     * Adding or removing single values (for example with add() or remove())
+     * does not convert a run container back to an array or bitmap container
+     * when its runs stop being the most compact encoding. Such a container can
+     * then use more memory and serialized space than needed: in the worst
+     * case, the runs of one 65536-value chunk can take about 128 KiB where a
+     * bitmap container takes 8 KiB. Calling runOptimize() again after such
+     * modifications recovers that space.
+     *
      * Returns true if the result has at least one run container.  Additional
      * savings might be possible by calling shrinkToFit().
      */
@@ -1009,10 +1018,13 @@ class Roaring {
     const_iterator begin() const;
 
     /**
-     * A bogus iterator that can be used together with begin()
-     * for constructions such as for (auto i = b.begin(); * i!=b.end(); ++i) {}
+     * Returns a past-the-end iterator bound to this bitmap.
+     * Decrementing it yields the last value.
+     *
+     * Returned by value, like begin(). Each call is independent and refers
+     * to this bitmap.
      */
-    const_iterator &end() const;
+    const_iterator end() const;
 
     roaring_bitmap_t roaring;
 };
@@ -1140,9 +1152,8 @@ inline RoaringSetBitBiDirectionalIterator Roaring::begin() const {
     return RoaringSetBitBiDirectionalIterator(*this);
 }
 
-inline RoaringSetBitBiDirectionalIterator &Roaring::end() const {
-    static RoaringSetBitBiDirectionalIterator e(*this, true);
-    return e;
+inline RoaringSetBitBiDirectionalIterator Roaring::end() const {
+    return RoaringSetBitBiDirectionalIterator(*this, true);
 }
 
 }  // namespace roaring
@@ -2977,9 +2988,9 @@ class Roaring64Map {
      */
     bool removeRunCompression() {
         return std::accumulate(
-            roarings.begin(), roarings.end(), true,
+            roarings.begin(), roarings.end(), false,
             [](bool previous, std::pair<const uint32_t, Roaring> &map_entry) {
-                return map_entry.second.removeRunCompression() && previous;
+                return map_entry.second.removeRunCompression() || previous;
             });
     }
 
@@ -2999,14 +3010,23 @@ class Roaring64Map {
     /**
      * Convert array and bitmap containers to run containers when it is more
      * efficient; also convert from run containers when more space efficient.
+     *
+     * Adding or removing single values (for example with add() or remove())
+     * does not convert a run container back to an array or bitmap container
+     * when its runs stop being the most compact encoding. Such a container can
+     * then use more memory and serialized space than needed: in the worst
+     * case, the runs of one 65536-value chunk can take about 128 KiB where a
+     * bitmap container takes 8 KiB. Calling runOptimize() again after such
+     * modifications recovers that space.
+     *
      * Returns true if the result has at least one run container.
      * Additional savings might be possible by calling shrinkToFit().
      */
     bool runOptimize() {
         return std::accumulate(
-            roarings.begin(), roarings.end(), true,
+            roarings.begin(), roarings.end(), false,
             [](bool previous, std::pair<const uint32_t, Roaring> &map_entry) {
-                return map_entry.second.runOptimize() && previous;
+                return map_entry.second.runOptimize() || previous;
             });
     }
 
