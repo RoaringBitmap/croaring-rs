@@ -1,5 +1,5 @@
 // !!! DO NOT EDIT - THIS IS AN AUTO-GENERATED FILE !!!
-// Created by amalgamation.sh on 2026-11-04T04:16:04Z
+// Created by amalgamation.sh on 2026-11-04T18:04:16Z
 
 /*
  * The CRoaring project is under a dual license (Apache/MIT).
@@ -571,7 +571,8 @@ class Roaring {
 
     /**
      * If needed, reallocate memory to shrink the memory usage. Returns
-     * the number of bytes saved.
+     * the number of bytes saved. Containers shared with other copy-on-write
+     * bitmaps are skipped.
      */
     size_t shrinkToFit() noexcept {
         return api::roaring_bitmap_shrink_to_fit(&roaring);
@@ -3032,18 +3033,18 @@ class Roaring64Map {
 
     /**
      * If needed, reallocate memory to shrink the memory usage.
-     * Returns the number of bytes saved.
+     * Returns the number of bytes saved. Containers shared with other
+     * copy-on-write bitmaps are skipped.
      */
     size_t shrinkToFit() {
         size_t savedBytes = 0;
         auto iter = roarings.begin();
         while (iter != roarings.cend()) {
+            savedBytes += iter->second.shrinkToFit();
             if (iter->second.isEmpty()) {
-                // empty Roarings are 84 bytes
-                savedBytes += 88;
+                savedBytes += sizeof(*iter);
                 roarings.erase(iter++);
             } else {
-                savedBytes += iter->second.shrinkToFit();
                 iter++;
             }
         }
