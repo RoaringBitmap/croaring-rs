@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.1](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.9.0...croaring-v2.9.1) - 2026-11-25
+
+### Other
+- Add regression test for CRoaring from_range step hang (by @Dr-Emann) - #265
+- Update to croaring-sys 5.5.5 (by @github-actions[bot]) - #263
+- Update to croaring-sys 5.5.3 (by @github-actions[bot]) - #261
+
 ## [2.9.0](https://github.com/RoaringBitmap/croaring-rs/compare/croaring-v2.8.0...croaring-v2.9.0) - 2026-11-03
 
 ### Added
