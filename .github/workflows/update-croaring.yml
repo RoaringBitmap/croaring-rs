@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   update:
+    if: ${{ github.repository_owner == 'RoaringBitmap' }}
     runs-on: ubuntu-latest
     env:
       CARGO_TERM_COLOR: always
